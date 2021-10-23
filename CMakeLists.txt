@@ -5,5 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 include_directories(include)
 set(LIBRARY_OUTPUT_PATH lib)
 
-add_library(logger src/logger/Logger.cpp)
-add_library(jsonreader src/json_file_reader/JsonFileReader.cpp)
+add_library(logger      src/logger/Logger.cpp)
+add_library(jsonreader  src/json_file_reader/JsonFileReader.cpp)
+add_library(redis       src/redis/Redis.cpp)
