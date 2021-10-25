@@ -1,4 +1,5 @@
 #include "RedisClientInterface.h"
+#include <mutex>
 #include "Logger.h"
 
 namespace wlb
@@ -52,9 +53,15 @@ private:
     void*                   Command(const char* format);
 
 private:
+    static std::mutex           _mutex;
     static CRedisClient*        s_Instance;
+
     static redisContext*        s_pRedisContext;
+
     static redisAsyncContext*   s_pRedisAsyncContext;
+    static event_base*          s_eventBase;
+
+    static std::thread*         s_pThread;
 
 };
 
