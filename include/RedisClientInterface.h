@@ -21,7 +21,7 @@ public:
 
 // Async
     // String
-    virtual void Set(const char* key, const char* value) = 0;
+    virtual void Set(const char* key, const char* value, int time_out_s = -1) = 0;
 
     // List
 

@@ -1,4 +1,6 @@
 #include "Redis.h"
+#include "stdio.h"
+#include <stdlib.h>
 
 namespace wlb
 {
@@ -152,12 +154,29 @@ void* CRedisClient::Command(const char* format)
     return ::redisCommand(s_pRedisContext, format);
 }
 
-void CRedisClient::Set(const char* key, const char* value)
+void CRedisClient::Set(const char* key, const char* value, int time_out_s)
 {
-    std::string cmd("SET ");
-    cmd = cmd + key + " " + value;
-    int res = this->AsyncCommand(cmd.c_str());
-    LOG(INFO) << res;
+
+    if (time_out_s <= 0)
+    {
+        std::string cmd("SET ");
+        cmd = cmd + key + " " + value;
+        int res = this->AsyncCommand(cmd.c_str());
+        LOG(INFO) << res;
+        return;
+    }
+    else
+    {
+        std::string _time = std::to_string(time_out_s);
+        if (_time.empty())
+            return;
+
+        std::string cmd("SETEX ");
+        cmd = cmd + key + " " + _time + " " + value;
+        int res = this->AsyncCommand(cmd.c_str());
+        LOG(INFO) << res;
+        return;
+    }
 
     // std::string cmd("SET ");
     // cmd = cmd + key + " " + value;

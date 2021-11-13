@@ -13,7 +13,7 @@ public:
 
 // Async
     // String
-    virtual void Set(const char* key, const char* value) override;
+    virtual void Set(const char* key, const char* value, int time_out_s = -1) override;
 
     // List
 
