@@ -17,7 +17,8 @@ int IsFileExist(const char* path)
 namespace wlb
 {
 
-    Logger* Logger::s_Instance = new Logger;
+    Logger* Logger::s_Instance = nullptr;
+    char* Logger::s_strFileName = nullptr;
 
     Logger* Logger::getInstance()
     {
@@ -46,9 +47,13 @@ namespace wlb
         time_t _t = time(NULL);
         auto _time = localtime(&_t);
 
+        printf("%s", s_strFileName);
+
         char name[256];
         snprintf(name, 256,
-                 "log/%02d%02d%02d.%d.log",
+                 "log/%s-%d-%02d-%02d-%02d.%d.log",
+                 Logger::s_strFileName,
+                 _time->tm_mon+1,
                  _time->tm_mday,
                  _time->tm_hour,
                  _time->tm_min,

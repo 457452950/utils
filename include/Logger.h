@@ -31,6 +31,10 @@ namespace wlb
     {
         // Singleton
     public:
+        static void Init(int level, char* fileName){
+            s_strFileName = fileName;
+            s_Instance = new Logger();
+        }
         static Logger* getInstance();
         void operator=(Logger*) = delete;
         Logger(const Logger&) = delete;
@@ -38,7 +42,7 @@ namespace wlb
         Logger();
         ~Logger();
         static Logger* s_Instance;
-
+        static char*  s_strFileName;
 
         // Logger
     public:
@@ -60,9 +64,9 @@ namespace wlb
         const int       m_iCheckTimes = 10;
         int             m_iTimes{ 0 };
 
+
         std::ofstream   m_oStream;
         std::mutex      m_mMutex;
-
     };
 
     class LogHelper
