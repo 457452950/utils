@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.10.2)
 project(util)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CXX_FLAG -g)
+
 include_directories(include)
 set(LIBRARY_OUTPUT_PATH lib)
 
