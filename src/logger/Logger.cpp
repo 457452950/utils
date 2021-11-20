@@ -51,12 +51,13 @@ namespace wlb
 
         char name[256];
         snprintf(name, 256,
-                 "log/%s-%d-%02d-%02d-%02d.%d.log",
+                 "log/%s-%d-%02d-%02d-%02d-%02d.%d.log",
                  Logger::s_strFileName,
                  _time->tm_mon+1,
                  _time->tm_mday,
                  _time->tm_hour,
                  _time->tm_min,
+                 _time->tm_sec,
                  getpid());
 
         if (!IsFileExist("log"))
