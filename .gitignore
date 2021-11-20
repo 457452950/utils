@@ -11,3 +11,9 @@ CTestTestfile.cmake
 _deps
 cmake-build-debug
 .idea/
+
+./lib/liblogger.a
+./lib/libredis.a
+./lib/liblogger.a
+
+
