@@ -12,8 +12,8 @@ _deps
 cmake-build-debug
 .idea/
 
-./lib/liblogger.a
-./lib/libredis.a
-./lib/liblogger.a
+lib/liblogger.a
+lib/libredis.a
+lib/libjsonreader.a
 
 
