@@ -18,6 +18,7 @@ namespace wlb
 {
 
     Logger* Logger::s_Instance = nullptr;
+    LOG_LEVEL Logger::s_LogLevel = LOG_LEVEL::ERROR;
     char* Logger::s_strFileName = nullptr;
 
     Logger* Logger::getInstance()

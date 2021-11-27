@@ -13,10 +13,19 @@
 #include <mutex>
 #include <memory>
 
-#define ERROR "ERROR"
-#define WARNING "WARNING"
-#define INFO  "INFO"
-#define DEBUG "DEBUG"
+// #define ERROR "ERROR"
+// #define WARN "WARN"
+// #define INFO  "INFO"
+// #define DEBUG "DEBUG"
+
+enum LOG_LEVEL : uint8_t
+{
+    DEBUG = 1 << 0,
+    INFO  = 1 << 1,
+    WARN  = 1 << 2,
+    ERROR = 1 << 3,
+    FATAL = 1 << 4,
+};
 
 int IsFileExist(const char* path);
 
@@ -31,18 +40,21 @@ namespace wlb
     {
         // Singleton
     public:
-        static void Init(int level, char* fileName){
+        static void Init(LOG_LEVEL level, char* fileName){
+            s_LogLevel = level;
             s_strFileName = fileName;
             s_Instance = new Logger();
         }
         static Logger* getInstance();
         void operator=(Logger*) = delete;
         Logger(const Logger&) = delete;
+
+        static LOG_LEVEL    s_LogLevel;
     private:
         Logger();
         ~Logger();
-        static Logger* s_Instance;
-        static char*  s_strFileName;
+        static Logger*      s_Instance;
+        static char*        s_strFileName;
 
         // Logger
     public:
@@ -64,7 +76,7 @@ namespace wlb
         const int       m_iCheckTimes = 10;
         int             m_iTimes{ 0 };
 
-
+        
         std::ofstream   m_oStream;
         std::mutex      m_mMutex;
     };
@@ -79,8 +91,9 @@ namespace wlb
         Logger* _log;
     };
 
-#define LOG(level) \
-    Logger::getInstance()->Write(level, __FILE__, __LINE__, \
+#define LOG(level)                    \
+    if (Logger::s_LogLevel <= level)           \
+    Logger::getInstance()->Write(#level, __FILE__, __LINE__,     \
                         __DATE__, __TIME__, __FUNCTION__)->Get()
 }
 
