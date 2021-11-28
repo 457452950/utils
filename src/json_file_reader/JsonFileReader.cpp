@@ -3,6 +3,7 @@
 
 namespace wlb
 {
+	using namespace Log;
 
 	JsonFileReader::JsonFileReader(std::string fileName)
 	{

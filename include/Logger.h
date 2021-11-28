@@ -18,19 +18,23 @@
 // #define INFO  "INFO"
 // #define DEBUG "DEBUG"
 
-enum LOG_LEVEL : uint8_t
-{
-    DEBUG = 1 << 0,
-    INFO  = 1 << 1,
-    WARN  = 1 << 2,
-    ERROR = 1 << 3,
-    FATAL = 1 << 4,
-};
 
 int IsFileExist(const char* path);
 
 namespace wlb
 {
+
+namespace Log
+{
+    
+    enum LOG_LEVEL : uint8_t
+    {
+        DEBUG = 1 << 0,
+        INFO  = 1 << 1,
+        WARN  = 1 << 2,
+        ERROR = 1 << 3,
+        FATAL = 1 << 4,
+    };
 
     class LogHelper;
 
@@ -93,8 +97,13 @@ namespace wlb
 
 #define LOG(level)                    \
     if (Logger::s_LogLevel <= level)           \
-    Logger::getInstance()->Write(#level, __FILE__, __LINE__,     \
-                        __DATE__, __TIME__, __FUNCTION__)->Get()
+        Logger::getInstance()->Write(#level, __FILE__, __LINE__,     \
+                            __DATE__, __TIME__, __FUNCTION__)->Get()
+
+                        
+        
+} // namespace Log
+
 }
 
 /*WARNING !!!

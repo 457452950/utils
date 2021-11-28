@@ -4,6 +4,7 @@
 
 namespace wlb
 {
+    using namespace Log;
 
 IRedisClient* CreateRedisClient(const char* ip, uint port)
 {
