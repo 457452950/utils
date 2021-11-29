@@ -7,7 +7,7 @@
 
 //检查文件(所有类型,包括目录和文件)是否存在
 //返回1:存在 0:不存在
-int IsFileExist(const char* path)
+bool IsFileExist(const char* path)
 {
     return !access(path, 0);
 }

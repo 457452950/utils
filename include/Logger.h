@@ -31,7 +31,7 @@
 // #define DEBUG "DEBUG"
 
 
-int IsFileExist(const char* path);
+bool IsFileExist(const char* path);
 
 namespace wlb
 {

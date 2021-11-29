@@ -17,20 +17,20 @@ IRedisClient* GetRedisClient()
 
 void connectCallback(const redisAsyncContext *c, int status) {
     if (status != REDIS_OK) {
-        LOG(ERROR) << "errstr : " << c->errstr;
+        LOG(L_ERROR) << "errstr : " << c->errstr;
         return;
     }
 
-    LOG(INFO) << "Redis connected...";
+    LOG(L_INFO) << "Redis connected...";
 }
 
 void disconnectCallback(const redisAsyncContext *c, int status) {
     if (status != REDIS_OK) {
-        LOG(ERROR) << "errstr : " << c->errstr;
+        LOG(L_ERROR) << "errstr : " << c->errstr;
         return;
     }
 
-    LOG(INFO) << "Redis disconnected...";
+    LOG(L_INFO) << "Redis disconnected...";
 }
 
 void pushCallback(redisAsyncContext *c, void *r, void *privdata) 
@@ -38,7 +38,7 @@ void pushCallback(redisAsyncContext *c, void *r, void *privdata)
     redisReply* reply = (redisReply*)r;
     if (reply == NULL) 
         return;
-    LOG(ERROR) << "reply : " << reply->str << " , cmd : " << (char*)privdata;
+    LOG(L_ERROR) << "reply : " << reply->str << " , cmd : " << (char*)privdata;
 }
 
 std::mutex    CRedisClient::_mutex;
@@ -52,7 +52,7 @@ CRedisClient* CRedisClient::CreateClient(const char* ip, uint port)
 {
     if (s_Instance != nullptr)
     {
-        LOG(ERROR) << "you had created";
+        LOG(L_ERROR) << "you had created";
         return nullptr;
     }
 
@@ -62,7 +62,7 @@ CRedisClient* CRedisClient::CreateClient(const char* ip, uint port)
 
         if (s_Instance == nullptr)
         {
-            LOG(INFO) << "Create asynccontext and cpntext";
+            LOG(L_INFO) << "Create asynccontext and cpntext";
 
             s_eventBase = event_base_new();
 
@@ -82,10 +82,10 @@ CRedisClient* CRedisClient::CreateClient(const char* ip, uint port)
                                             disconnectCallback);
             
             if (s_pRedisAsyncContext == nullptr){
-                LOG(ERROR) << "redisAsyncConnect error : nullptr";
+                LOG(L_ERROR) << "redisAsyncConnect error : nullptr";
             }
             if (s_pRedisAsyncContext->err){
-                LOG(ERROR) << "s_pRedisAsyncContext error " << s_pRedisAsyncContext->err 
+                LOG(L_ERROR) << "s_pRedisAsyncContext error " << s_pRedisAsyncContext->err 
                             << " str : " << s_pRedisAsyncContext->errstr;
             } 
 
@@ -113,7 +113,7 @@ CRedisClient* CRedisClient::getInstance()
 
 CRedisClient::~CRedisClient() 
 {
-    LOG(INFO) << "close redis";
+    LOG(L_INFO) << "close redis";
     redisAsyncDisconnect(s_pRedisAsyncContext);
 
     if (s_pThread != nullptr)
@@ -142,7 +142,7 @@ CRedisClient::~CRedisClient()
 
 int CRedisClient::AsyncCommand(const char* format)
 {
-    LOG(INFO) << "async cmd : " << format;
+    LOG(L_INFO) << "async cmd : " << format;
     return ::redisAsyncCommand(s_pRedisAsyncContext, 
                                 pushCallback,
                                 (void*)format,
@@ -151,7 +151,7 @@ int CRedisClient::AsyncCommand(const char* format)
 
 void* CRedisClient::Command(const char* format)
 {
-    LOG(INFO) << " cmd : " << format;
+    LOG(L_INFO) << " cmd : " << format;
     return ::redisCommand(s_pRedisContext, format);
 }
 
@@ -163,7 +163,7 @@ void CRedisClient::Set(const char* key, const char* value, int time_out_s)
         std::string cmd("SET ");
         cmd = cmd + key + " " + value;
         int res = this->AsyncCommand(cmd.c_str());
-        LOG(INFO) << res;
+        LOG(L_INFO) << res;
         return;
     }
     else
@@ -175,14 +175,14 @@ void CRedisClient::Set(const char* key, const char* value, int time_out_s)
         std::string cmd("SETEX ");
         cmd = cmd + key + " " + _time + " " + value;
         int res = this->AsyncCommand(cmd.c_str());
-        LOG(INFO) << res;
+        LOG(L_INFO) << res;
         return;
     }
 
     // std::string cmd("SET ");
     // cmd = cmd + key + " " + value;
     // redisReply* reply = (redisReply*)this->Command(cmd.c_str());
-    // LOG(INFO) << reply->str;
+    // LOG(L_INFO) << reply->str;
     // freeReplyObject(reply);
 }
 
