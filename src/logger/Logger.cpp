@@ -49,8 +49,6 @@ namespace Log
         time_t _t = time(NULL);
         auto _time = localtime(&_t);
 
-        printf("%s", s_strFileName);
-
         char name[256];
         snprintf(name, 256,
                  "log/%s-%d-%02d-%02d-%02d-%02d.%d.log",
