@@ -3,15 +3,13 @@
 //
 
 #include "../../include/Logger.h"
-#include <sys/time.h>
 #include <sys/types.h>
-#include <unistd.h>
 
 //检查文件(所有类型,包括目录和文件)是否存在
 //返回1:存在 0:不存在
 int IsFileExist(const char* path)
 {
-    return !access(path, F_OK);
+    return !access(path, 0);
 }
 
 namespace wlb
@@ -21,7 +19,7 @@ namespace Log
 {
 
     Logger* Logger::s_Instance = nullptr;
-    LOG_LEVEL Logger::s_LogLevel = LOG_LEVEL::ERROR;
+    LOG_LEVEL Logger::s_LogLevel = LOG_LEVEL::L_ERROR;
     char* Logger::s_strFileName = nullptr;
 
     Logger* Logger::getInstance()
@@ -66,7 +64,12 @@ namespace Log
 
         if (!IsFileExist("log"))
         {
+#ifdef WIN32
+            mkdir("log");
+#else
             mkdir("log", 477);
+#endif // WIN32
+
         }
         m_oStream.open(name, std::ios::out);
     }
@@ -80,7 +83,21 @@ namespace Log
     {
         m_mMutex.lock();
 
+        char _dataVal[128];
         char head[256];
+
+#ifdef WIN32
+        SYSTEMTIME curTime;
+        GetLocalTime(&curTime);
+        snprintf(_dataVal, 128, " %d-%d-%d %02d:%02d:%02d.%03ld",
+            curTime.wYear + 1900,
+            curTime.wMonth + 1,
+            curTime.wDay,
+            curTime.wHour,
+            curTime.wMinute,
+            curTime.wSecond,
+            curTime.wMilliseconds);
+#else
 
         // get ms
         timeval curTime;
@@ -90,7 +107,6 @@ namespace Log
         time_t _t = time(NULL);
         auto _time = localtime(&_t);
 
-        char _dataVal[128];
         snprintf(_dataVal, 128, " %d-%d-%d %02d:%02d:%02d.%03ld %03ld ",
                 _time->tm_year + 1900,
                 _time->tm_mon + 1,
@@ -100,6 +116,7 @@ namespace Log
                 _time->tm_sec,
                 curTime.tv_usec / 1000,
                 curTime.tv_usec % 1000);
+#endif
 
         // get head
         snprintf(head, 256,
