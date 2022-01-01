@@ -8,6 +8,7 @@ include_directories(include)
 set(LIBRARY_OUTPUT_PATH lib)
 
 add_library(logger      src/logger/Logger.cpp)
+add_library(asynclogger      src/logger/AsyncLogger.cpp)
 
 add_library(jsonreader  src/json_file_reader/JsonFileReader.cpp)
 target_link_libraries(jsonreader logger)

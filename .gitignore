@@ -15,4 +15,6 @@ cmake-build-debug
 lib/liblogger.a
 lib/libredis.a
 lib/libjsonreader.a
+lib/libasynclogger.a
+
 
