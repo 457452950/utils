@@ -15,3 +15,8 @@ target_link_libraries(jsonreader logger)
 
 add_library(redis       src/redis/Redis.cpp)
 target_link_libraries(redis logger hiredis event)
+
+
+add_library(tinymysql   src/mysql/libMySQL.cpp)
+target_link_libraries(tinymysql logger )
+
