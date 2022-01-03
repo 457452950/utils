@@ -1,5 +1,5 @@
-#include "../../include/libMySQL.h"
-#include "../../include/AsyncLogger.h"
+#include "libMySQL.h"
+#include "AsyncLogger.h"
 
 namespace wlb
 {
@@ -16,6 +16,11 @@ namespace wlb
 
     bool libMySQL::Init(const char* addr, const char* user_name, const char* passwd, const char* db_name, uint16_t port)
     {
+        if (addr == nullptr || user_name == nullptr || passwd == nullptr || db_name == nullptr)
+        {
+            LOG(L_ERROR) << "cant be null";
+            return false;
+        }
         if (mysql_real_connect(&_connect, addr, user_name, passwd, db_name, port, NULL, CLIENT_FOUND_ROWS))
         {
             LOG(L_INFO) << "连接数据库成功 ip:" << addr
