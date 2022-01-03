@@ -1,5 +1,5 @@
 #include "libMySQL.h"
-#include "AsyncLogger.h"
+#include "Logger.h"
 
 namespace wlb
 {
@@ -38,6 +38,7 @@ namespace wlb
         }
         return true;
     }
+    
     
     void libMySQL::Release()
     {
