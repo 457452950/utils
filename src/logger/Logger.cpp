@@ -3,14 +3,7 @@
 //
 
 #include "../../include/Logger.h"
-#include <sys/types.h>
 
-//检查文件(所有类型,包括目录和文件)是否存在
-//返回1:存在 0:不存在
-bool IsFileExist(const char* path)
-{
-    return !access(path, 0);
-}
 
 namespace wlb
 {
@@ -84,37 +77,7 @@ namespace Log
         char _dataVal[128];
         char head[256];
 
-#ifdef WIN32
-        SYSTEMTIME curTime;
-        GetLocalTime(&curTime);
-        snprintf(_dataVal, 128, " %d-%d-%d %02d:%02d:%02d.%03ld",
-            curTime.wYear + 1900,
-            curTime.wMonth + 1,
-            curTime.wDay,
-            curTime.wHour,
-            curTime.wMinute,
-            curTime.wSecond,
-            curTime.wMilliseconds);
-#else
-
-        // get ms
-        timeval curTime;
-        gettimeofday(&curTime, NULL);
-
-        // get data and time 
-        time_t _t = time(NULL);
-        auto _time = localtime(&_t);
-
-        snprintf(_dataVal, 128, " %d-%d-%d %02d:%02d:%02d.%03ld %03ld ",
-                _time->tm_year + 1900,
-                _time->tm_mon + 1,
-                _time->tm_mday,
-                _time->tm_hour,
-                _time->tm_min,
-                _time->tm_sec,
-                curTime.tv_usec / 1000,
-                curTime.tv_usec % 1000);
-#endif
+        GetCurrentTime(_dataVal);
 
         // get head
         snprintf(head, 256,

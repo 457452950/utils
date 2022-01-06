@@ -5,25 +5,8 @@
 #ifndef MYSERVICE_LOGGER_H
 #define MYSERVICE_LOGGER_H
 
-#include <sys/stat.h>
-#include <iostream>
-#include <fstream>
-#include <thread>
-#include <mutex>
-#include <memory>
 
-#ifdef WIN32
-
-#include <windows.h>    // GetLocalTime
-#include <direct.h>     // mkdir
-#include <io.h>         // access
-#else   // linux
-
-#include <unistd.h>     // access()
-#include <sys/time.h>
-
-#endif
-
+#include "LoggerBase.h"
 
 // #define ERROR "ERROR"
 // #define WARN "WARN"
@@ -31,7 +14,6 @@
 // #define DEBUG "DEBUG"
 
 
-bool IsFileExist(const char* path);
 
 namespace wlb
 {
