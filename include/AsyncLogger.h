@@ -67,7 +67,6 @@ namespace Log
             s_Instance = new Logger();
             s_LogLevel = level;
             s_Instance->m_bIsRunning = true;
-            printf("init :%p filename %s\n", s_Instance, s_strFileName);
             s_Instance->m_pThread = new(std::nothrow) std::thread(&Logger::Loop, s_Instance); 
         }
         static void Stop()

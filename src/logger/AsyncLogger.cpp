@@ -144,8 +144,6 @@ namespace Log
 
     void Logger::Loop()
     {
-        printf("loop :%p\n", this);
-        std::cout << "log thread start:" << m_bIsRunning << std::endl;
         while (m_bIsRunning || !m_LogList.empty())
         {
            std::unique_lock<std::mutex> ulock(m_mMutex);
