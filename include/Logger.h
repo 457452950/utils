@@ -21,14 +21,14 @@ namespace wlb
 namespace Log
 {
     
-    enum LOG_LEVEL : uint8_t
-    {
-        L_DEBUG = 1 << 0,
-        L_INFO  = 1 << 1,
-        L_WARN  = 1 << 2,
-        L_ERROR = 1 << 3,
-        L_FATAL = 1 << 4,
-    };
+    // enum LOG_LEVEL : uint8_t
+    // {
+    //     L_DEBUG = 1 << 0,
+    //     L_INFO  = 1 << 1,
+    //     L_WARN  = 1 << 2,
+    //     L_ERROR = 1 << 3,
+    //     L_FATAL = 1 << 4,
+    // };
 
     class LogHelper;
 
