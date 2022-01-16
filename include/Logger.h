@@ -91,7 +91,7 @@ namespace Log
     };
 
 #define LOG(level)                    \
-    if (Logger::s_LogLevel <= level)           \
+    if (Logger::s_LogLevel <= level)   \
         Logger::getInstance()->Write(#level, __FILE__, __LINE__,     \
                             __DATE__, __TIME__, __FUNCTION__)->Get()
 
