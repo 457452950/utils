@@ -16,6 +16,7 @@ bool Ip2String(in_addr addr, std::string& buf)
         }
 
         buf.assign(_buf);
+        delete[] _buf;
         return true;
     }
     catch(const std::exception& e)
@@ -38,6 +39,7 @@ bool Ip2String(in6_addr addr, std::string& buf)
         }
 
         buf.assign(_buf);
+        delete[] _buf;
         return true;
     }
     catch(const std::exception& e)
