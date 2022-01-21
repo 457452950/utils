@@ -15,7 +15,8 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>    // tcp_nodelay
-#include <arpa/inet.h>
+#include <arpa/inet.h>      // inet_ntop inet_pton
+#include <cstring>
 #include <cerrno>
 #include <fcntl.h>
 
@@ -33,8 +34,10 @@ enum class AF_FAMILY
 // sockaddr_in
 // in_addr  in6_addr
 
-bool Ip2String(in_addr addr, std::string& buf);
-bool Ip2String(in6_addr addr, std::string& buf);
+bool IpAddrToString(in_addr addr, std::string& buf);
+bool IpAddrToString(in6_addr addr, std::string& buf);
 
+bool StringToIpAddress(std::string& ip_str, in_addr& addr);
+bool StringToIpAddress(std::string& ip_str, in6_addr& addr);
 
 }   // namespace wlb

@@ -1,9 +1,10 @@
 #include "../../include/WNetWorkUtils.h"
+#include <iostream>
 
 namespace wlb
 {
 
-bool Ip2String(in_addr addr, std::string& buf)
+bool IpAddrToString(in_addr addr, std::string& buf)
 {
     try
     {
@@ -21,12 +22,12 @@ bool Ip2String(in_addr addr, std::string& buf)
     }
     catch(const std::exception& e)
     {
-        e.what();
+        std::cout << "StringToIpAddress : " << e.what() << " : " << strerror(errno) << std::endl;
     }
     return false;
 }
 
-bool Ip2String(in6_addr addr, std::string& buf)
+bool IpAddrToString(in6_addr addr, std::string& buf)
 {
     try
     {
@@ -44,7 +45,41 @@ bool Ip2String(in6_addr addr, std::string& buf)
     }
     catch(const std::exception& e)
     {
-        e.what();
+        std::cout << "StringToIpAddress : " << e.what() << " : " << strerror(errno) << std::endl;
+    }
+    return false;
+}
+
+
+bool StringToIpAddress(std::string& ip_str, in_addr& addr)
+{
+    try
+    {
+        if ( ::inet_pton(AF_INET, ip_str.c_str(), (void*)&addr) == 1)
+        {
+            return true;
+        }
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << "StringToIpAddress : " << e.what() << " : " << strerror(errno) << std::endl;
+    }
+    return false;
+}
+
+
+bool StringToIpAddress(std::string& ip_str, in6_addr& addr)
+{
+    try
+    {
+        if ( ::inet_pton(AF_INET6, ip_str.c_str(), (void*)&addr) == 1)
+        {
+            return true;
+        }
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << "StringToIpAddress : " << e.what() << " : " << strerror(errno) << std::endl;
     }
     return false;
 }
