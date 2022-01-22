@@ -16,14 +16,19 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>    // tcp_nodelay
 #include <arpa/inet.h>      // inet_ntop inet_pton
-#include <cstring>
+#include <cstring>          // strerror
 #include <cerrno>
-#include <fcntl.h>
+#include <fcntl.h>          // fcntl
 
 #endif
 
 namespace wlb
 {
+namespace NetWork
+{
+
+using base_socket_type = int32_t;
+using base_socket_ptr = base_socket_type*;
 
 enum class AF_FAMILY 
 {
@@ -40,4 +45,11 @@ bool IpAddrToString(in6_addr addr, std::string& buf);
 bool StringToIpAddress(std::string& ip_str, in_addr& addr);
 bool StringToIpAddress(std::string& ip_str, in6_addr& addr);
 
+// socket function
+bool SetSocketNoBlock(base_socket_type socket);
+
+// tcp socket function
+bool SetTcpSocketNoDelay(base_socket_type socket);
+
+}   // namespace NetWork
 }   // namespace wlb

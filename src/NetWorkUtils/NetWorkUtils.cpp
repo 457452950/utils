@@ -1,8 +1,14 @@
 #include "../../include/WNetWorkUtils.h"
 #include <iostream>
 
-namespace wlb
+namespace wlb::NetWork
 {
+
+#if OS_IS_WINDOWS
+
+
+
+#elif OS_IS_LINUX
 
 bool IpAddrToString(in_addr addr, std::string& buf)
 {
@@ -84,4 +90,33 @@ bool StringToIpAddress(std::string& ip_str, in6_addr& addr)
     return false;
 }
 
-}   // namespace wlb
+bool SetSocketNoBlock(base_socket_type socket)
+{
+
+    if ( ::fcntl(socket, F_SETFL, ::fcntl(socket, F_GETFL, 0) | O_NONBLOCK) == -1 )
+    {
+        return false;
+    }
+    return true;
+}
+
+bool SetTcpSocketNoDelay(base_socket_type socket)
+{
+    int optval = 1;
+    if (::setsockopt(socket, 
+                    IPPROTO_TCP, 
+                    TCP_NODELAY,
+                    &optval, 
+                    static_cast<socklen_t>(sizeof optval)
+                    ) == 0)
+    {
+        return true;
+    } 
+    return false;
+}
+
+
+
+#endif // OS_IS_LINUX
+
+}   // namespace wlb::NetWork
