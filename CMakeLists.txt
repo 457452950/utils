@@ -4,7 +4,10 @@ project(util)
 set(CMAKE_CXX_STANDARD 17)
 set(CXX_FLAG -g)
 
-include_directories(include)
+include_directories(
+    include
+    include/libevent
+)
 set(LIBRARY_OUTPUT_PATH lib)
 
 add_library(logger      src/logger/Logger.cpp src/logger/LoggerBase.cpp)
