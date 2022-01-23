@@ -20,3 +20,19 @@ lib/libtinymysql.a
 
 .vscode/settings.json
 build/*
+.cmake/api/v1/query/cache-v2
+.cmake/api/v1/query/cmakeFiles-v1
+.cmake/api/v1/query/codemodel-v2
+.cmake/api/v1/query/toolchains-v1
+.cmake/api/v1/reply/cache-v2-b58d0313ecd6396b1f8a.json
+.cmake/api/v1/reply/cmakeFiles-v1-7e9b0404c25ee016b13d.json
+.cmake/api/v1/reply/codemodel-v2-3f5c6638774163f020f7.json
+.cmake/api/v1/reply/directory-.-f5ebdc15457944623624.json
+.cmake/api/v1/reply/index-2022-01-22T15-49-08-0688.json
+.cmake/api/v1/reply/target-asynclogger-93ab7cd57473bdfd3822.json
+.cmake/api/v1/reply/target-jsonreader-3aacde6e9d439da2a48d.json
+.cmake/api/v1/reply/target-logger-b0c4f94a663a787ee36e.json
+.cmake/api/v1/reply/target-redis-8eb90f2b8392a38a5314.json
+.cmake/api/v1/reply/target-tinymysql-4943aa23ebd8e3543fef.json
+.cmake/api/v1/reply/toolchains-v1-9050b2082b4fe5719297.json
+build.ninja
