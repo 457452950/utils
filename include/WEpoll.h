@@ -126,13 +126,13 @@ int32_t EpollGetEvents(epoll_type epoll, struct epoll_event * events, int32_t ev
 
 void CloseEpoll(epoll_type epoll);
 
-class WEpoll
+class WBaseEpoll
 {
 public:
-    WEpoll(/* args */) = default;
-    WEpoll(const WEpoll& other) = delete;
-    WEpoll& operator=(const WEpoll& other) = delete;
-    ~WEpoll();
+    explicit WBaseEpoll(/* args */) = default;
+    WBaseEpoll(const WBaseEpoll& other) = delete;
+    WBaseEpoll& operator=(const WBaseEpoll& other) = delete;
+    ~WBaseEpoll();
 
     bool Init();
     void Close();
@@ -142,12 +142,45 @@ public:
 
     int32_t GetEvents(epoll_event* events, int32_t events_size);
 
-private:
+protected:
     epoll_type _epoll{-1};
 
 };
 
+class WEpollListener
+{
+public:
+    virtual ~WEpollListener() {};
+    
+    virtual void OnError(base_socket_type socket, std::string error) = 0;
+    virtual void OnClosed(base_socket_type socket) = 0;
+    virtual void OnRead(base_socket_type socket) = 0;
+    virtual void OnWrite(base_socket_type socket) = 0;
+};
 
+class WEpoll : public WBaseEpoll
+{
+public: 
+    explicit WEpoll(WEpollListener* listener) : _listener(listener) {};
+    ~WEpoll() = default;
+
+    bool Init(uint32_t events_size);
+    void Close();
+    void GetAndEmitEvents();
+
+protected:
+    WEpollListener* _listener{nullptr};
+
+    epoll_event * _events{nullptr};
+    int32_t _events_size{0};
+
+    const int32_t default_events_size{128};
+
+private:
+    int32_t GetEvents(epoll_event* events, int32_t events_size) {};
+
+
+};
 
 
 
