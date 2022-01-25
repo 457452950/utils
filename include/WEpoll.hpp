@@ -5,6 +5,7 @@
 #if defined(OS_IS_LINUX)
 
 #include <sys/epoll.h>
+#include "WNetWorkHandler.hpp"
 
 namespace wlb
 {
@@ -147,21 +148,12 @@ protected:
 
 };
 
-class WEpollListener
-{
-public:
-    virtual ~WEpollListener() {};
-    
-    virtual void OnError(base_socket_type socket, std::string error) = 0;
-    virtual void OnClosed(base_socket_type socket) = 0;
-    virtual void OnRead(base_socket_type socket) = 0;
-    virtual void OnWrite(base_socket_type socket) = 0;
-};
 
-class WEpoll : public WBaseEpoll
+
+class WEpoll : public WBaseEpoll, public WNetWorkHandler
 {
 public: 
-    explicit WEpoll(WEpollListener* listener) : _listener(listener) {};
+    explicit WEpoll(WNetWorkHandler::Listener* listener) : _listener(listener) {};
     ~WEpoll() = default;
 
     bool Init(uint32_t events_size);
@@ -169,7 +161,7 @@ public:
     void GetAndEmitEvents();
 
 protected:
-    WEpollListener* _listener{nullptr};
+    WNetWorkHandler::Listener* _listener{nullptr};
 
     epoll_event * _events{nullptr};
     int32_t _events_size{0};

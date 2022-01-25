@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <exception>
 
-#include <WOS.h>
+#include "WOS.h"
 #ifdef OS_IS_WINDOWS
 
 #elif defined OS_IS_LINUX

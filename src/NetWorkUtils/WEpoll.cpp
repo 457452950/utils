@@ -1,4 +1,4 @@
-#include "../../include/WEpoll.h"
+#include "../../include/WEpoll.hpp"
 
 #if defined(OS_IS_LINUX)
 
