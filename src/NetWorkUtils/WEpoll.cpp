@@ -103,7 +103,13 @@ bool WEpoll::Init(uint32_t events_size)
 
 void WEpoll::GetAndEmitEvents()
 {
-    this->_events = new epoll_event[this->_events_size];
+    this->_events = new(std::nothrow) epoll_event[this->_events_size];
+    if (_events == nullptr)
+    {
+        // error
+        return;
+    }
+    
 
     int32_t curr_events_size = WBaseEpoll::GetEvents(_events, this->_events_size);
 
@@ -129,7 +135,6 @@ void WEpoll::GetAndEmitEvents()
             }
             else if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
             {
-                WBaseEpoll::RemoveSocket(_events[index].data.fd);
                 _listener->OnClosed(_events[index].data.fd);
             }
             else if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
@@ -154,6 +159,53 @@ void WEpoll::Close()
     }
     WBaseEpoll::Close();
 }
+
+bool WEpoll::AddSocket(base_socket_type socket, uint32_t op)
+{
+    uint32_t _event = 0;
+    _event = GetEpollEventsFromOP(op);
+    return AddSocket(socket, _event);
+}
+
+bool WEpoll::ModifySocket(base_socket_type socket, uint32_t op)
+{
+    uint32_t _event = 0;
+    _event = GetEpollEventsFromOP(op);
+    return ModifySocket(socket, _event);
+}
+
+void WEpoll::RemoveSocket(base_socket_type socket)
+{
+    WBaseEpoll::RemoveSocket(socket);
+}
+
+uint32_t WEpoll::GetEpollEventsFromOP(uint32_t op)
+{
+    uint32_t _events = 0;
+    if (op & OP_IN)
+    {
+        _events | EPOLLIN;
+    }
+    if (op & OP_OUT)
+    {
+        _events | EPOLLOUT;
+    }
+    if (op & OP_ERR)
+    {
+        _events | EPOLLERR;
+    }
+    if (op & OP_SHUT)
+    {
+        _events | EPOLLRDHUP;
+    }
+    if (op & OP_CLOS)
+    {
+        _events | EPOLLHUP;
+    }
+    
+    return _events;
+}
+
 
 } // namespace wlb::NetWork
 

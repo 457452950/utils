@@ -57,7 +57,7 @@ bool IpAddrToString(in6_addr addr, std::string& buf)
 }
 
 
-bool StringToIpAddress(std::string& ip_str, in_addr& addr)
+bool StringToIpAddress(const std::string& ip_str, in_addr& addr)
 {
     try
     {
@@ -74,7 +74,7 @@ bool StringToIpAddress(std::string& ip_str, in_addr& addr)
 }
 
 
-bool StringToIpAddress(std::string& ip_str, in6_addr& addr)
+bool StringToIpAddress(const std::string& ip_str, in6_addr& addr)
 {
     try
     {

@@ -112,6 +112,7 @@ epoll_type CreateNewEpoll();
 //               ifies the target file descriptor fd as an  epoll  instance  will
 //               likewise fail.  The error in all of these cases is EINVAL.
 bool EpollAddSocket(epoll_type epoll, base_socket_type socket, uint32_t events);
+bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t events);
 bool EpollRemoveSocket(epoll_type epoll, base_socket_type socket);
 
 // 
@@ -139,6 +140,7 @@ public:
     void Close();
 
     bool AddSocket(base_socket_type socket, uint32_t events);
+    bool ModifySocket(base_socket_type socket, uint32_t events);
     void RemoveSocket(base_socket_type socket);
 
     int32_t GetEvents(epoll_event* events, int32_t events_size);
@@ -159,6 +161,13 @@ public:
     bool Init(uint32_t events_size);
     void Close();
     void GetAndEmitEvents();
+
+    bool AddSocket(base_socket_type socket, uint32_t op) override;
+    bool ModifySocket(base_socket_type socket, uint32_t op) override;
+    void RemoveSocket(base_socket_type socket) override;
+
+private:
+    uint32_t GetEpollEventsFromOP(uint32_t op);
 
 protected:
     WNetWorkHandler::Listener* _listener{nullptr};

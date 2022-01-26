@@ -1,3 +1,4 @@
+#pragma once
 #include "WOS.h"
 #include <stdint.h>
 #include "WNetWorkUtils.h"
@@ -13,10 +14,11 @@ public:
     public:
         virtual ~Listener() {};
         
-        virtual void OnError(base_socket_type socket, std::string error) = 0;
-        virtual void OnClosed(base_socket_type socket) = 0;
-        virtual void OnRead(base_socket_type socket) = 0;
-        virtual void OnWrite(base_socket_type socket) = 0;
+    public:
+        virtual bool OnError(base_socket_type socket, std::string error) = 0;
+        virtual bool OnClosed(base_socket_type socket) = 0;
+        virtual bool OnRead(base_socket_type socket) = 0;
+        virtual bool OnWrite(base_socket_type socket) = 0;
     };
 
     using ListenOptions = uint32_t;
@@ -38,6 +40,7 @@ public:
     virtual void GetAndEmitEvents() = 0;
 
     virtual bool AddSocket(base_socket_type socket, uint32_t events) = 0;
+    virtual bool ModifySocket(base_socket_type socket, uint32_t events) = 0;
     virtual void RemoveSocket(base_socket_type socket) = 0;
 
 };
