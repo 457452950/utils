@@ -27,7 +27,14 @@ public:
     base_socket_type Accept();
 
 private:
+    bool Bind();
+    bool Listen();
+
+private:
     base_socket_type _socket;
+    // bind address ip and port
+    std::string _address;
+    uint16_t _port;
 
     WNetWorkHandler* _handler;
 };

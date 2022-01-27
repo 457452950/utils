@@ -1,4 +1,5 @@
 #include "../../include/WEpoll.hpp"
+#include <iostream>
 
 #if defined(OS_IS_LINUX)
 
@@ -13,12 +14,28 @@ epoll_type CreateNeWBaseEpoll()
 bool EpollAddSocket(epoll_type epoll, base_socket_type socket, uint32_t events)
 {
     struct epoll_event event;
-    event.events = events;
     event.data.fd = socket;
+    event.events = events;
 
     if ( ::epoll_ctl(epoll, EPOLL_CTL_ADD, socket, &event) == 0 ){
+        std::cout << "Epoll Add Socket succ" << std::endl;
         return true;
     }
+    std::cout << "Epoll Add Socket failed" << std::endl;
+    return false;
+}
+
+bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t events)
+{
+    struct epoll_event event;
+    event.data.fd = socket;
+    event.events = events;
+
+    if ( ::epoll_ctl(epoll, EPOLL_CTL_MOD, socket, &event) == 0 ){
+        std::cout << "Epoll Add Socket succ" << std::endl;
+        return true;
+    }
+    std::cout << "Epoll Add Socket failed" << std::endl;
     return false;
 }
 
@@ -73,7 +90,24 @@ void WBaseEpoll::Close()
 
 bool WBaseEpoll::AddSocket(base_socket_type socket, uint32_t events)
 {
+    if (this->_epoll == -1)
+    {
+        std::cout << "WBaseEpoll::AddSocket failed epoll is -1" << std::endl;
+        return false;
+    }
+    std::cout << "WBaseEpoll::AddSocket succ epoll is " << this->_epoll << std::endl;
+    if (socket == -1)
+    {
+        /* code */
+    }
+    
+    std::cout << "WBaseEpoll::AddSocket " << events << std::endl;
     return EpollAddSocket(this->_epoll, socket, events);
+}
+
+bool WBaseEpoll::ModifySocket(base_socket_type socket, uint32_t events)
+{
+    return EpollModifySocket(this->_epoll, socket, events);
 }
 
 void WBaseEpoll::RemoveSocket(base_socket_type socket)
@@ -91,12 +125,16 @@ bool WEpoll::Init(uint32_t events_size)
 {
     if ( ! WBaseEpoll::Init() )
     {
+        std::cout << "WBaseEpoll init failed" << std::endl;
         return false;
     }
+    std::cout << "WBaseEpoll init succ" << std::endl;
 
     events_size < default_events_size ? 
             this->_events_size = default_events_size : 
             this->_events_size = events_size;
+
+    std::cout << "WBaseEpoll init: events_size = " << std::to_string(events_size) << std::endl;
 
     return true;
 }
@@ -106,7 +144,7 @@ void WEpoll::GetAndEmitEvents()
     this->_events = new(std::nothrow) epoll_event[this->_events_size];
     if (_events == nullptr)
     {
-        // error
+        std::cout << "WEpoll::GetAndEmitEvents: new failed " << std::endl;
         return;
     }
     
@@ -144,8 +182,10 @@ void WEpoll::GetAndEmitEvents()
         }
 
         this->_events_size > curr_events_size ?
-                this->_events_size = curr_events_size / 10 + this->_events_size * 9 / 10 :
+                this->_events_size = 10 + (curr_events_size / 10 + this->_events_size * 9 / 10):
                 this->_events_size = curr_events_size * 1.5;
+        
+        std::cout << "WEpoll GetAndEmitEvents _events_size: " << this->_events_size << std::endl;
     }
     
     delete[] this->_events;
@@ -164,14 +204,14 @@ bool WEpoll::AddSocket(base_socket_type socket, uint32_t op)
 {
     uint32_t _event = 0;
     _event = GetEpollEventsFromOP(op);
-    return AddSocket(socket, _event);
+    return WBaseEpoll::AddSocket(socket, _event);
 }
 
 bool WEpoll::ModifySocket(base_socket_type socket, uint32_t op)
 {
     uint32_t _event = 0;
     _event = GetEpollEventsFromOP(op);
-    return ModifySocket(socket, _event);
+    return WBaseEpoll::ModifySocket(socket, _event);
 }
 
 void WEpoll::RemoveSocket(base_socket_type socket)
@@ -184,23 +224,23 @@ uint32_t WEpoll::GetEpollEventsFromOP(uint32_t op)
     uint32_t _events = 0;
     if (op & OP_IN)
     {
-        _events | EPOLLIN;
+        _events |= EPOLLIN;
     }
     if (op & OP_OUT)
     {
-        _events | EPOLLOUT;
+        _events |= EPOLLOUT;
     }
     if (op & OP_ERR)
     {
-        _events | EPOLLERR;
+        _events |= EPOLLERR;
     }
     if (op & OP_SHUT)
     {
-        _events | EPOLLRDHUP;
+        _events |= EPOLLRDHUP;
     }
     if (op & OP_CLOS)
     {
-        _events | EPOLLHUP;
+        _events |= EPOLLHUP;
     }
     
     return _events;

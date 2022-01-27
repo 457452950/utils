@@ -47,6 +47,10 @@ bool StringToIpAddress(const std::string& ip_str, in6_addr& addr);
 
 // socket function
 bool SetSocketNoBlock(base_socket_type socket);
+bool SetSocketReuseAddr(base_socket_type socket);
+bool SetSocketReusePort(base_socket_type socket);
+bool SetSocketKeepAlive(base_socket_type socket);
+
 
 // tcp socket function
 bool SetTcpSocketNoDelay(base_socket_type socket);

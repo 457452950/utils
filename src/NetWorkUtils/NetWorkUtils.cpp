@@ -92,12 +92,66 @@ bool StringToIpAddress(const std::string& ip_str, in6_addr& addr)
 
 bool SetSocketNoBlock(base_socket_type socket)
 {
-
     if ( ::fcntl(socket, F_SETFL, ::fcntl(socket, F_GETFL, 0) | O_NONBLOCK) == -1 )
     {
         return false;
     }
     return true;
+}
+
+bool SetSocketReuseAddr(base_socket_type socket)
+{
+    try
+    {
+        int opt = 1;
+        unsigned int len = sizeof(opt);
+        if ( ::setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &opt, len) == -1 )
+        {
+            return false;
+        }
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << "set socket reuse address: " << e.what() << std::endl;
+    }
+    return false;
+}
+bool SetSocketReusePort(base_socket_type socket)
+{
+    try
+    {
+        int opt = 1;
+        unsigned int len = sizeof(opt);
+        if ( ::setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &opt, len) == -1 )
+        {
+            return false;
+        }
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << "set socket reuse port" << e.what() << std::endl;
+    }
+    return false;
+}
+bool SetSocketKeepAlive(base_socket_type socket)
+{
+    try
+    {
+        int opt = 1;
+        unsigned int len = sizeof(opt);
+        if ( ::setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &opt, len) == -1 )
+        {
+            return false;
+        }
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << "set socket reuse port" << e.what() << std::endl;
+    }
+    return false;
 }
 
 bool SetTcpSocketNoDelay(base_socket_type socket)

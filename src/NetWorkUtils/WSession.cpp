@@ -1,4 +1,5 @@
 #include "../../include/WSession.hpp"
+#include <iostream>
 
 namespace wlb::NetWork
 {
@@ -10,45 +11,117 @@ namespace wlb::NetWork
 
 bool WNetAccepter::Init(WNetWorkHandler* handler, const std::string& IpAddress, uint16_t port)
 {
+    /////////////////////////////////
+    // Initialize socket
     this->_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);        // tcp v4
 
-    int opt = 1;
-    unsigned int len = sizeof(opt);
+    if ( !SetSocketReuseAddr(this->_socket) || 
+            !SetSocketReusePort(this->_socket) || 
+            !SetSocketKeepAlive(this->_socket) )
+    {
+        std::cout << "WNetAccepter::Init SetSocketopt failed " << std::endl;
+        return false;
+    }
+    
+    if ( !SetSocketNoBlock(this->_socket) )
+    {
+        std::cout << "WNetAccepter::Init SetSocketNoBlock() failed" << std::endl;
+    }
+    std::cout << "WNetAccepter::Init SetSocketNoBlock() succ" << std::endl;
+
+    // ///////////////////////////////////////
+    // Init members
+    this->_address = IpAddress; // copy
+    this->_port = port;
+    
+    this->_handler = handler;
+    if (this->_handler == nullptr)
+    {
+        std::cout << "WNetAccepter::Init handler nullptr" << std::endl;
+        return false;
+    }
+    std::cout << "WNetAccepter::Init handler succ" << std::endl;
+
+    // ///////////////////////////////////////
+    // Bind 
+    if ( !this->Bind() )
+    {
+        std::cout << "bind failed" << std::endl;
+        return false;
+    }
+    std::cout << "bind succ" << std::endl;
+
+    /////////////////////////////////
+    // Listen
+    if ( !this->Listen() )
+    {
+        std::cout << "Listen failed" << std::endl;
+        return false;
+    }
+    std::cout << "Listen succ" << std::endl;
+    
+    // //////////////////////////////
+    // add socket in handler
+    uint32_t op = 0;
+    op |= WNetWorkHandler::OP_IN;
+    op |= WNetWorkHandler::OP_ERR;
+    std::cout << "listen socket op:" << op << std::endl;
+    if ( !this->_handler->AddSocket(this->_socket, op) )
+    {
+        std::cout << "WNetAccepter::Init AddSocket failed" << std::endl;
+        return false;
+    }
+    std::cout << "WNetAccepter::Init AddSocket succ" << std::endl;
+    
+    return true;
+}
+
+bool WNetAccepter::Bind()
+{
+    sockaddr_in ei{0};
+    ei.sin_family   = AF_INET;
+
+    in_addr ipaddr{0};
+    if ( !StringToIpAddress(this->_address, ipaddr))
+    {
+        std::cout << "WNetAccepter::Bind StringToIpAddr() failed" << std::endl;
+        return false;
+    }
+    std::cout << "WNetAccepter::Bind StringToIpAddr() succ " << ipaddr.s_addr << std::endl;
+
     try
     {
-        ::setsockopt(this->_socket, SOL_SOCKET, SO_REUSEADDR, &opt, len);
-        ::setsockopt(this->_socket, SOL_SOCKET, SO_REUSEPORT, &opt, len);
-        ::setsockopt(this->_socket, SOL_SOCKET, SO_KEEPALIVE, &opt, len);
+        ei.sin_port = ::htons(this->_port);
+        std::cout << "WNetAccepter::Bind port :" << ei.sin_port << std::endl;
     }
     catch(const std::exception& e)
     {
-        
-    }
-    if ( !SetSocketNoBlock(this->_socket) )
-    {
-        ;
-    }
-    
-    sockaddr_in ei;
-    ei.sin_family   = AF_INET;
-    in_addr ipaddr;
-    if ( !StringToIpAddress(IpAddress, ipaddr))
-    {
+        std::cerr << e.what() << '\n';
         return false;
     }
-    ei.sin_port = ::htons(port);
+    std::cout << "WNetAccepter::Bind htons succ" << std::endl;
 
-    auto ok = ::bind(this->_socket,
-                (struct sockaddr * )&(ei),
+    int32_t ok = ::bind(this->_socket,
+                (struct sockaddr*)&(ei),
                 sizeof(ei));
-
-    if ( !ok )
+    if ( ok == -1 )
     {
+        std::cout << "WNetAccepter::Bind bind failed" << strerror(errno) << std::endl;
         close(this->_socket);
         return false;
     }
-    this->_handler = handler;
-    this->_handler->AddSocket(this->_socket, WNetWorkHandler::OP_IN | WNetWorkHandler::OP_ERR);
+    std::cout << "WNetAccepter::Bind bind succ" << std::endl;
+
+    return true;
+}
+
+bool WNetAccepter::Listen()
+{
+    if ( ::listen(this->_socket, 1024) == -1) 
+    {
+        std::cout << "WNetAccepter::Listen error " << strerror(errno) << std::endl;
+        return false;
+    }
     return true;
 }
 

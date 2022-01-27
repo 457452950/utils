@@ -1,18 +1,27 @@
 #include "WSingleTcpServer.hpp"
 
+#include <iostream>
+
 namespace wlb::NetWork
 {
 
 bool WSingleTcpServer::Init(WNetWorkHandler* handler)
 {
     this->_handler = handler;
-    this->_handler->Init(100);
+    if ( !this->_handler->Init(100))
+    {
+        std::cout << "WSingleTcpServer::Init(): Failed to initialize" << std::endl;
+        return false;
+    }
+    std::cout << "WSingleTcpServer::Init(): succ" << std::endl;
+    return true;
 }
 
 void WSingleTcpServer::Close()
 {
     for (auto it : this->_sessionMap)
     {
+        std::cout << "WSingleTcpServer::Close: " << it.first << std::endl;
         it.second->Close();
     }
 
@@ -59,13 +68,24 @@ void WSingleTcpServer::WaitForQuit()
 
 bool WSingleTcpServer::AddAccepter(const std::string& IpAddress, uint16_t port)
 {
-    WNetAccepter* acc = new WNetAccepter();
-    if ( !acc->Init(this->_handler, IpAddress, port) )
+    WNetAccepter* acc = new(std::nothrow) WNetAccepter();
+    if (acc == nullptr)
     {
+        std::cout << "WNetAccepter new failed" << std::endl;
         return false;
     }
+    std::cout << "WNetAccepter new succ" << std::endl;
+    
+
+    if ( !acc->Init(this->_handler, IpAddress, port) )
+    {
+        std::cout << "acc Init failed" << std::endl;
+        return false;
+    }
+    std::cout << "acc Init succ" << std::endl;
 
     _accepterMap.insert(std::make_pair(acc->GetListenSocket(), acc));
+    return true;
 }
 
 bool WSingleTcpServer::OnError(base_socket_type socket, std::string error)
@@ -139,6 +159,7 @@ void WSingleTcpServer::Loop()
     while (_running)
     {
         this->_handler->GetAndEmitEvents();
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }
 
