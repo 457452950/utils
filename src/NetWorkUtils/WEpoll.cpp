@@ -159,15 +159,29 @@ void WEpoll::GetAndEmitEvents()
     {
         for (int32_t index = 0; index < curr_events_size; ++index)
         {
+            std::cout << "WEpoll::GetAndEmitEvents Event " << _events[index].events << "" << std::endl;
+            if (_events[index].events & EPOLLERR)
+            {
+                std::cout << "epoll error" << std::endl;
+            }
+            if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
+            {
+                std::cout << "epoll closed" << std::endl;
+            }
+            if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
+            {
+                std::cout << "epoll shutdown" << std::endl;
+            }
             if (_events[index].events & EPOLLIN)
             {
-                _listener->OnRead(_events[index].data.fd);
+                std::cout << "epoll in" << std::endl;
             }
-            else if (_events[index].events & EPOLLOUT)
+            if (_events[index].events & EPOLLOUT)
             {
-                _listener->OnWrite(_events[index].data.fd);
+                std::cout << "epoll out" << std::endl;
             }
-            else if (_events[index].events & EPOLLERR)
+
+            if (_events[index].events & EPOLLERR)
             {
                 _listener->OnError(_events[index].data.fd, std::string(strerror(errno)));
             }
@@ -178,6 +192,15 @@ void WEpoll::GetAndEmitEvents()
             else if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
             {
                 // peer shutdown write
+                _listener->OnShutdown(_events[index].data.fd);
+            }
+            else if (_events[index].events & EPOLLIN)
+            {
+                _listener->OnRead(_events[index].data.fd);
+            }
+            else if (_events[index].events & EPOLLOUT)
+            {
+                _listener->OnWrite(_events[index].data.fd);
             }
         }
 
@@ -185,7 +208,7 @@ void WEpoll::GetAndEmitEvents()
                 this->_events_size = 10 + (curr_events_size / 10 + this->_events_size * 9 / 10):
                 this->_events_size = curr_events_size * 1.5;
         
-        std::cout << "WEpoll GetAndEmitEvents _events_size: " << this->_events_size << std::endl;
+        // std::cout << "WEpoll GetAndEmitEvents _events_size: " << this->_events_size << std::endl;
     }
     
     delete[] this->_events;

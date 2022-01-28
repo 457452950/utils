@@ -1,4 +1,5 @@
 #include "WBuffer.hpp"
+#include <iostream>
 
 namespace wlb
 {
@@ -43,6 +44,8 @@ char* RingBuffer::GetBuffer()
 
 void RingBuffer::UpdateWriteOffset(uint32_t len)
 {
+    std::string s;
+    s.assign(this->_buffer, len);
     this->_WriteOffset += len;
     this->_WriteOffset /= this->_maxBufferSize;
 }

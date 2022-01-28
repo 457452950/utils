@@ -17,6 +17,8 @@ public:
     public:
         virtual bool OnError(base_socket_type socket, std::string error) = 0;
         virtual bool OnClosed(base_socket_type socket) = 0;
+        // virtual bool OnConnected(base_socket_type socket) = 0;
+        virtual bool OnShutdown(base_socket_type socket) = 0;
         virtual bool OnRead(base_socket_type socket) = 0;
         virtual bool OnWrite(base_socket_type socket) = 0;
     };

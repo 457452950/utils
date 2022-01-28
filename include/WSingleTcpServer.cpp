@@ -37,6 +37,8 @@ void WSingleTcpServer::Destroy()
 
     for (auto it : this->_sessionMap)
     {
+        it.second->Close();
+        it.second->Destroy();
         delete it.second;
         this->_sessionMap.erase(it.first);
     }
@@ -76,10 +78,10 @@ bool WSingleTcpServer::AddAccepter(const std::string& IpAddress, uint16_t port)
     }
     std::cout << "WNetAccepter new succ" << std::endl;
     
-
     if ( !acc->Init(this->_handler, IpAddress, port) )
     {
         std::cout << "acc Init failed" << std::endl;
+        delete acc;
         return false;
     }
     std::cout << "acc Init succ" << std::endl;
@@ -96,11 +98,12 @@ bool WSingleTcpServer::OnError(base_socket_type socket, std::string error)
     {
         if ( !it->second->OnError(socket, error) )
         {
-            this->_handler->RemoveSocket(socket);
-            it->second->Close();
+            RemoveSession(it);
+            return false;
         }
+        return true;
     }
-    
+    return false;
 }
 
 bool WSingleTcpServer::OnClosed(base_socket_type socket)
@@ -111,34 +114,80 @@ bool WSingleTcpServer::OnClosed(base_socket_type socket)
     {
         if ( !it->second->OnClosed(socket) )
         {
-            this->_handler->RemoveSocket(socket);
-            it->second->Close();
+            RemoveSession(it);
+            return false;
         }
+        return true;
     }
+    return false;
+}
+bool WSingleTcpServer::OnShutdown(base_socket_type socket)
+{
+    auto it = this->_sessionMap.find(socket);
+
+    if (it != this->_sessionMap.end())
+    {
+        if ( !it->second->OnShutdown(socket) )
+        {
+            RemoveSession(it);
+            return false;
+        }
+        return true;
+    }
+    return false;
 }
 bool WSingleTcpServer::OnRead(base_socket_type socket)
 {
+    std::cout << "WSingleTcpServer::OnRead " << std::endl;
     auto it = this->_sessionMap.find(socket);
 
     if (it != this->_sessionMap.end())
     {
         if ( !it->second->OnRead(socket) )
         {
-            this->_handler->RemoveSocket(socket);
-            it->second->Close();
+            RemoveSession(it);
+            return false;
         }
     }
     else
     {
+        std::cout << "WSingleTcpServer::OnRead() not session " << std::endl;
         auto accept = this->_accepterMap.find(socket);
+        if (accept == this->_accepterMap.end())
+        {
+            return false;
+        }
+        
+        std::cout << "WSingleTcpServer::OnRead() has session " << _sessionMap.size() << std::endl;
         base_socket_type cli_sock = accept->second->Accept();
-
-        WBaseSession* session = new WFloatBufferSession();
-        session->Init(this->_handler, 100, 2);
-        session->SetSocket(cli_sock);
+        std::cout << "WSingleTcpServer::OnRead() accept " << cli_sock << std::endl;
+        if (cli_sock == 0) 
+        {
+            return false;
+        }
+        
+        WBaseSession* session = new(std::nothrow) WFloatBufferSession();
+        if (session == nullptr)
+        {
+            return false;
+        }
+        
+        if ( !session->Init(this->_handler, 102400, 4) )
+        {
+            session->Destroy();
+            delete session;
+            return false;
+        }
+        if ( !session->SetSocket(cli_sock) )
+        {
+            session->Destroy();
+            delete session;
+            return false;
+        }
         this->_sessionMap.insert(std::make_pair(cli_sock, session));
+        return true;
     }
-    
+    return false;
 }
 bool WSingleTcpServer::OnWrite(base_socket_type socket)
 {
@@ -148,10 +197,12 @@ bool WSingleTcpServer::OnWrite(base_socket_type socket)
     {
         if ( !it->second->OnWrite(socket) )
         {
-            this->_handler->RemoveSocket(socket);
-            it->second->Close();
+            RemoveSession(it);
+            return false;
         }
+        return true;
     }
+    return false;
 }
 
 void WSingleTcpServer::Loop()
@@ -159,8 +210,17 @@ void WSingleTcpServer::Loop()
     while (_running)
     {
         this->_handler->GetAndEmitEvents();
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        // std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+}
+
+void WSingleTcpServer::RemoveSession(std::map<base_socket_type, WBaseSession *>::iterator it)
+{
+    this->_handler->RemoveSocket(it->first);
+    it->second->Close();
+    it->second->Destroy();
+    delete it->second;
+    this->_sessionMap.erase(it);
 }
 
 }

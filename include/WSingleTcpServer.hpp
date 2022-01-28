@@ -32,11 +32,14 @@ public:
     // override Listener
     bool OnError(base_socket_type socket, std::string error) override;
     bool OnClosed(base_socket_type socket) override;
+    bool OnShutdown(base_socket_type socket) override;
     bool OnRead(base_socket_type socket) override;
     bool OnWrite(base_socket_type socket) override;
 
 private:
     void Loop();
+
+    void RemoveSession(std::map<base_socket_type, WBaseSession *>::iterator it);
 
 private:
     std::thread* _workThread{nullptr};

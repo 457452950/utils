@@ -178,7 +178,7 @@ protected:
     const int32_t default_events_size{128};
 
 private:
-    int32_t GetEvents(epoll_event* events, int32_t events_size) {};
+    int32_t GetEvents(epoll_event* events, int32_t events_size) { return 0; };
 
 
 };

@@ -139,6 +139,7 @@ public:
     bool OnClosed(base_socket_type socket) override;
     bool OnRead(base_socket_type socket) override;
     bool OnWrite(base_socket_type socket) override;
+    bool OnShutdown(base_socket_type socket) override;
 
     
 private:
