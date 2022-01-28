@@ -1,6 +1,7 @@
 #include "WOS.h"
 #include <stdint.h>
 #include <string>
+#include <cstring>
 
 namespace wlb
 {
@@ -18,7 +19,9 @@ public:
 
     // class methods
     const uint32_t GetRestBufferSize();
+    const uint32_t GetTopRestBufferSize();
     char* GetBuffer();
+    char* GetRestBuffer();
     void UpdateWriteOffset(uint32_t len);
     void UpdateReadOffset(uint32_t len);
 
@@ -26,7 +29,7 @@ public:
     uint32_t InsertMessage(const std::string& message);
 
     // you can get messages from buf or return value
-    const std::string GetFrontMessage(char* buf, uint32_t len);
+    const uint32_t GetFrontMessage(std::string& message, uint32_t len);
     const uint32_t GetAllMessage(std::string& message);
     
 
@@ -36,6 +39,9 @@ protected:
 
     uint32_t _ReadOffset{0};
     uint32_t _WriteOffset{0};
+
+    bool _isFull{false};
+    bool _isEmpty{true};
 
     // unablecopy
 protected:

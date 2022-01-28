@@ -236,24 +236,32 @@ void WFloatBufferSession::Destroy()
 bool WFloatBufferSession::Send(const std::string& message)
 {
     uint32_t msgSize = message.size();
+    uint32_t insert_len = 0;
 
-    std::string head;
-    if (this->_headLen == 2)
-    {
-        head = MakeWlbHead(wlbHead2(msgSize));
-    }
-    else if (this->_headLen == 4)
-    {
-        head = MakeWlbHead(wlbHead4(msgSize));
-    }
+    // std::string head;
+    // if (this->_headLen == 2)
+    // {
+    //     head = MakeWlbHead(wlbHead2(msgSize));
+    // }
+    // else if (this->_headLen == 4)
+    // {
+    //     head = MakeWlbHead(wlbHead4(msgSize));
+    // }
     
-    uint32_t insert_len = _sendBuffer.InsertMessage(head);
-    if (insert_len != this->_headLen)
+    // insert_len = _sendBuffer.InsertMessage(head);
+    // if (insert_len != this->_headLen)
+    // {
+    //     return false;
+    // }
+
+    insert_len = _sendBuffer.InsertMessage(message);
+    if (insert_len != msgSize)
     {
         return false;
     }
+    
 
-    // 添加进send
+    // 添加进 send events
     this->_op |= WNetWorkHandler::OP_OUT;
     if ( !_handler->ModifySocket(this->_socket, this->_op) )
     {
@@ -265,21 +273,10 @@ bool WFloatBufferSession::Send(const std::string& message)
 
 bool WFloatBufferSession::Receive()
 {
-    const int x = 102400;
-    char* b = new char[x];
-    ssize_t recv_len = ::recv(this->_socket, 
-                                b, 
-                                x,
+    int32_t recv_len = ::recv(this->_socket, 
+                                this->_recvBuffer.GetRestBuffer(), 
+                                this->_recvBuffer.GetTopRestBufferSize(),
                                 0);
-    // uint32_t recv_len = ::recv(this->_socket, 
-    //                             this->_recvBuffer.GetBuffer(), 
-    //                             this->_recvBuffer.GetRestBufferSize(),
-    //                             0);
-    std::cout << "received " << recv_len << std::endl;
-    // this->Send(b);
-    ::send(this->_socket, b, recv_len, 0);
-    delete[] b;
-
     if (recv_len <= -1)
     {
         std::cout << "recv " << recv_len << " : error " << strerror(errno) << std::endl;
@@ -294,6 +291,12 @@ bool WFloatBufferSession::Receive()
     }
     
     this->_recvBuffer.UpdateWriteOffset(recv_len);
+
+    std::string send_msg;
+    uint32_t send_size = this->_recvBuffer.GetFrontMessage(send_msg, recv_len);
+    std::cout << "send_msg: " << send_msg << "size:" << send_size << std::endl;
+    this->Send(send_msg);
+
     return true;
 }
 
@@ -322,15 +325,18 @@ bool WFloatBufferSession::OnWrite(base_socket_type socket)
 {
     std::string send_message;
     uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
-    uint32_t send_len = ::send(this->_socket, send_message.c_str(), msg_len, 0);
+    ssize_t send_len = ::send(this->_socket, send_message.c_str(), msg_len, 0);
+    std::cout << "WFloatBufferSession::OnWrite send_len:" << send_len << std::endl;
 
     if (send_len < 0)
     {
         this->Close();
         return false;
     }
-    
-    _sendBuffer.UpdateReadOffset(send_len);
+
+    this->_op -= WNetWorkHandler::OP_OUT;
+    this->_handler->ModifySocket(this->_socket, this->_op);
+
     return true;
 }
 

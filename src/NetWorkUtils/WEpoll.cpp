@@ -32,10 +32,10 @@ bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t event
     event.events = events;
 
     if ( ::epoll_ctl(epoll, EPOLL_CTL_MOD, socket, &event) == 0 ){
-        std::cout << "Epoll Add Socket succ" << std::endl;
+        std::cout << "Epoll Modify Socket succ" << std::endl;
         return true;
     }
-    std::cout << "Epoll Add Socket failed" << std::endl;
+    std::cout << "Epoll Modify Socket failed" << std::endl;
     return false;
 }
 
