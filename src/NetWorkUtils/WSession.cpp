@@ -196,6 +196,13 @@ bool WFloatBufferSession::SetSocket(base_socket_type socket)
 {
     std::cout << "Setting socket " << socket << std::endl;
     this->_socket = socket;
+
+    if (    !SetTcpSocketNoDelay(this->_socket) || 
+            !SetSocketKeepAlive(this->_socket) )
+    {
+        std::cout << "WFloatBufferSession::SetSocket SetSocketopt failed " << std::endl;
+        return false;
+    }
     if ( !SetSocketNoBlock(this->_socket))
     {
         // error set noblock failed

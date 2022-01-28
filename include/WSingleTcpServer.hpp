@@ -39,6 +39,7 @@ public:
 private:
     void Loop();
 
+    bool CreateNewSession(base_socket_type socket);
     void RemoveSession(std::map<base_socket_type, WBaseSession *>::iterator it);
 
 private:

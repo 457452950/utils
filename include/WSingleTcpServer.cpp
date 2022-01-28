@@ -93,54 +93,53 @@ bool WSingleTcpServer::AddAccepter(const std::string& IpAddress, uint16_t port)
 bool WSingleTcpServer::OnError(base_socket_type socket, std::string error)
 {
     auto it = this->_sessionMap.find(socket);
-
-    if (it != this->_sessionMap.end())
+    if  (it == this->_sessionMap.end())
     {
-        if ( !it->second->OnError(socket, error) )
-        {
-            RemoveSession(it);
-            return false;
-        }
-        return true;
+        return false;
     }
-    return false;
+
+    if ( !it->second->OnError(socket, error) )
+    {
+        RemoveSession(it);
+        return false;
+    }
+    return true;
 }
 
 bool WSingleTcpServer::OnClosed(base_socket_type socket)
 {
     auto it = this->_sessionMap.find(socket);
-
-    if (it != this->_sessionMap.end())
+    if  (it == this->_sessionMap.end())
     {
-        if ( !it->second->OnClosed(socket) )
-        {
-            RemoveSession(it);
-            return false;
-        }
-        return true;
+        return false;
     }
-    return false;
+
+    if ( !it->second->OnClosed(socket) )
+    {
+        RemoveSession(it);
+        return false;
+    }
+    return true;
 }
 bool WSingleTcpServer::OnShutdown(base_socket_type socket)
 {
     auto it = this->_sessionMap.find(socket);
-
-    if (it != this->_sessionMap.end())
+    if  (it == this->_sessionMap.end())
     {
-        if ( !it->second->OnShutdown(socket) )
-        {
-            RemoveSession(it);
-            return false;
-        }
-        return true;
+        return false;
     }
-    return false;
+
+    if ( !it->second->OnShutdown(socket) )
+    {
+        RemoveSession(it);
+        return false;
+    }
+    return true;
 }
 bool WSingleTcpServer::OnRead(base_socket_type socket)
 {
     std::cout << "WSingleTcpServer::OnRead " << std::endl;
     auto it = this->_sessionMap.find(socket);
-
     if (it != this->_sessionMap.end())
     {
         if ( !it->second->OnRead(socket) )
@@ -148,61 +147,46 @@ bool WSingleTcpServer::OnRead(base_socket_type socket)
             RemoveSession(it);
             return false;
         }
-    }
-    else
-    {
-        std::cout << "WSingleTcpServer::OnRead() not session " << std::endl;
-        auto accept = this->_accepterMap.find(socket);
-        if (accept == this->_accepterMap.end())
-        {
-            return false;
-        }
-        
-        std::cout << "WSingleTcpServer::OnRead() has session " << _sessionMap.size() << std::endl;
-        base_socket_type cli_sock = accept->second->Accept();
-        std::cout << "WSingleTcpServer::OnRead() accept " << cli_sock << std::endl;
-        if (cli_sock == 0) 
-        {
-            return false;
-        }
-        
-        WBaseSession* session = new(std::nothrow) WFloatBufferSession();
-        if (session == nullptr)
-        {
-            return false;
-        }
-        
-        if ( !session->Init(this->_handler, 102400, 4) )
-        {
-            session->Destroy();
-            delete session;
-            return false;
-        }
-        if ( !session->SetSocket(cli_sock) )
-        {
-            session->Destroy();
-            delete session;
-            return false;
-        }
-        this->_sessionMap.insert(std::make_pair(cli_sock, session));
         return true;
     }
-    return false;
+
+    std::cout << "WSingleTcpServer::OnRead() not session " << std::endl;
+    auto accept = this->_accepterMap.find(socket);
+    if (accept == this->_accepterMap.end())
+    {
+        // cant find accept socket 
+        return false;
+    }
+    
+    std::cout << "WSingleTcpServer::OnRead() has session " << _sessionMap.size() << std::endl;
+    base_socket_type cli_sock = accept->second->Accept();
+    if (cli_sock <= 0) 
+    {
+        // error
+        return false;
+    }
+        
+    if ( !this->CreateNewSession(cli_sock) )
+    {
+        return false;
+    }
+        
+    return true;
 }
 bool WSingleTcpServer::OnWrite(base_socket_type socket)
 {
     auto it = this->_sessionMap.find(socket);
-
-    if (it != this->_sessionMap.end())
+    if  (it == this->_sessionMap.end())
     {
-        if ( !it->second->OnWrite(socket) )
-        {
-            RemoveSession(it);
-            return false;
-        }
-        return true;
+        return false;
     }
-    return false;
+
+    if ( !it->second->OnWrite(socket) )
+    {
+        RemoveSession(it);
+        return false;
+    }
+    return true;
 }
 
 void WSingleTcpServer::Loop()
@@ -221,6 +205,30 @@ void WSingleTcpServer::RemoveSession(std::map<base_socket_type, WBaseSession *>:
     it->second->Destroy();
     delete it->second;
     this->_sessionMap.erase(it);
+}
+
+bool WSingleTcpServer::CreateNewSession(base_socket_type socket)
+{
+    WBaseSession* session = new(std::nothrow) WFloatBufferSession();
+    if (session == nullptr)
+    {
+        return false;
+    }
+    
+    if ( !session->Init(this->_handler, 102400, 4) )
+    {
+        session->Destroy();
+        delete session;
+        return false;
+    }
+    if ( !session->SetSocket(socket) )
+    {
+        session->Destroy();
+        delete session;
+        return false;
+    }
+    this->_sessionMap.insert(std::make_pair(socket, session));
+    return true;
 }
 
 }
