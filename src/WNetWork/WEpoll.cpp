@@ -55,7 +55,7 @@ int32_t EpollGetEvents(epoll_type epoll, struct epoll_event * events, int32_t ev
         return 0;
     }
     
-    return ::epoll_wait(epoll, events, events_size, 1);
+    return ::epoll_wait(epoll, events, events_size, 0);
 }
 
 void CloseEpoll(epoll_type epoll)
