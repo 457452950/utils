@@ -139,6 +139,8 @@ bool WSingleTcpServer::OnShutdown(base_socket_type socket)
 bool WSingleTcpServer::OnRead(base_socket_type socket)
 {
     std::cout << "WSingleTcpServer::OnRead " << std::endl;
+
+    // receive
     auto it = this->_sessionMap.find(socket);
     if (it != this->_sessionMap.end())
     {
@@ -150,6 +152,7 @@ bool WSingleTcpServer::OnRead(base_socket_type socket)
         return true;
     }
 
+    // accept connection
     std::cout << "WSingleTcpServer::OnRead() not session " << std::endl;
     auto accept = this->_accepterMap.find(socket);
     if (accept == this->_accepterMap.end())
@@ -166,6 +169,17 @@ bool WSingleTcpServer::OnRead(base_socket_type socket)
         // error
         return false;
     }
+
+    if (this->_service._OnConnected)
+    {
+        if ( !(this->_service._OnConnected)(socket, info) )
+        {
+            // refuse connection
+            ::close(cli_sock);
+            return true;
+        }
+    }
+    
         
     if ( !this->CreateNewSession(cli_sock, info) )
     {
@@ -210,7 +224,7 @@ void WSingleTcpServer::RemoveSession(std::map<base_socket_type, WBaseSession *>:
 
 bool WSingleTcpServer::CreateNewSession(base_socket_type socket, const WPeerInfo& peerInfo)
 {
-    WBaseSession* session = new(std::nothrow) WFloatBufferSession();
+    WBaseSession* session = new(std::nothrow) WFloatBufferSession(this->_service);
     if (session == nullptr)
     {
         return false;

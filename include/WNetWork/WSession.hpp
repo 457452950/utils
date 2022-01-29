@@ -3,6 +3,7 @@
 #include "WEpoll.hpp"
 #include "WBuffer.hpp"
 #include "WNetWorkHandler.hpp"
+#include "WService.hpp"
 
 namespace wlb::NetWork
 {
@@ -51,6 +52,8 @@ private:
 class WBaseSession : public WNetWorkHandler::Listener
 {
 public:
+    using SessionId = base_socket_type;
+
     virtual ~WBaseSession() {};
 
     // class life control
@@ -109,7 +112,7 @@ class WFloatBufferSession : public WBaseSession
     //  |s|i|z|e|  ... message body  ...|    
 
 public:
-    explicit WFloatBufferSession() = default;
+    explicit WFloatBufferSession(WService& service) : _service(service){};
     WFloatBufferSession(const WBaseSession& other) = delete;
     WFloatBufferSession& operator=(const WBaseSession& other) = delete;
     virtual ~WFloatBufferSession() = default;
@@ -161,6 +164,7 @@ private:
     WPeerInfo _peerInfo;
 
     // from out side
+    WService& _service;
     WNetWorkHandler* _handler{nullptr};
 };
 

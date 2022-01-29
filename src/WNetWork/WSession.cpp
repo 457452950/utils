@@ -309,11 +309,6 @@ bool WFloatBufferSession::Receive()
     
     this->_recvBuffer.UpdateWriteOffset(recv_len);
 
-    std::string send_msg;
-    uint32_t send_size = this->_recvBuffer.GetFrontMessage(send_msg, recv_len);
-    std::cout << "send_msg: " << send_msg << "size:" << send_size << std::endl;
-    this->Send(send_msg);
-
     return true;
 }
 
@@ -321,6 +316,12 @@ void WFloatBufferSession::HandleError(int error_code)
 {
     this->_errorMessage.clear();
     this->_errorMessage.assign(::strerror(error_code));
+
+    if (this->_service._OnError)
+    {
+        (this->_service._OnError)((int)this->_socket, this->_errorMessage);
+    }
+    
 }
 
 bool WFloatBufferSession::OnError(base_socket_type socket, int error_no)
@@ -331,12 +332,66 @@ bool WFloatBufferSession::OnError(base_socket_type socket, int error_no)
 
 bool WFloatBufferSession::OnClosed(base_socket_type socket)
 {
+    if (this->_service._OnDisconnected)
+    {
+        (this->_service._OnDisconnected)(socket);
+    }
+    
+
     return false;
 }
 
 bool WFloatBufferSession::OnRead(base_socket_type socket)
 {
-    return this->Receive();
+    if (!this->Receive())
+    {
+        return false;
+    }
+
+    if (!this->_service._OnMessage)
+    {
+        std::cout << "no onmessage callback" << std::endl;
+        // no onMessage callback
+        return true;
+    }
+    
+    std::string head;
+    std::string receive_message;
+    std::string send_message;
+    // on message
+    while (1)
+    {
+        receive_message.clear();
+        uint32_t len = this->_recvBuffer.GetFrontMessage(head, this->_headLen);
+        if (len != this->_headLen)
+        {
+            // no enough message
+            return true;
+        }
+        
+        len = GetLengthFromWlbHead(head.c_str(), this->_headLen);
+        std::cout << "WFloatBufferSession::OnRead head len" << len << std::endl;
+        if (len == 0)
+        {
+            return false;
+        }
+
+        len = this->_recvBuffer.GetFrontMessage(receive_message, len);
+        if (len == 0)
+        {
+            // no enough message
+            break;
+        }
+
+        if (!(this->_service._OnMessage)(socket, receive_message, send_message))
+        {
+            return false;
+        }
+        if ( !send_message.empty() )
+        {
+            this->Send(send_message);
+        }
+    }
 }
 
 bool WFloatBufferSession::OnWrite(base_socket_type socket)
@@ -364,6 +419,11 @@ bool WFloatBufferSession::OnShutdown(base_socket_type socket)
     {
         return false;
     }
+    if (this->_service._OnShutDown)
+    {
+        (this->_service._OnShutDown)(socket);
+    }
+    
     return true;
 }
 
