@@ -1,4 +1,4 @@
-#include "../../include/WSession.hpp"
+#include "WNetWork/WSession.hpp"
 #include <iostream>
 
 namespace wlb::NetWork

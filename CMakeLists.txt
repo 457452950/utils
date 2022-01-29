@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CXX_FLAG -g)
 
 include_directories(
-    include
-    include/libevent
+    include/
+    include/libevent/
 )
 set(LIBRARY_OUTPUT_PATH lib)
 
@@ -23,3 +23,11 @@ target_link_libraries(redis logger hiredis event)
 add_library(tinymysql   src/mysql/libMySQL.cpp)
 target_link_libraries(tinymysql logger mysqlclient)
 
+add_library(   
+    wnetwork 
+    src/WNetWork/NetWorkUtils.cpp 
+    src/WNetWork/WEpoll.cpp 
+    src/WNetWork/WSession.cpp 
+    src/WNetWork/WSingleTcpServer.cpp
+    src/WBuffer.cpp 
+)
