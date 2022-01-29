@@ -24,7 +24,7 @@ public:
     bool Init(WNetWorkHandler* handler, const std::string& IpAddress, uint16_t port);
     base_socket_type GetListenSocket();
     
-    base_socket_type Accept();
+    base_socket_type Accept(WPeerInfo& info);
 
 private:
     bool Bind();
@@ -55,7 +55,7 @@ public:
 
     // class life control
     virtual bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t flags = 0) = 0;
-    virtual bool SetSocket(base_socket_type socket) = 0;
+    virtual bool SetSocket(base_socket_type socket,const WPeerInfo& peerInfo) = 0;
     virtual void Clear() = 0;
     virtual void Destroy() = 0;
 
@@ -63,14 +63,14 @@ public:
     virtual bool Send(const std::string& message) = 0;
     virtual bool Receive() = 0;
     virtual void Close() = 0;
-    virtual void HandleError() = 0;
+    virtual void HandleError(int erroe_code) = 0;
 
-    // // get session state
-    // virtual bool isConnected() = 0;
-    // virtual const std::string& getErrorMessage() = 0;
+    // get session state
+    virtual bool isConnected() = 0;
+    virtual const std::string& getErrorMessage() = 0;
 
-    // virtual const std::string& getPeerIpAddress() = 0;
-    // virtual const std::string& getPeerPort() = 0;
+    virtual const std::string& getPeerIpAddress() = 0;
+    virtual const uint16_t getPeerPort() = 0;
 
 // protected:  // unablecopy
 //     WBaseSession(const WBaseSession& other) = delete;
@@ -116,7 +116,7 @@ public:
 
     // class life time
     bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t headLen = 4) override;
-    inline bool SetSocket(base_socket_type socket) override;
+    bool SetSocket(base_socket_type socket, const WPeerInfo& peerInfo) override;
     void Clear() override;
     void Destroy() override;
 
@@ -124,18 +124,18 @@ public:
     bool Send(const std::string& message) override;
     bool Receive() override;
     void Close() override;
-    void HandleError() override;
+    void HandleError(int error_code) override;
 
     // get session state
-    // bool isConnected() override;
-    // const std::string& getErrorMessage() override;
+    inline bool isConnected() override { return this->_isConnected; };
+    inline const std::string& getErrorMessage() override { return this->_errorMessage; };
 
-    // const std::string& getPeerIpAddress() override;
-    // const std::string& getPeerPort() override;
+    const std::string& getPeerIpAddress() override { return this->_peerInfo.peer_address; };
+    const uint16_t getPeerPort() override { return this->_peerInfo.peer_port; };
 
 public:
     // return false if need to close
-    bool OnError(base_socket_type socket, std::string error) override;
+    bool OnError(base_socket_type socket, int error_code) override;
     bool OnClosed(base_socket_type socket) override;
     bool OnRead(base_socket_type socket) override;
     bool OnWrite(base_socket_type socket) override;
@@ -143,17 +143,25 @@ public:
 
     
 private:
+    // session members
     RingBuffer _recvBuffer;
     RingBuffer _sendBuffer;
 
     base_socket_type _socket;
-    uint32_t _op;
+    uint32_t _op{0};
 
-    uint32_t _maxBufferSize;
-    uint32_t _headLen;
+    uint32_t _maxBufferSize{0};
+    uint32_t _headLen{0};
+
+    // session state
+    bool _isConnected{false};
+    std::string _errorMessage;
+
+    // peer information
+    WPeerInfo _peerInfo;
 
     // from out side
-    WNetWorkHandler* _handler;
+    WNetWorkHandler* _handler{nullptr};
 };
 
 /**

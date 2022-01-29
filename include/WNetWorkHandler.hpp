@@ -15,7 +15,7 @@ public:
         virtual ~Listener() {};
         
     public:
-        virtual bool OnError(base_socket_type socket, std::string error) = 0;
+        virtual bool OnError(base_socket_type socket, int error_code) = 0;
         virtual bool OnClosed(base_socket_type socket) = 0;
         // virtual bool OnConnected(base_socket_type socket) = 0;
         virtual bool OnShutdown(base_socket_type socket) = 0;

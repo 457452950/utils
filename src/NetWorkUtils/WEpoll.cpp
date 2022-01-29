@@ -183,7 +183,7 @@ void WEpoll::GetAndEmitEvents()
 
             if (_events[index].events & EPOLLERR)
             {
-                _listener->OnError(_events[index].data.fd, std::string(strerror(errno)));
+                _listener->OnError(_events[index].data.fd, errno);
             }
             else if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
             {

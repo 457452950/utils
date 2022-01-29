@@ -125,7 +125,7 @@ bool WNetAccepter::Listen()
     return true;
 }
 
-base_socket_type WNetAccepter::Accept()
+base_socket_type WNetAccepter::Accept(WPeerInfo& info)
 {
     sockaddr_in client_info;
     socklen_t len = sizeof(client_info);
@@ -138,6 +138,22 @@ base_socket_type WNetAccepter::Accept()
         std::cout << "Couldn't accept error " << strerror(errno) << std::endl;
         return 0;
     }
+
+    in_addr _add = client_info.sin_addr;
+    if ( !IpAddrToString(_add, info.peer_address))
+    {
+        // error parse ip address
+    }
+    try 
+    {
+        info.peer_port =::ntohs(client_info.sin_port);
+    }
+    catch (const std::exception& e)
+    {
+        std::cout << e.what() << std::endl;
+    }
+    std::cout << "ip address:" << info.peer_address << ",port:" << info.peer_port << std::endl;
+    
     return clientsock;
 }
 
@@ -192,7 +208,7 @@ bool WFloatBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize,
     return true;
 }
 
-bool WFloatBufferSession::SetSocket(base_socket_type socket)
+bool WFloatBufferSession::SetSocket(base_socket_type socket, const WPeerInfo& peerInfo)
 {
     std::cout << "Setting socket " << socket << std::endl;
     this->_socket = socket;
@@ -211,11 +227,17 @@ bool WFloatBufferSession::SetSocket(base_socket_type socket)
     {
         return false;
     }
+
+    this->_peerInfo = peerInfo;
+
+    this->_isConnected = true;
+
     return true;
 }
 
 void WFloatBufferSession::Close()
 {
+    this->_isConnected = false;
     ::close(this->_socket);
     this->_socket = -1;
     this->Clear();
@@ -223,6 +245,7 @@ void WFloatBufferSession::Close()
 
 void WFloatBufferSession::Clear()
 {
+    this->_isConnected = false;
     _recvBuffer.Clear();
     _sendBuffer.Clear();
 }
@@ -238,28 +261,22 @@ bool WFloatBufferSession::Send(const std::string& message)
     uint32_t msgSize = message.size();
     uint32_t insert_len = 0;
 
-    // std::string head;
-    // if (this->_headLen == 2)
-    // {
-    //     head = MakeWlbHead(wlbHead2(msgSize));
-    // }
-    // else if (this->_headLen == 4)
-    // {
-    //     head = MakeWlbHead(wlbHead4(msgSize));
-    // }
+    std::string head;
+    if (this->_headLen == 2)
+    {
+        head = MakeWlbHead(wlbHead2(msgSize));
+    }
+    else if (this->_headLen == 4)
+    {
+        head = MakeWlbHead(wlbHead4(msgSize));
+    }
     
-    // insert_len = _sendBuffer.InsertMessage(head);
-    // if (insert_len != this->_headLen)
-    // {
-    //     return false;
-    // }
-
-    insert_len = _sendBuffer.InsertMessage(message);
-    if (insert_len != msgSize)
+    std::string send_message = head + message;
+    insert_len = _sendBuffer.InsertMessage(send_message);
+    if (insert_len != send_message.length())
     {
         return false;
     }
-    
 
     // 添加进 send events
     this->_op |= WNetWorkHandler::OP_OUT;
@@ -300,14 +317,15 @@ bool WFloatBufferSession::Receive()
     return true;
 }
 
-void WFloatBufferSession::HandleError()
+void WFloatBufferSession::HandleError(int error_code)
 {
-    
+    this->_errorMessage.clear();
+    this->_errorMessage.assign(::strerror(error_code));
 }
 
-bool WFloatBufferSession::OnError(base_socket_type socket, std::string error)
+bool WFloatBufferSession::OnError(base_socket_type socket, int error_no)
 {
-    HandleError();
+    HandleError(error_no);
     return false;
 }
 

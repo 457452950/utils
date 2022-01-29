@@ -90,7 +90,7 @@ bool WSingleTcpServer::AddAccepter(const std::string& IpAddress, uint16_t port)
     return true;
 }
 
-bool WSingleTcpServer::OnError(base_socket_type socket, std::string error)
+bool WSingleTcpServer::OnError(base_socket_type socket, int error_code)
 {
     auto it = this->_sessionMap.find(socket);
     if  (it == this->_sessionMap.end())
@@ -98,7 +98,7 @@ bool WSingleTcpServer::OnError(base_socket_type socket, std::string error)
         return false;
     }
 
-    if ( !it->second->OnError(socket, error) )
+    if ( !it->second->OnError(socket, error_code) )
     {
         RemoveSession(it);
         return false;
@@ -158,15 +158,16 @@ bool WSingleTcpServer::OnRead(base_socket_type socket)
         return false;
     }
     
+    WPeerInfo info;
     std::cout << "WSingleTcpServer::OnRead() has session " << _sessionMap.size() << std::endl;
-    base_socket_type cli_sock = accept->second->Accept();
+    base_socket_type cli_sock = accept->second->Accept(info);
     if (cli_sock <= 0) 
     {
         // error
         return false;
     }
         
-    if ( !this->CreateNewSession(cli_sock) )
+    if ( !this->CreateNewSession(cli_sock, info) )
     {
         return false;
     }
@@ -207,7 +208,7 @@ void WSingleTcpServer::RemoveSession(std::map<base_socket_type, WBaseSession *>:
     this->_sessionMap.erase(it);
 }
 
-bool WSingleTcpServer::CreateNewSession(base_socket_type socket)
+bool WSingleTcpServer::CreateNewSession(base_socket_type socket, const WPeerInfo& peerInfo)
 {
     WBaseSession* session = new(std::nothrow) WFloatBufferSession();
     if (session == nullptr)
@@ -221,7 +222,7 @@ bool WSingleTcpServer::CreateNewSession(base_socket_type socket)
         delete session;
         return false;
     }
-    if ( !session->SetSocket(socket) )
+    if ( !session->SetSocket(socket, peerInfo) )
     {
         session->Destroy();
         delete session;

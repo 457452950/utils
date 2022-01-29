@@ -30,7 +30,7 @@ public:
     bool AddAccepter(const std::string & IpAddress, uint16_t port);
 
     // override Listener
-    bool OnError(base_socket_type socket, std::string error) override;
+    bool OnError(base_socket_type socket, int error_code) override;
     bool OnClosed(base_socket_type socket) override;
     bool OnShutdown(base_socket_type socket) override;
     bool OnRead(base_socket_type socket) override;
@@ -39,7 +39,7 @@ public:
 private:
     void Loop();
 
-    bool CreateNewSession(base_socket_type socket);
+    bool CreateNewSession(base_socket_type socket, const WPeerInfo& peerInfo);
     void RemoveSession(std::map<base_socket_type, WBaseSession *>::iterator it);
 
 private:

@@ -30,6 +30,12 @@ namespace NetWork
 using base_socket_type = int32_t;
 using base_socket_ptr = base_socket_type*;
 
+struct WPeerInfo
+{
+    std::string peer_address;
+    uint16_t peer_port;
+};
+
 enum class AF_FAMILY 
 {
     INET = AF_INET,
