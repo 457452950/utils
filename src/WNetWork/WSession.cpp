@@ -66,7 +66,7 @@ bool WNetAccepter::Init(WNetWorkHandler* handler, const std::string& IpAddress, 
     op |= WNetWorkHandler::OP_IN;
     op |= WNetWorkHandler::OP_ERR;
     std::cout << "listen socket op:" << op << std::endl;
-    if ( !this->_handler->AddSocket(this->_socket, op) )
+    if ( !this->_handler->AddSocket(this, this->_socket, op) )
     {
         std::cout << "WNetAccepter::Init AddSocket failed" << std::endl;
         return false;
@@ -162,10 +162,32 @@ base_socket_type WNetAccepter::GetListenSocket()
     return this->_socket;
 }
 
+void WNetAccepter::Close()
+{
+    this->_handler->RemoveSocket(this->_socket);
+    ::close(this->_socket);
+    this->_handler = nullptr;
+    this->_listener = nullptr;
+}
 
+void WNetAccepter::OnRead()
+{
+    WPeerInfo info;
+    base_socket_type cli_sock = this->Accept(info);
 
+    if (this->_listener != nullptr)
+    {
+        this->_listener->OnConnected(cli_sock, info);
+    }
+    
+    return;
+}
 
-
+void WNetAccepter::OnError(int error_code)
+{
+    std::cout << "WNetAccepter::OnError " << strerror(error_code) << std::endl;
+    return;
+}
 
 
 
@@ -223,7 +245,7 @@ bool WFloatBufferSession::SetSocket(base_socket_type socket, const WPeerInfo& pe
     {
         // error set noblock failed
     }
-    if ( !_handler->AddSocket(this->_socket, this->_op))
+    if ( !_handler->AddSocket(this, this->_socket, this->_op))
     {
         return false;
     }
@@ -237,9 +259,12 @@ bool WFloatBufferSession::SetSocket(base_socket_type socket, const WPeerInfo& pe
 
 void WFloatBufferSession::Close()
 {
+    // close
     this->_isConnected = false;
     ::close(this->_socket);
     this->_socket = -1;
+
+    // clear
     this->Clear();
 }
 
@@ -254,6 +279,7 @@ void WFloatBufferSession::Destroy()
 {
     _recvBuffer.Destroy();
     _sendBuffer.Destroy();
+    this->_listener = nullptr;
 }
 
 bool WFloatBufferSession::Send(const std::string& message)
@@ -297,13 +323,11 @@ bool WFloatBufferSession::Receive()
     if (recv_len <= -1)
     {
         std::cout << "recv " << recv_len << " : error " << strerror(errno) << std::endl;
-        this->Close();
         return false;
     }
-    if (recv_len == 0)
+    if (recv_len == 0 && _recvBuffer.GetTopRestBufferSize() != 0)
     {
         std::cout << "recv = 0, error " << strerror(errno) << std::endl;
-        this->Close();
         return false;
     }
     
@@ -317,42 +341,40 @@ void WFloatBufferSession::HandleError(int error_code)
     this->_errorMessage.clear();
     this->_errorMessage.assign(::strerror(error_code));
 
-    if (this->_service._OnError)
-    {
-        (this->_service._OnError)((int)this->_socket, this->_errorMessage);
-    }
-    
 }
 
-bool WFloatBufferSession::OnError(base_socket_type socket, int error_no)
+void WFloatBufferSession::OnError(int error_no)
 {
+    if (this->_listener != nullptr)
+    {
+        bool ok = this->_listener->OnSessionError(this->_socket, error_no);
+        if (!ok)
+        {
+            ::shutdown(this->_socket, SHUT_WR);
+        }
+        
+    }
+    
     HandleError(error_no);
-    return false;
+    return;
 }
 
-bool WFloatBufferSession::OnClosed(base_socket_type socket)
+void WFloatBufferSession::OnClosed()
 {
-    if (this->_service._OnDisconnected)
+    if (this->_listener != nullptr)
     {
-        (this->_service._OnDisconnected)(socket);
+        this->_listener->OnSessionClosed(this->_socket);
     }
-    
-
-    return false;
+    this->Close();
+    return;
 }
 
-bool WFloatBufferSession::OnRead(base_socket_type socket)
+void WFloatBufferSession::OnRead()
 {
     if (!this->Receive())
     {
-        return false;
-    }
-
-    if (!this->_service._OnMessage)
-    {
-        std::cout << "no onmessage callback" << std::endl;
-        // no onMessage callback
-        return true;
+        ::shutdown(this->_socket, SHUT_RD);
+        return;
     }
     
     std::string head;
@@ -366,14 +388,15 @@ bool WFloatBufferSession::OnRead(base_socket_type socket)
         if (len != this->_headLen)
         {
             // no enough message
-            return true;
+            return;
         }
         
         len = GetLengthFromWlbHead(head.c_str(), this->_headLen);
         std::cout << "WFloatBufferSession::OnRead head len" << len << std::endl;
         if (len == 0)
         {
-            return false;
+            ::shutdown(this->_socket, SHUT_RDWR);
+            return;
         }
 
         len = this->_recvBuffer.GetFrontMessage(receive_message, len);
@@ -383,9 +406,10 @@ bool WFloatBufferSession::OnRead(base_socket_type socket)
             break;
         }
 
-        if (!(this->_service._OnMessage)(socket, receive_message, send_message))
+        if (!this->_listener->OnSessionMessage(this->_socket, receive_message, send_message))
         {
-            return false;
+            ::shutdown(this->_socket, SHUT_RDWR);
+            return;
         }
         if ( !send_message.empty() )
         {
@@ -394,7 +418,7 @@ bool WFloatBufferSession::OnRead(base_socket_type socket)
     }
 }
 
-bool WFloatBufferSession::OnWrite(base_socket_type socket)
+void WFloatBufferSession::OnWrite()
 {
     std::string send_message;
     uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
@@ -403,28 +427,29 @@ bool WFloatBufferSession::OnWrite(base_socket_type socket)
 
     if (send_len < 0)
     {
-        this->Close();
-        return false;
+        ::shutdown(this->_socket, SHUT_RDWR);
+        return;
     }
 
     this->_op -= WNetWorkHandler::OP_OUT;
     this->_handler->ModifySocket(this->_socket, this->_op);
 
-    return true;
+    return;
 }
 
-bool WFloatBufferSession::OnShutdown(base_socket_type socket)
+void WFloatBufferSession::OnShutdown()
 {
-    if ( ::shutdown(socket, SHUT_RDWR) == -1 )
+    if (this->_listener != nullptr)
     {
-        return false;
-    }
-    if (this->_service._OnShutDown)
-    {
-        (this->_service._OnShutDown)(socket);
+        this->_listener->OnSessionShutdown(this->_socket);
     }
     
-    return true;
+    if ( ::shutdown(this->_socket, SHUT_RDWR) == -1 )
+    {
+        std::cout << "WNetWorkHandler::OnShutdown shutdown failed" << strerror(errno) << std::endl;
+        return;
+    }
+    return;
 }
 
 

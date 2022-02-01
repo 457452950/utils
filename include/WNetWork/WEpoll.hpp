@@ -4,8 +4,11 @@
 
 #if defined(OS_IS_LINUX)
 
+#include <map>
 #include <sys/epoll.h>
+#include <sys/timerfd.h>
 #include "WNetWorkHandler.hpp"
+#include "WTimerHandler.hpp"
 
 namespace wlb
 {
@@ -134,7 +137,7 @@ public:
     explicit WBaseEpoll(/* args */) = default;
     WBaseEpoll(const WBaseEpoll& other) = delete;
     WBaseEpoll& operator=(const WBaseEpoll& other) = delete;
-    ~WBaseEpoll();
+    virtual ~WBaseEpoll();
 
     bool Init();
     void Close();
@@ -155,14 +158,14 @@ protected:
 class WEpoll : public WBaseEpoll, public WNetWorkHandler
 {
 public: 
-    explicit WEpoll(WNetWorkHandler::Listener* listener) : _listener(listener) {};
-    ~WEpoll() = default;
+    explicit WEpoll() {};
+    virtual ~WEpoll() = default;
 
     bool Init(uint32_t events_size);
     void Close();
     void GetAndEmitEvents();
 
-    bool AddSocket(base_socket_type socket, uint32_t op) override;
+    bool AddSocket(WNetWorkHandler::Listener* listener, base_socket_type socket, uint32_t op) override;
     bool ModifySocket(base_socket_type socket, uint32_t op) override;
     void RemoveSocket(base_socket_type socket) override;
 
@@ -170,7 +173,7 @@ private:
     uint32_t GetEpollEventsFromOP(uint32_t op);
 
 protected:
-    WNetWorkHandler::Listener* _listener{nullptr};
+    std::map<base_socket_type, WNetWorkHandler::Listener*> _listeners;
 
     epoll_event * _events{nullptr};
     int32_t _events_size{0};
@@ -180,6 +183,31 @@ protected:
 private:
     int32_t GetEvents(epoll_event* events, int32_t events_size) { return 0; };
 
+};
+
+
+
+////////////////////////////////
+// timer
+////////////////////////////////
+
+// timerfd = socket fd
+
+class WTimerEpoll : public WBaseEpoll, public WTimerHandle
+{
+public:
+    using timerfd = base_socket_type;
+
+    WTimerEpoll() = default;
+    virtual ~WTimerEpoll() {};
+    
+    bool Init();
+    void Close();
+
+    void AddTimer(timerfd timer);
+    void RemoveTimer(timerfd timer);
+
+private:
 
 };
 

@@ -15,17 +15,37 @@ namespace wlb::NetWork
 // Accepter
 ////////////////////////////////////////////////////////
 
-class WNetAccepter
+class WNetAccepter : public WNetWorkHandler::Listener
 {
 public:
-    explicit WNetAccepter() = default;
+    class Listener
+    {
+    public:
+        virtual ~Listener() {};
+        virtual bool OnConnected(base_socket_type socket, const WPeerInfo& peerInfo) = 0;
+    };
+public:
+    explicit WNetAccepter(Listener* listener) : _listener(listener) {};
     WNetAccepter(const WNetAccepter& other) = delete;
     WNetAccepter& operator=(const WNetAccepter& other) = delete;
 
     bool Init(WNetWorkHandler* handler, const std::string& IpAddress, uint16_t port);
+    void Close();
     base_socket_type GetListenSocket();
     
+protected:
     base_socket_type Accept(WPeerInfo& info);
+
+protected:
+    void OnError(int error_code) override;
+    void OnRead() override;
+
+    // not uese
+    void OnClosed() override {};
+    void OnShutdown() override {};
+    void OnWrite() override {};
+    // virtual bool OnConnected() override{};
+
 
 private:
     bool Bind();
@@ -38,6 +58,7 @@ private:
     uint16_t _port;
 
     WNetWorkHandler* _handler;
+    Listener* _listener;
 };
 
 
@@ -49,7 +70,7 @@ private:
 // Seession
 ////////////////////////////////////////////////////////
 
-class WBaseSession : public WNetWorkHandler::Listener
+class WBaseSession 
 {
 public:
     using SessionId = base_socket_type;
@@ -65,7 +86,7 @@ public:
     // session methods
     virtual bool Send(const std::string& message) = 0;
     virtual bool Receive() = 0;
-    virtual void Close() = 0;
+    virtual void Close() = 0;   // close socket and clear
     virtual void HandleError(int erroe_code) = 0;
 
     // get session state
@@ -104,7 +125,7 @@ uint32_t GetLengthFromWlbHead(const char* wlbHead, uint32_t head_length);
 
 
 
-class WFloatBufferSession : public WBaseSession
+class WFloatBufferSession : public WBaseSession, public WNetWorkHandler::Listener
 {
     // wlb Head = 4
     //   0 1 2 3 4 5 6 7 8 9
@@ -112,7 +133,17 @@ class WFloatBufferSession : public WBaseSession
     //  |s|i|z|e|  ... message body  ...|    
 
 public:
-    explicit WFloatBufferSession(WService& service) : _service(service){};
+    class Listener
+    {
+    public:
+        virtual ~Listener() {};
+        virtual bool OnSessionMessage(SessionId id, const std::string& recieve_message, std::string& send_message) = 0;
+        virtual bool OnSessionClosed(SessionId id) = 0;
+        virtual bool OnSessionShutdown(SessionId id) = 0;
+        virtual bool OnSessionError(SessionId id, int error_code) = 0;
+    };
+public:
+    explicit WFloatBufferSession(Listener* listener):_listener(listener) {};
     WFloatBufferSession(const WBaseSession& other) = delete;
     WFloatBufferSession& operator=(const WBaseSession& other) = delete;
     virtual ~WFloatBufferSession() = default;
@@ -126,7 +157,8 @@ public:
     // class methods
     bool Send(const std::string& message) override;
     bool Receive() override;
-    void Close() override;
+    // close and clear
+    void Close() override; 
     void HandleError(int error_code) override;
 
     // get session state
@@ -136,13 +168,13 @@ public:
     const std::string& getPeerIpAddress() override { return this->_peerInfo.peer_address; };
     const uint16_t getPeerPort() override { return this->_peerInfo.peer_port; };
 
-public:
+protected:
     // return false if need to close
-    bool OnError(base_socket_type socket, int error_code) override;
-    bool OnClosed(base_socket_type socket) override;
-    bool OnRead(base_socket_type socket) override;
-    bool OnWrite(base_socket_type socket) override;
-    bool OnShutdown(base_socket_type socket) override;
+    void OnError(int error_code) override;
+    void OnClosed() override;
+    void OnRead() override;
+    void OnWrite() override;
+    void OnShutdown() override;
 
     
 private:
@@ -164,8 +196,8 @@ private:
     WPeerInfo _peerInfo;
 
     // from out side
-    WService& _service;
     WNetWorkHandler* _handler{nullptr};
+    Listener* _listener;
 };
 
 /**

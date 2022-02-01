@@ -15,12 +15,12 @@ public:
         virtual ~Listener() {};
         
     public:
-        virtual bool OnError(base_socket_type socket, int error_code) = 0;
-        virtual bool OnClosed(base_socket_type socket) = 0;
-        // virtual bool OnConnected(base_socket_type socket) = 0;
-        virtual bool OnShutdown(base_socket_type socket) = 0;
-        virtual bool OnRead(base_socket_type socket) = 0;
-        virtual bool OnWrite(base_socket_type socket) = 0;
+        virtual void OnError(int error_code) = 0;
+        virtual void OnClosed() = 0;
+        // virtual void OnConnected() = 0;
+        virtual void OnShutdown() = 0;
+        virtual void OnRead() = 0;
+        virtual void OnWrite() = 0;
     };
 
     using ListenOptions = uint32_t;
@@ -41,7 +41,7 @@ public:
     virtual void Close()  = 0;
     virtual void GetAndEmitEvents() = 0;
 
-    virtual bool AddSocket(base_socket_type socket, uint32_t events) = 0;
+    virtual bool AddSocket(Listener* listener, base_socket_type socket, uint32_t events) = 0;
     virtual bool ModifySocket(base_socket_type socket, uint32_t events) = 0;
     virtual void RemoveSocket(base_socket_type socket) = 0;
 

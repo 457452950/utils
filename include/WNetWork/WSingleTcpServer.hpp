@@ -11,16 +11,18 @@
 namespace wlb::NetWork
 {
 
-class WSingleTcpServer : public WNetWorkHandler::Listener
+class WSingleTcpServer : 
+                        public WNetAccepter::Listener, 
+                        public WFloatBufferSession::Listener
 {
 public:
     explicit WSingleTcpServer() = default;
     WSingleTcpServer(const WSingleTcpServer& other) = delete;
     WSingleTcpServer& operator=(const WSingleTcpServer& other) = delete;
-    ~WSingleTcpServer() {};
+    virtual ~WSingleTcpServer() {};
 
     // class life time
-    bool Init(WNetWorkHandler* handler);
+    bool Init();
     void Close();
     void Destroy();
     // thread lifetime
@@ -30,12 +32,15 @@ public:
     // class methods
     bool AddAccepter(const std::string & IpAddress, uint16_t port);
 
-    // override Listener
-    bool OnError(base_socket_type socket, int error_code) override;
-    bool OnClosed(base_socket_type socket) override;
-    bool OnShutdown(base_socket_type socket) override;
-    bool OnRead(base_socket_type socket) override;
-    bool OnWrite(base_socket_type socket) override;
+protected:
+    // override listener methods
+    bool OnConnected(base_socket_type socket, const WPeerInfo& peerInfo) override;
+
+    bool OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message) override;
+    bool OnSessionClosed(WBaseSession::SessionId id) override;
+    bool OnSessionShutdown(WBaseSession::SessionId id) override;
+    bool OnSessionError(WBaseSession::SessionId id, int error_code) override;
+
 
 private:
     void Loop();
@@ -48,7 +53,7 @@ private:
     bool _running{false};
 
     WNetWorkHandler* _handler;
-    std::map<base_socket_type, WBaseSession*> _sessionMap;
+    std::map<WBaseSession::SessionId, WBaseSession*> _sessionMap;
     std::map<base_socket_type, WNetAccepter*> _accepterMap;
 
     // service handler

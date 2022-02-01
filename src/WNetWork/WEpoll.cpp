@@ -121,6 +121,10 @@ int32_t WBaseEpoll::GetEvents(epoll_event * events, int32_t events_size)
 }
 
 
+
+////////////////////////////////////////////////////////////////////////
+// WEpoll
+
 bool WEpoll::Init(uint32_t events_size)
 {
     if ( ! WBaseEpoll::Init() )
@@ -148,7 +152,6 @@ void WEpoll::GetAndEmitEvents()
         return;
     }
     
-
     int32_t curr_events_size = WBaseEpoll::GetEvents(_events, this->_events_size);
 
     if (curr_events_size == -1)
@@ -157,16 +160,26 @@ void WEpoll::GetAndEmitEvents()
     }
     else
     {
+        Listener* listener;
         for (int32_t index = 0; index < curr_events_size; ++index)
         {
-            std::cout << "WEpoll::GetAndEmitEvents Event " << _events[index].events << "" << std::endl;
-            if (_events[index].events & EPOLLERR)
+            base_socket_type socket = _events[index].data.fd;
+            auto it = this->_listeners.find(socket);
+            if (it == this->_listeners.end())
             {
-                std::cout << "epoll error" << std::endl;
+                // cant find listener
+                return;
             }
+            listener = it->second;
+
+            std::cout << "WEpoll::GetAndEmitEvents Event " << _events[index].events << "" << std::endl;
             if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
             {
                 std::cout << "epoll closed" << std::endl;
+            }
+            if (_events[index].events & EPOLLERR)
+            {
+                std::cout << "epoll error" << std::endl;
             }
             if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
             {
@@ -181,27 +194,29 @@ void WEpoll::GetAndEmitEvents()
                 std::cout << "epoll out" << std::endl;
             }
 
-            if (_events[index].events & EPOLLERR)
+            if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
             {
-                _listener->OnError(_events[index].data.fd, errno);
+                listener->OnClosed();
+                RemoveSocket(socket);
             }
-            else if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
+            else if (_events[index].events & EPOLLERR)
             {
-                _listener->OnClosed(_events[index].data.fd);
+                listener->OnError(errno);
             }
             else if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
             {
                 // peer shutdown write
-                _listener->OnShutdown(_events[index].data.fd);
+                listener->OnShutdown();
             }
             else if (_events[index].events & EPOLLIN)
             {
-                _listener->OnRead(_events[index].data.fd);
+                listener->OnRead();
             }
             else if (_events[index].events & EPOLLOUT)
             {
-                _listener->OnWrite(_events[index].data.fd);
+                listener->OnWrite();
             }
+            
         }
 
         this->_events_size > curr_events_size ?
@@ -223,8 +238,12 @@ void WEpoll::Close()
     WBaseEpoll::Close();
 }
 
-bool WEpoll::AddSocket(base_socket_type socket, uint32_t op)
+bool WEpoll::AddSocket(WNetWorkHandler::Listener* listener, 
+                        base_socket_type socket, 
+                        uint32_t op)
 {
+    this->_listeners.insert(std::make_pair(socket, listener));
+
     uint32_t _event = 0;
     _event = GetEpollEventsFromOP(op);
     return WBaseEpoll::AddSocket(socket, _event);
@@ -240,6 +259,7 @@ bool WEpoll::ModifySocket(base_socket_type socket, uint32_t op)
 void WEpoll::RemoveSocket(base_socket_type socket)
 {
     WBaseEpoll::RemoveSocket(socket);
+    this->_listeners.erase(socket);
 }
 
 uint32_t WEpoll::GetEpollEventsFromOP(uint32_t op)
