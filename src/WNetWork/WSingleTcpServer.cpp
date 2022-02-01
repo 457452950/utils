@@ -210,29 +210,29 @@ void WSingleTcpServer::RemoveSession(std::map<base_socket_type, WBaseSession *>:
     this->_sessionMap.erase(it);
 }
 
-bool WSingleTcpServer::CreateNewSession(base_socket_type socket, const WPeerInfo& peerInfo)
-{
-    WBaseSession* session = new(std::nothrow) WFloatBufferSession(this);
-    if (session == nullptr)
-    {
-        return false;
-    }
+// bool WSingleTcpServer::CreateNewSession(base_socket_type socket, const WPeerInfo& peerInfo)
+// {
+//     WBaseSession* session = new(std::nothrow) WFloatBufferSession(this);
+//     if (session == nullptr)
+//     {
+//         return false;
+//     }
     
-    if ( !session->Init(this->_handler, 102400, 4) )
-    {
-        session->Destroy();
-        delete session;
-        return false;
-    }
-    if ( !session->SetSocket(socket, peerInfo) )
-    {
-        session->Destroy();
-        delete session;
-        return false;
-    }
-    this->_sessionMap.insert(std::make_pair(socket, session));
-    return true;
-}
+//     if ( !session->Init(this->_handler, 102400, 4) )
+//     {
+//         session->Destroy();
+//         delete session;
+//         return false;
+//     }
+//     if ( !session->SetSocket(socket, peerInfo) )
+//     {
+//         session->Destroy();
+//         delete session;
+//         return false;
+//     }
+//     this->_sessionMap.insert(std::make_pair(socket, session));
+//     return true;
+// }
 
 bool WSingleTcpServer::UpdateSesssionTemp()
 {

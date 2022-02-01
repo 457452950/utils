@@ -139,14 +139,14 @@ public:
     WBaseEpoll& operator=(const WBaseEpoll& other) = delete;
     virtual ~WBaseEpoll();
 
-    bool Init();
-    void Close();
+    virtual bool Init();
+    virtual void Close();
 
-    bool AddSocket(base_socket_type socket, uint32_t events);
-    bool ModifySocket(base_socket_type socket, uint32_t events);
-    void RemoveSocket(base_socket_type socket);
+    virtual bool AddSocket(base_socket_type socket, uint32_t events);
+    virtual bool ModifySocket(base_socket_type socket, uint32_t events);
+    virtual void RemoveSocket(base_socket_type socket);
 
-    int32_t GetEvents(epoll_event* events, int32_t events_size);
+    virtual int32_t GetEvents(epoll_event* events, int32_t events_size);
 
 protected:
     epoll_type _epoll{-1};
@@ -193,22 +193,26 @@ private:
 
 // timerfd = socket fd
 
-class WTimerEpoll : public WBaseEpoll, public WTimerHandle
+class WTimerEpoll : public WBaseEpoll, public WTimerHandler
 {
 public:
-    using timerfd = base_socket_type;
-
     WTimerEpoll() = default;
     virtual ~WTimerEpoll() {};
     
-    bool Init();
-    void Close();
+    // override WTimerHandler
+    bool Init() override;
+    void Close() override;
 
-    void AddTimer(timerfd timer);
-    void RemoveTimer(timerfd timer);
+    void GetAndEmitTimer() override;
+    void AddTimer(Listener* listener, timerfd timer) override;
+    void RemoveTimer(timerfd timer) override;
 
 private:
+    std::map<timerfd, WTimerHandler::Listener*> _listeners;
 
+    epoll_event * _events{nullptr};
+    int32_t _events_size{30};
+    const int32_t default_events_size{30};
 };
 
 

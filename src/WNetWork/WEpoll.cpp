@@ -290,6 +290,131 @@ uint32_t WEpoll::GetEpollEventsFromOP(uint32_t op)
 }
 
 
+/////////////////////////////////
+// WTimerEpoll
+
+bool WTimerEpoll::Init()
+{
+    if ( !WBaseEpoll::Init())
+    {
+        return false;
+    }
+    std::cout << "WTimerEpoll Init ok" << std::endl;
+    return true;
+}
+
+void WTimerEpoll::Close()
+{
+    WBaseEpoll::Close();
+}
+
+void WTimerEpoll::GetAndEmitTimer()
+{
+    this->_events = new(std::nothrow) epoll_event[this->_events_size];
+    if (_events == nullptr)
+    {
+        std::cout << "WEpoll::GetAndEmitEvents: new failed " << std::endl;
+        return;
+    }
+    
+    int32_t curr_events_size = WBaseEpoll::GetEvents(_events, this->_events_size);
+
+    if (curr_events_size == -1)
+    {
+        // error
+    }
+    else
+    {
+        Listener* listener;
+        for (int32_t index = 0; index < curr_events_size; ++index)
+        {
+            timerfd timer = _events[index].data.fd;
+            auto it = this->_listeners.find(timer);
+            if (it == this->_listeners.end())
+            {
+                // cant find listener
+                std::cout << "cannot find listener" << std::endl;
+                return;
+            }
+            listener = it->second;
+
+            std::cout << "WEpoll::GetAndEmitEvents Event " << _events[index].events << "" << std::endl;
+            if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
+            {
+                std::cout << "epoll closed" << std::endl;
+            }
+            if (_events[index].events & EPOLLERR)
+            {
+                std::cout << "epoll error" << std::endl;
+            }
+            if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
+            {
+                std::cout << "epoll shutdown" << std::endl;
+            }
+            if (_events[index].events & EPOLLIN)
+            {
+                std::cout << "epoll in" << std::endl;
+            }
+            if (_events[index].events & EPOLLOUT)
+            {
+                std::cout << "epoll out" << std::endl;
+            }
+
+            if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
+            {
+                std::cout << "epoll hup" << std::endl;
+            }
+            else if (_events[index].events & EPOLLERR)
+            {
+                std::cout << "epoll hup " << strerror(errno) << std::endl;
+            }
+            else if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
+            {
+                std::cout << "epoll shut down" << std::endl;
+            }
+            else if (_events[index].events & EPOLLIN)
+            {
+                std::cout << "epoll in" << std::endl;
+                listener->OnTime(timer);
+                uint64_t exp = 0;
+                read(timer, &exp, sizeof(uint64_t));
+            }
+            else if (_events[index].events & EPOLLOUT)
+            {
+                std::cout << "epoll hup out" << std::endl;
+            }
+            
+        }
+
+        this->_events_size > curr_events_size ?
+                this->_events_size = 10 + (curr_events_size / 10 + this->_events_size * 9 / 10):
+                this->_events_size = curr_events_size * 1.5;
+        
+        // std::cout << "WEpoll GetAndEmitEvents _events_size: " << this->_events_size << std::endl;
+    }
+    
+    delete[] this->_events;
+}
+
+void WTimerEpoll::AddTimer(Listener* listener, timerfd timer)
+{
+    this->_listeners.insert(std::make_pair(timer, listener));
+    uint32_t event = 0;
+    event |= EPOLLET;
+    event |= EPOLLIN;
+    // event |= EPOLLOUT;
+    // event |= EPOLLERR;
+    // event |= EPOLLHUP;
+    WBaseEpoll::AddSocket(timer, event);
+}
+
+void WTimerEpoll::RemoveTimer(timerfd timer)
+{
+    WBaseEpoll::RemoveSocket(timer);
+    this->_listeners.erase(timer);
+}
+
+
 } // namespace wlb::NetWork
 
 #endif // OS_IS_LINUX

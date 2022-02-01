@@ -38,3 +38,11 @@ add_library(
     src/WBuffer.cpp 
 )
 target_link_libraries(wnetwork pthread)
+
+
+add_library(   
+    wtimer 
+    src/WTimer.cpp 
+)
+target_link_libraries(wtimer)
+

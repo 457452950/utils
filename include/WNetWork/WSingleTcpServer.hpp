@@ -60,7 +60,7 @@ private:
 
     bool UpdateSesssionTemp();
 
-    bool CreateNewSession(base_socket_type socket, const WPeerInfo& peerInfo);
+    // bool CreateNewSession(base_socket_type socket, const WPeerInfo& peerInfo);
     void RemoveSession(std::map<base_socket_type, WBaseSession *>::iterator it);
 
 private:
