@@ -7,12 +7,18 @@ namespace wlb::NetWork
 
 bool WSingleTcpServer::Init()
 {
-    this->_handler = new WEpoll();
-    if ( !this->_handler->Init(100))
+    this->_handler = new(std::nothrow) WEpoll();
+    if ( this->_handler != nullptr && !this->_handler->Init(100))
     {
         std::cout << "WSingleTcpServer::Init(): Failed to initialize" << std::endl;
         return false;
     }
+
+    if (!this->UpdateSesssionTemp())
+    {
+        return false;
+    }
+    
     std::cout << "WSingleTcpServer::Init(): succ" << std::endl;
     return true;
 }
@@ -35,6 +41,12 @@ void WSingleTcpServer::Destroy()
         delete this->_workThread;
     }
 
+    while (!this->_sessionTemp.empty())
+    {
+        auto it = this->_sessionTemp.front();
+        this->_sessionTemp.pop_front();
+        delete it;
+    }
     for (auto it : this->_sessionMap)
     {
         it.second->Close();
@@ -106,9 +118,21 @@ bool WSingleTcpServer::OnSessionClosed(WBaseSession::SessionId id)
     auto it = this->_sessionMap.find(id);
     if  (it == this->_sessionMap.end())
     {
-        return false;
+        // cant find the session
+        return true;
     }
+
+    if (this->_service != nullptr)
+    {
+        this->_service->OnSessionClosed(id);
+    }
+
+    // 回收内存池
+    this->_sessionTemp.push_back(it->second);
+    this->_sessionMap.erase(it);
     
+    std::cout << "temp:" << this->_sessionTemp.size() << " session:" << this->_sessionMap.size() << std::endl;
+
     return true;
 }
 bool WSingleTcpServer::OnSessionShutdown(WBaseSession::SessionId id)
@@ -125,9 +149,7 @@ bool WSingleTcpServer::OnSessionMessage(WBaseSession::SessionId id, const std::s
 {
     std::cout << "WSingleTcpServer::OnRead " << std::endl;
 
-    // receive
-    auto it = this->_sessionMap.find(id);
-    if (it == this->_sessionMap.end())
+    if ( !this->_service->OnSessionMessage(id, recieve_message, send_message))
     {
         return false;
     }
@@ -136,9 +158,37 @@ bool WSingleTcpServer::OnSessionMessage(WBaseSession::SessionId id, const std::s
 }
 bool WSingleTcpServer::OnConnected(base_socket_type socket, const WPeerInfo& peerInfo)
 {
-    WBaseSession* session = new(std::nothrow) WFloatBufferSession(this);
-    session->Init(this->_handler, 102400, 4);
+    if (this->_service != nullptr)
+    {
+        if ( !this->_service->OnConnected(socket, peerInfo))
+        {
+            // 拒绝服务
+            return false;
+        }
+    }
+    
+
+    if (this->_sessionTemp.empty() && !this->UpdateSesssionTemp())
+    {
+        // cant new session
+        exit(-1);
+        return true;
+    }
+    
+    WBaseSession* session = this->_sessionTemp.front();
+    if (session->isConnected())
+    {
+        exit(-2);
+    }
+    
+    if ( !session->Init(this->_handler, 102400, 4) || !session->SetSocket(socket, peerInfo))
+    {
+        return false;
+    }
+    std::cout << "Session initialized ok!" << std::endl;
+
     this->_sessionMap.insert(std::make_pair(socket, session));
+    this->_sessionTemp.pop_front();
     return true;
 }
 
@@ -181,6 +231,21 @@ bool WSingleTcpServer::CreateNewSession(base_socket_type socket, const WPeerInfo
         return false;
     }
     this->_sessionMap.insert(std::make_pair(socket, session));
+    return true;
+}
+
+bool WSingleTcpServer::UpdateSesssionTemp()
+{
+    for (size_t index = 0; index < this->sessionsIncrease; ++index)
+    {
+        WBaseSession* session = new(std::nothrow) WFloatBufferSession(this);
+        if (session == nullptr)
+        {
+            return false;
+        }
+        
+        this->_sessionTemp.push_front(session);
+    }
     return true;
 }
 
