@@ -339,51 +339,14 @@ void WTimerEpoll::GetAndEmitTimer()
             listener = it->second;
 
             std::cout << "WEpoll::GetAndEmitEvents Event " << _events[index].events << "" << std::endl;
-            if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
-            {
-                std::cout << "epoll closed" << std::endl;
-            }
-            if (_events[index].events & EPOLLERR)
-            {
-                std::cout << "epoll error" << std::endl;
-            }
-            if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
-            {
-                std::cout << "epoll shutdown" << std::endl;
-            }
-            if (_events[index].events & EPOLLIN)
-            {
-                std::cout << "epoll in" << std::endl;
-            }
-            if (_events[index].events & EPOLLOUT)
-            {
-                std::cout << "epoll out" << std::endl;
-            }
 
-            if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
-            {
-                std::cout << "epoll hup" << std::endl;
-            }
-            else if (_events[index].events & EPOLLERR)
-            {
-                std::cout << "epoll hup " << strerror(errno) << std::endl;
-            }
-            else if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
-            {
-                std::cout << "epoll shut down" << std::endl;
-            }
-            else if (_events[index].events & EPOLLIN)
+            if (_events[index].events & EPOLLIN)
             {
                 std::cout << "epoll in" << std::endl;
                 listener->OnTime(timer);
                 uint64_t exp = 0;
                 read(timer, &exp, sizeof(uint64_t));
             }
-            else if (_events[index].events & EPOLLOUT)
-            {
-                std::cout << "epoll hup out" << std::endl;
-            }
-            
         }
 
         this->_events_size > curr_events_size ?
@@ -402,9 +365,6 @@ void WTimerEpoll::AddTimer(Listener* listener, timerfd timer)
     uint32_t event = 0;
     event |= EPOLLET;
     event |= EPOLLIN;
-    // event |= EPOLLOUT;
-    // event |= EPOLLERR;
-    // event |= EPOLLHUP;
     WBaseEpoll::AddSocket(timer, event);
 }
 

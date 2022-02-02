@@ -14,8 +14,8 @@ timerfd CreateNewTimerfd()
     try
     {
         // return ::timerfd_create(CLOCK_REALTIME_ALARM, TFD_NONBLOCK | TFD_CLOEXEC);
-        //return ::timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);
-        return ::timerfd_create(CLOCK_REALTIME, 0);
+        return ::timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);
+        // return ::timerfd_create(CLOCK_REALTIME, 0);
     }
     catch(const std::exception& e)
     {
