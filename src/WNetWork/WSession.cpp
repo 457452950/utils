@@ -425,6 +425,7 @@ void WFloatBufferSession::OnWrite()
     uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
     ssize_t send_len = ::send(this->_socket, send_message.c_str(), msg_len, 0);
     std::cout << "WFloatBufferSession::OnWrite send_len:" << send_len << std::endl;
+    this->_sendBuffer.UpdateReadOffset(send_len);
 
     if (send_len < 0)
     {
@@ -432,8 +433,11 @@ void WFloatBufferSession::OnWrite()
         return;
     }
 
-    this->_op -= WNetWorkHandler::OP_OUT;
-    this->_handler->ModifySocket(this->_socket, this->_op);
+    if (_sendBuffer.Empty())
+    {
+        this->_op -= WNetWorkHandler::OP_OUT;
+        this->_handler->ModifySocket(this->_socket, this->_op);
+    }
 
     return;
 }
@@ -513,6 +517,254 @@ uint32_t GetLengthFromWlbHead(const char* wlbHead, uint32_t head_length)
     }
     return 0;
 }
+
+
+
+
+
+
+
+/////////////////////////////////
+// WFixedBufferSession
+
+bool WFixedBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t messageSize)
+{
+    this->_maxBufferSize = maxBufferSize;
+    this->_messageSize = messageSize;
+
+    if ( !_recvBuffer.Init(maxBufferSize) )
+    {
+        return false;
+    }
+    if ( !_sendBuffer.Init(maxBufferSize) )
+    {
+        _recvBuffer.Destroy();
+        return false;
+    }
+
+    this->_handler = handler;
+    if (this->_handler == nullptr)
+    {
+        _recvBuffer.Destroy();
+        _sendBuffer.Destroy();
+        return false;
+    }
+    
+    this->_op |= WNetWorkHandler::OP_IN;
+    this->_op |= WNetWorkHandler::OP_ERR;
+    this->_op |= WNetWorkHandler::OP_SHUT;
+    this->_op |= WNetWorkHandler::OP_CLOS;
+
+    return true;
+}
+
+bool WFixedBufferSession::SetSocket(base_socket_type socket, const WPeerInfo& peerInfo)
+{
+    std::cout << "Setting socket " << socket << std::endl;
+    this->_socket = socket;
+
+    if (    !SetTcpSocketNoDelay(this->_socket) || 
+            !SetSocketKeepAlive(this->_socket) )
+    {
+        std::cout << "WFixedBufferSession::SetSocket SetSocketopt failed " << std::endl;
+        return false;
+    }
+    if ( !SetSocketNoBlock(this->_socket))
+    {
+        // error set noblock failed
+    }
+    if ( !_handler->AddSocket(this, this->_socket, this->_op))
+    {
+        return false;
+    }
+
+    this->_peerInfo = peerInfo;
+
+    this->_isConnected = true;
+
+    return true;
+}
+
+void WFixedBufferSession::Close()
+{
+    // close
+    this->_isConnected = false;
+    ::close(this->_socket);
+    this->_socket = -1;
+
+    // clear
+    this->Clear();
+}
+
+void WFixedBufferSession::Clear()
+{
+    this->_isConnected = false;
+    _recvBuffer.Clear();
+    _sendBuffer.Clear();
+}
+
+void WFixedBufferSession::Destroy()
+{
+    _recvBuffer.Destroy();
+    _sendBuffer.Destroy();
+    this->_listener = nullptr;
+}
+
+bool WFixedBufferSession::Send(const std::string& message)
+{
+    uint32_t msgSize = message.size();
+    uint32_t insert_len = 0;
+
+    if (msgSize > this->_messageSize)
+    {
+        // message is too large
+        return false;
+    }
+    
+    insert_len = _sendBuffer.InsertMessage(message);
+    if (insert_len != message.length())
+    {
+        return false;
+    }
+
+    // 添加进 send events
+    this->_op |= WNetWorkHandler::OP_OUT;
+    if ( !_handler->ModifySocket(this->_socket, this->_op) )
+    {
+        return false;
+    }
+    
+    return true;
+}
+
+bool WFixedBufferSession::Receive()
+{
+    int32_t recv_len = ::recv(this->_socket, 
+                                this->_recvBuffer.GetRestBuffer(), 
+                                this->_recvBuffer.GetTopRestBufferSize(),
+                                0);
+    if (recv_len <= -1)
+    {
+        std::cout << "recv " << recv_len << " : error " << strerror(errno) << std::endl;
+        return false;
+    }
+    if (recv_len == 0 && _recvBuffer.GetTopRestBufferSize() != 0)
+    {
+        std::cout << "recv = 0, error " << strerror(errno) << std::endl;
+        return false;
+    }
+    
+    this->_recvBuffer.UpdateWriteOffset(recv_len);
+
+    return true;
+}
+
+void WFixedBufferSession::HandleError(int error_code)
+{
+    this->_errorMessage.clear();
+    this->_errorMessage.assign(::strerror(error_code));
+
+}
+
+void WFixedBufferSession::OnError(int error_no)
+{
+    if (this->_listener != nullptr)
+    {
+        bool ok = this->_listener->OnSessionError(this->_socket, error_no);
+        if (!ok)
+        {
+            ::shutdown(this->_socket, SHUT_WR);
+        }
+        
+    }
+    
+    HandleError(error_no);
+    return;
+}
+
+void WFixedBufferSession::OnClosed()
+{
+    if (this->_listener != nullptr)
+    {
+        this->_listener->OnSessionClosed(this->_socket);
+    }
+    this->Close();
+    return;
+}
+
+void WFixedBufferSession::OnRead()
+{
+    if (!this->Receive())
+    {
+        ::shutdown(this->_socket, SHUT_RD);
+        return;
+    }
+    
+    std::string receive_message;
+    std::string send_message;
+    // on message
+    while (1)
+    {
+        receive_message.clear();
+
+        uint32_t len = this->_recvBuffer.GetFrontMessage(receive_message, this->_messageSize);
+        std::cout << "get front message: " << len << std::endl;
+        if (len != this->_messageSize)
+        {
+            return;
+        }
+
+        if (!this->_listener->OnSessionMessage(this->_socket, receive_message, send_message))
+        {
+            ::shutdown(this->_socket, SHUT_RDWR);
+            return;
+        }
+        if ( !send_message.empty() )
+        {
+            this->Send(send_message);
+        }
+    }
+}
+
+void WFixedBufferSession::OnWrite()
+{
+    std::string send_message;
+    uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
+    ssize_t send_len = ::send(this->_socket, send_message.c_str(), msg_len, 0);
+    std::cout << "WFixedBufferSession::OnWrite send_len:" << send_len << std::endl;
+    this->_sendBuffer.UpdateReadOffset(send_len);
+
+    if (send_len < 0)
+    {
+        ::shutdown(this->_socket, SHUT_RDWR);
+        return;
+    }
+
+    if (_sendBuffer.Empty())
+    {
+        this->_op -= WNetWorkHandler::OP_OUT;
+        this->_handler->ModifySocket(this->_socket, this->_op);
+    }
+
+    return;
+}
+
+void WFixedBufferSession::OnShutdown()
+{
+    if (this->_listener != nullptr)
+    {
+        this->_listener->OnSessionShutdown(this->_socket);
+    }
+    
+    if ( ::shutdown(this->_socket, SHUT_RDWR) == -1 )
+    {
+        std::cout << "WFixedBufferSession::OnShutdown shutdown failed" << strerror(errno) << std::endl;
+        return;
+    }
+    return;
+}
+
+
 
 }
 

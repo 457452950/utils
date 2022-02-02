@@ -14,7 +14,7 @@ namespace wlb::NetWork
 
 class WSingleTcpServer : 
                         public WNetAccepter::Listener, 
-                        public WFloatBufferSession::Listener
+                        public WBaseSession::Listener
 {
 public:
     class Listener 

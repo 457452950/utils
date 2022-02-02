@@ -73,6 +73,7 @@ void RingBuffer::UpdateWriteOffset(uint32_t len)
     {
         return;
     }
+    std::cout << "[1/2]" << this->_WriteOffset << " \\ " << this->_ReadOffset << "wo:" << len << std::endl; 
     
     this->_WriteOffset += len;
     this->_WriteOffset %= this->_maxBufferSize;
@@ -82,7 +83,7 @@ void RingBuffer::UpdateWriteOffset(uint32_t len)
     {
         this->_isFull == true;
     }
-    std::cout << this->_WriteOffset << " \\ " << this->_ReadOffset << "wo:" << len << std::endl; 
+    std::cout << "[2/2]" << this->_WriteOffset << " \\ " << this->_ReadOffset << "wo:" << len << std::endl; 
 }
 
 void RingBuffer::UpdateReadOffset(uint32_t len)
@@ -161,6 +162,14 @@ const uint32_t RingBuffer::GetFrontMessage(std::string& message, uint32_t len)
         uint32_t front_size = this->_WriteOffset;
         uint32_t back_size = this->_maxBufferSize - this->_ReadOffset;
 
+        if (front_size + back_size < len)
+        {
+            std::cout << "no enough messages" << std::endl;
+            return 0; // Not enough message
+        }
+        std::cout << "RingBuffer::GetFrontMessage " << front_size << " \\ " << back_size << std::endl; 
+    
+
         uint32_t cp_size = back_size > len ? len : back_size;
         while (cp_size != 0)
         {
@@ -172,7 +181,7 @@ const uint32_t RingBuffer::GetFrontMessage(std::string& message, uint32_t len)
     }
     
     std::cout << "RingBuffer::GetFrontMessage " << this->_WriteOffset << " \\ " << this->_ReadOffset << std::endl; 
-    return len;
+    return message.size();
 }
 
 const uint32_t RingBuffer::GetAllMessage(std::string& message)
@@ -199,7 +208,6 @@ const uint32_t RingBuffer::GetAllMessage(std::string& message)
         cp_size = front_size + back_size;
     }
     
-    this->UpdateReadOffset(cp_size);
     std::cout << "RingBuffer::GetAllMessage " << this->_WriteOffset << " \\ " << this->_ReadOffset << std::endl; 
     return cp_size;
 }

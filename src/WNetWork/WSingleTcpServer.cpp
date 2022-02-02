@@ -167,7 +167,6 @@ bool WSingleTcpServer::OnConnected(base_socket_type socket, const WPeerInfo& pee
         }
     }
     
-
     if (this->_sessionTemp.empty() && !this->UpdateSesssionTemp())
     {
         // cant new session
@@ -181,7 +180,7 @@ bool WSingleTcpServer::OnConnected(base_socket_type socket, const WPeerInfo& pee
         exit(-2);
     }
     
-    if ( !session->Init(this->_handler, 102400, 4) || !session->SetSocket(socket, peerInfo))
+    if ( !session->Init(this->_handler, 102400, 106) || !session->SetSocket(socket, peerInfo))
     {
         return false;
     }
@@ -238,7 +237,7 @@ bool WSingleTcpServer::UpdateSesssionTemp()
 {
     for (size_t index = 0; index < this->sessionsIncrease; ++index)
     {
-        WBaseSession* session = new(std::nothrow) WFloatBufferSession(this);
+        WBaseSession* session = new(std::nothrow) WFixedBufferSession(this);
         if (session == nullptr)
         {
             return false;
