@@ -386,6 +386,7 @@ void WFloatBufferSession::OnRead()
     {
         receive_message.clear();
         uint32_t len = this->_recvBuffer.GetFrontMessage(head, this->_headLen);
+        std::cout << "get len:" << len << std::endl;
         if (len != this->_headLen)
         {
             // no enough message
@@ -711,8 +712,10 @@ void WFixedBufferSession::OnRead()
         std::cout << "get front message: " << len << std::endl;
         if (len != this->_messageSize)
         {
+            std::cout << "no enough bytes:" << len << std::endl;
             return;
         }
+        std::cout << "have enough bytes:" << len << std::endl;
 
         if (!this->_listener->OnSessionMessage(this->_socket, receive_message, send_message))
         {

@@ -137,10 +137,10 @@ uint32_t GetLengthFromWlbHead(const char* wlbHead, uint32_t head_length);
 
 class WFloatBufferSession : public WBaseSession, public WNetWorkHandler::Listener
 {
-    // wlb Head = 4
+    //  wlb Head = 4  message length = 1234
     //   0 1 2 3 4 5 6 7 8 9
     //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //  |s|i|z|e|  ... message body  ...|    
+    //  |4|3|2|1|  ... message body  ...|    
 public:
     explicit WFloatBufferSession(WBaseSession::Listener* listener):_listener(listener) {};
     WFloatBufferSession(const WFloatBufferSession& other) = delete;

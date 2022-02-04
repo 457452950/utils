@@ -144,6 +144,7 @@ const uint32_t RingBuffer::GetFrontMessage(std::string& message, uint32_t len)
     message.clear();
     if (this->_isEmpty)
     {
+        std::cout << "RingBuffer::GetFrontMessage empty" << std::endl;
         return 0;
     }
     
@@ -152,6 +153,7 @@ const uint32_t RingBuffer::GetFrontMessage(std::string& message, uint32_t len)
         uint32_t msg_size = this->_WriteOffset - this->_ReadOffset;
         if (len > msg_size)
         {
+            std::cout << "RingBuffer::GetFrontMessage empty" << len << " " << msg_size << std::endl;
             return 0;   // Not enough message
         }
         message.append(this->_buffer + this->_ReadOffset, len);
