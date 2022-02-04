@@ -14,6 +14,7 @@ namespace Log
     Logger* Logger::s_Instance = nullptr;
     LOG_LEVEL Logger::s_LogLevel = LOG_LEVEL::L_ERROR;
     char* Logger::s_strFileName = nullptr;
+    bool Logger::s_IsActive = false;
 
     Logger* Logger::getInstance()
     {
