@@ -111,6 +111,25 @@ public:
 //     WBaseSession& operator=(const WBaseSession& other) = delete;
 };
 
+
+//////////////////////////////////
+// there are two classes of WBaseSession 
+
+
+enum class WSessionType {
+    WFloatSessions = 0,
+    WFixedSessions = 1,
+};
+
+struct WSessionStyle {
+    WSessionType type;
+    uint32_t maxBufferSize;
+    uint32_t flag;
+    WSessionStyle(WSessionType type = WSessionType::WFixedSessions, uint32_t maxBufferSize = 0, uint32_t flag = 0)
+        : type(type), maxBufferSize(maxBufferSize), flag(flag) { };
+};
+
+
 struct wlbHead2
 {
     union _head

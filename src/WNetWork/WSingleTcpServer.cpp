@@ -5,8 +5,10 @@
 namespace wlb::NetWork
 {
 
-bool WSingleTcpServer::Init()
+bool WSingleTcpServer::Init(const WSessionStyle& style)
 {
+    this->_sessionStyle = style;
+
     this->_handler = new(std::nothrow) WEpoll();
     if ( this->_handler != nullptr && !this->_handler->Init(100))
     {
@@ -180,7 +182,8 @@ bool WSingleTcpServer::OnConnected(base_socket_type socket, const WPeerInfo& pee
         exit(-2);
     }
     
-    if ( !session->Init(this->_handler, 102400, 4) || !session->SetSocket(socket, peerInfo))
+    if ( !session->Init(this->_handler, this->_sessionStyle.maxBufferSize, this->_sessionStyle.flag) 
+        || !session->SetSocket(socket, peerInfo))
     {
         return false;
     }
@@ -237,7 +240,16 @@ bool WSingleTcpServer::UpdateSesssionTemp()
 {
     for (size_t index = 0; index < this->sessionsIncrease; ++index)
     {
-        WBaseSession* session = new(std::nothrow) WFloatBufferSession(this);
+        WBaseSession* session = nullptr;
+        if (this->_sessionStyle.type == WSessionType::WFloatSessions)
+        {
+            session = new(std::nothrow) WFloatBufferSession(this);
+        }
+        else
+        {
+            session = new(std::nothrow) WFixedBufferSession(this);
+        }
+        
         if (session == nullptr)
         {
             return false;

@@ -35,7 +35,7 @@ public:
     virtual ~WSingleTcpServer() {};
 
     // class life time
-    bool Init();
+    bool Init(const WSessionStyle& style);
     void Close();
     void Destroy();
     // thread lifetime
@@ -73,6 +73,9 @@ private:
     std::map<WBaseSession::SessionId, WBaseSession*> _sessionMap;
     std::list<WBaseSession*> _sessionTemp;
     const int sessionsIncrease = 50;    // 内存池增长
+
+    // session style
+    WSessionStyle _sessionStyle;
 
     // service handler
     Listener* _service;
