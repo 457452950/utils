@@ -3,21 +3,18 @@
 //
 
 #include "../../include/Logger.h"
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
 
-//检查文件(所有类型,包括目录和文件)是否存在
-//返回1:存在 0:不存在
-int IsFileExist(const char* path)
-{
-    return !access(path, F_OK);
-}
 
 namespace wlb
 {
 
-    Logger* Logger::s_Instance = new Logger;
+namespace Log
+{
+
+    Logger* Logger::s_Instance = nullptr;
+    LOG_LEVEL Logger::s_LogLevel = LOG_LEVEL::L_ERROR;
+    char* Logger::s_strFileName = nullptr;
+    bool Logger::s_IsActive = false;
 
     Logger* Logger::getInstance()
     {
@@ -48,15 +45,23 @@ namespace wlb
 
         char name[256];
         snprintf(name, 256,
-                 "log/%02d%02d%02d.%d.log",
+                 "log/%s-%d-%02d-%02d-%02d-%02d.%d.log",
+                 Logger::s_strFileName,
+                 _time->tm_mon+1,
                  _time->tm_mday,
                  _time->tm_hour,
                  _time->tm_min,
+                 _time->tm_sec,
                  getpid());
 
         if (!IsFileExist("log"))
         {
+#ifdef WIN32
+            mkdir("log");
+#else
             mkdir("log", 477);
+#endif // WIN32
+
         }
         m_oStream.open(name, std::ios::out);
     }
@@ -70,26 +75,10 @@ namespace wlb
     {
         m_mMutex.lock();
 
+        char _dataVal[128];
         char head[256];
 
-        // get ms
-        timeval curTime;
-        gettimeofday(&curTime, NULL);
-
-        // get data and time 
-        time_t _t = time(NULL);
-        auto _time = localtime(&_t);
-
-        char _dataVal[128];
-        snprintf(_dataVal, 128, " %d-%d-%d %02d:%02d:%02d.%03ld %03ld ",
-                _time->tm_year + 1900,
-                _time->tm_mon + 1,
-                _time->tm_mday,
-                _time->tm_hour,
-                _time->tm_min,
-                _time->tm_sec,
-                curTime.tv_usec / 1000,
-                curTime.tv_usec % 1000);
+        GetCurrentTime(_dataVal);
 
         // get head
         snprintf(head, 256,
@@ -119,5 +108,7 @@ namespace wlb
 
         m_mMutex.unlock();
     }
+
+} // namespace Log
 
 }
