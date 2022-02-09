@@ -19,14 +19,8 @@ target_link_libraries(jsonreader logger)
 add_library(redis       src/redis/Redis.cpp)
 target_link_libraries(redis logger hiredis event)
 
-find_package(MYSQL)
-if(MYSQL_FOUND)
-    message(MYSQL_INCLUDE_DIR)
-    add_library(tinymysql   src/mysql/libMySQL.cpp)
-    target_link_libraries(tinymysql logger mysqlclient)
-else(MYSQL_FOUND)
-    message("mysql cant found")
-endif(MYSQL_FOUND)
+add_library(tinymysql   src/mysql/libMySQL.cpp)
+target_link_libraries(tinymysql logger mysqlclient)
 
 
 add_library(   
