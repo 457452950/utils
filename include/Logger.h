@@ -43,12 +43,14 @@ namespace Log
             s_LogLevel = level;
             s_strFileName = fileName;
             s_Instance = new Logger();
+            s_IsActive = true;
         }
         static Logger* getInstance();
         void operator=(Logger*) = delete;
         Logger(const Logger&) = delete;
 
         static LOG_LEVEL    s_LogLevel;
+        static bool         s_IsActive;
     private:
         Logger();
         ~Logger();
@@ -91,8 +93,8 @@ namespace Log
     };
 
 #define LOG(level)                    \
-    if (Logger::s_LogLevel <= level)   \
-        Logger::getInstance()->Write(#level, __FILE__, __LINE__,     \
+    if (Logger::s_LogLevel <= level && Logger::s_IsActive) \
+        Logger::getInstance()->Write(#level, __FILE__, __LINE__, \
                             __DATE__, __TIME__, __FUNCTION__)->Get()
 
                         

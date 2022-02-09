@@ -5,7 +5,7 @@ namespace wlb
 {
 	using namespace Log;
 
-	JsonFileReader::JsonFileReader(std::string fileName)
+	JsonFileReader::JsonFileReader(const std::string fileName)
 	{
 		std::ifstream ifile(fileName);
 		if (!ifile.is_open())

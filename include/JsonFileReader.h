@@ -18,7 +18,7 @@ namespace wlb
 class JsonFileReader
 {
 public:
-	JsonFileReader(std::string fileName);
+	JsonFileReader(const std::string fileName);
 	~JsonFileReader();
 
 	
@@ -32,7 +32,13 @@ public:
     bool HasMember(std::string key){
         return m_docData.HasMember(key.c_str());
     }
-    
+
+    auto FindMember(const std::string& key){
+        return m_docData.FindMember(key.c_str());
+    }
+    auto MemberEnd(){
+        return m_docData.MemberEnd();
+    }
     
 private:
 	rapidjson::Document m_docData;

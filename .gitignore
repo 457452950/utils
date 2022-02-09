@@ -18,6 +18,7 @@ lib/libjsonreader.a
 lib/libasynclogger.a
 lib/libtinymysql.a
 lib/libwnetwork.a
+lib/libwtimer.a
 
 .vscode/settings.json
 build/*

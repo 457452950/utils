@@ -75,6 +75,16 @@ class WBaseSession
 public:
     using SessionId = base_socket_type;
 
+    class Listener
+    {
+    public:
+        virtual ~Listener() {};
+        virtual bool OnSessionMessage(SessionId id, const std::string& recieve_message, std::string& send_message) = 0;
+        virtual bool OnSessionClosed(SessionId id) = 0;
+        virtual bool OnSessionShutdown(SessionId id) = 0;
+        virtual bool OnSessionError(SessionId id, int error_code) = 0;
+    };
+public:
     virtual ~WBaseSession() {};
 
     // class life control
@@ -100,6 +110,25 @@ public:
 //     WBaseSession(const WBaseSession& other) = delete;
 //     WBaseSession& operator=(const WBaseSession& other) = delete;
 };
+
+
+//////////////////////////////////
+// there are two classes of WBaseSession 
+
+
+enum class WSessionType {
+    WFloatSessions = 0,
+    WFixedSessions = 1,
+};
+
+struct WSessionStyle {
+    WSessionType type;
+    uint32_t maxBufferSize;
+    uint32_t flag;
+    WSessionStyle(WSessionType type = WSessionType::WFixedSessions, uint32_t maxBufferSize = 0, uint32_t flag = 0)
+        : type(type), maxBufferSize(maxBufferSize), flag(flag) { };
+};
+
 
 struct wlbHead2
 {
@@ -127,25 +156,14 @@ uint32_t GetLengthFromWlbHead(const char* wlbHead, uint32_t head_length);
 
 class WFloatBufferSession : public WBaseSession, public WNetWorkHandler::Listener
 {
-    // wlb Head = 4
+    //  wlb Head = 4  message length = 1234
     //   0 1 2 3 4 5 6 7 8 9
     //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //  |s|i|z|e|  ... message body  ...|    
-
+    //  |4|3|2|1|  ... message body  ...|    
 public:
-    class Listener
-    {
-    public:
-        virtual ~Listener() {};
-        virtual bool OnSessionMessage(SessionId id, const std::string& recieve_message, std::string& send_message) = 0;
-        virtual bool OnSessionClosed(SessionId id) = 0;
-        virtual bool OnSessionShutdown(SessionId id) = 0;
-        virtual bool OnSessionError(SessionId id, int error_code) = 0;
-    };
-public:
-    explicit WFloatBufferSession(Listener* listener):_listener(listener) {};
-    WFloatBufferSession(const WBaseSession& other) = delete;
-    WFloatBufferSession& operator=(const WBaseSession& other) = delete;
+    explicit WFloatBufferSession(WBaseSession::Listener* listener):_listener(listener) {};
+    WFloatBufferSession(const WFloatBufferSession& other) = delete;
+    WFloatBufferSession& operator=(const WFloatBufferSession& other) = delete;
     virtual ~WFloatBufferSession() = default;
 
     // class life time
@@ -197,36 +215,69 @@ private:
 
     // from out side
     WNetWorkHandler* _handler{nullptr};
-    Listener* _listener;
+    WBaseSession::Listener* _listener;
 };
 
-/**
-class WFixedBufferSession : public WBaseSession, public RingBuffer
+class WFixedBufferSession : public WBaseSession, public WNetWorkHandler::Listener
 {
 public:
-    WFixedBufferSession() = default;
+    explicit WFixedBufferSession(WBaseSession::Listener* listener):_listener(listener) {};
     WFixedBufferSession(const WFixedBufferSession& other) = delete;
     WFixedBufferSession& operator=(const WFixedBufferSession& other) = delete;
+    virtual ~WFixedBufferSession() = default;
 
     // class life time
-    bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t headSize) override;
-    void Close() override;
+    bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t messageSize = 4) override;
+    bool SetSocket(base_socket_type socket, const WPeerInfo& peerInfo) override;
+    void Clear() override;
     void Destroy() override;
 
     // class methods
     bool Send(const std::string& message) override;
     bool Receive() override;
-    void Close() override;
-    void HandleError() override;
+    // close and clear
+    void Close() override; 
+    void HandleError(int error_code) override;
 
     // get session state
-    bool isConnected() override;
-    const std::string& getErrorMessage() override;
+    inline bool isConnected() override { return this->_isConnected; };
+    inline const std::string& getErrorMessage() override { return this->_errorMessage; };
 
-    const std::string& getPeerIpAddress() override;
-    const std::string& getPeerPort() override;
+    const std::string& getPeerIpAddress() override { return this->_peerInfo.peer_address; };
+    const uint16_t getPeerPort() override { return this->_peerInfo.peer_port; };
+
+protected:
+    // return false if need to close
+    void OnError(int error_code) override;
+    void OnClosed() override;
+    void OnRead() override;
+    void OnWrite() override;
+    void OnShutdown() override;
+
+    
+private:
+    // session members
+    RingBuffer _recvBuffer;
+    RingBuffer _sendBuffer;
+
+    base_socket_type _socket;
+    uint32_t _op{0};
+
+    uint32_t _maxBufferSize{0};
+    uint32_t _messageSize{0};
+
+    // session state
+    bool _isConnected{false};
+    std::string _errorMessage;
+
+    // peer information
+    WPeerInfo _peerInfo;
+
+    // from out side
+    WNetWorkHandler* _handler{nullptr};
+    WBaseSession::Listener* _listener;
 };
-*/
+
 
 
 }   // namespace wlb::NetWork

@@ -24,6 +24,7 @@ public:
     char* GetRestBuffer();
     void UpdateWriteOffset(uint32_t len);
     void UpdateReadOffset(uint32_t len);
+    inline bool Empty() { return this->_isEmpty; };
 
     // return 0 when false, otherwise return the number of success bytes
     uint32_t InsertMessage(const std::string& message);

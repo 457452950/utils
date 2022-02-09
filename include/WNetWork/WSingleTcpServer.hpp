@@ -1,5 +1,6 @@
 #include <vector>
 #include <map>
+#include <list>
 #include <thread>
 #include "WOS.h"
 #include "WSession.hpp"
@@ -13,16 +14,28 @@ namespace wlb::NetWork
 
 class WSingleTcpServer : 
                         public WNetAccepter::Listener, 
-                        public WFloatBufferSession::Listener
+                        public WBaseSession::Listener
 {
 public:
-    explicit WSingleTcpServer() = default;
+    class Listener 
+    {
+    public:
+        virtual ~Listener() {}
+        virtual bool OnConnected(WBaseSession::SessionId id, const WPeerInfo& peerInfo) = 0;
+        virtual bool OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message) = 0;
+        virtual bool OnSessionClosed(WBaseSession::SessionId id) = 0;
+        // virtual bool OnSessionShutdown(WBaseSession::SessionId id) = 0;
+        // virtual bool OnSessionError(WBaseSession::SessionId id, int error_code) = 0;
+
+    };
+public:
+    explicit WSingleTcpServer(Listener* listener) : _service(listener){};
     WSingleTcpServer(const WSingleTcpServer& other) = delete;
     WSingleTcpServer& operator=(const WSingleTcpServer& other) = delete;
     virtual ~WSingleTcpServer() {};
 
     // class life time
-    bool Init();
+    bool Init(const WSessionStyle& style);
     void Close();
     void Destroy();
     // thread lifetime
@@ -45,7 +58,9 @@ protected:
 private:
     void Loop();
 
-    bool CreateNewSession(base_socket_type socket, const WPeerInfo& peerInfo);
+    bool UpdateSesssionTemp();
+
+    // bool CreateNewSession(base_socket_type socket, const WPeerInfo& peerInfo);
     void RemoveSession(std::map<base_socket_type, WBaseSession *>::iterator it);
 
 private:
@@ -53,17 +68,18 @@ private:
     bool _running{false};
 
     WNetWorkHandler* _handler;
-    std::map<WBaseSession::SessionId, WBaseSession*> _sessionMap;
     std::map<base_socket_type, WNetAccepter*> _accepterMap;
+    // 内存池设计
+    std::map<WBaseSession::SessionId, WBaseSession*> _sessionMap;
+    std::list<WBaseSession*> _sessionTemp;
+    const int sessionsIncrease = 50;    // 内存池增长
+
+    // session style
+    WSessionStyle _sessionStyle;
 
     // service handler
-    WService _service;
+    Listener* _service;
 public:
-    inline void RegisterOnConnectedHandler(WService::WOnConnectedHandler callback) {this->_service._OnConnected = callback;};
-    inline void RegisterOnMessageHandler(WService::WOnMessageHanler callback) {this->_service._OnMessage = callback;};
-    inline void RegisterOnErrorHandler(WService::WOnErrorHandler callback) {this->_service._OnError = callback;};
-    inline void RegisterOnShutdownHandler(WService::WOnShutdownHandler callback) {this->_service._OnShutDown = callback;};
-    inline void RegisterOnDisconnectHandler(WService::WOnDisonnectedHandler callback) {this->_service._OnDisconnected = callback;};
 };
 
 

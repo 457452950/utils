@@ -290,6 +290,91 @@ uint32_t WEpoll::GetEpollEventsFromOP(uint32_t op)
 }
 
 
+/////////////////////////////////
+// WTimerEpoll
+
+bool WTimerEpoll::Init()
+{
+    if ( !WBaseEpoll::Init())
+    {
+        return false;
+    }
+    std::cout << "WTimerEpoll Init ok" << std::endl;
+    return true;
+}
+
+void WTimerEpoll::Close()
+{
+    WBaseEpoll::Close();
+}
+
+void WTimerEpoll::GetAndEmitTimer()
+{
+    this->_events = new(std::nothrow) epoll_event[this->_events_size];
+    if (_events == nullptr)
+    {
+        std::cout << "WEpoll::GetAndEmitEvents: new failed " << std::endl;
+        return;
+    }
+    
+    int32_t curr_events_size = WBaseEpoll::GetEvents(_events, this->_events_size);
+
+    if (curr_events_size == -1)
+    {
+        // error
+    }
+    else
+    {
+        Listener* listener;
+        for (int32_t index = 0; index < curr_events_size; ++index)
+        {
+            timerfd timer = _events[index].data.fd;
+            auto it = this->_listeners.find(timer);
+            if (it == this->_listeners.end())
+            {
+                // cant find listener
+                std::cout << "cannot find listener" << std::endl;
+                return;
+            }
+            listener = it->second;
+
+            std::cout << "WEpoll::GetAndEmitEvents Event " << _events[index].events << "" << std::endl;
+
+            if (_events[index].events & EPOLLIN)
+            {
+                std::cout << "epoll in" << std::endl;
+                listener->OnTime(timer);
+                uint64_t exp = 0;
+                read(timer, &exp, sizeof(uint64_t));
+            }
+        }
+
+        this->_events_size > curr_events_size ?
+                this->_events_size = 10 + (curr_events_size / 10 + this->_events_size * 9 / 10):
+                this->_events_size = curr_events_size * 1.5;
+        
+        // std::cout << "WEpoll GetAndEmitEvents _events_size: " << this->_events_size << std::endl;
+    }
+    
+    delete[] this->_events;
+}
+
+void WTimerEpoll::AddTimer(Listener* listener, timerfd timer)
+{
+    this->_listeners.insert(std::make_pair(timer, listener));
+    uint32_t event = 0;
+    event |= EPOLLET;
+    event |= EPOLLIN;
+    WBaseEpoll::AddSocket(timer, event);
+}
+
+void WTimerEpoll::RemoveTimer(timerfd timer)
+{
+    WBaseEpoll::RemoveSocket(timer);
+    this->_listeners.erase(timer);
+}
+
+
 } // namespace wlb::NetWork
 
 #endif // OS_IS_LINUX
