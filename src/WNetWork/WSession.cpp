@@ -507,6 +507,12 @@ uint32_t GetLengthFromWlbHead(const char* wlbHead, uint32_t head_length)
         try
         {
             memcpy(head.data.data, wlbHead, 4);
+            for (int i = 0; i < 4; i++)
+            {
+                printf("%d ", head.data.data[i]);
+            }
+            std::cout << std::endl; 
+            
             return head.data.length;
         }
         catch(const std::exception& e)

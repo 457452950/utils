@@ -121,7 +121,7 @@ uint32_t RingBuffer::InsertMessage(const std::string& message)
         try
         {
             uint32_t cp_size = tmp_size > top_size ? top_size : tmp_size;
-            std::cout << "Size of cp " << cp_size << std::endl;
+            std::cout << "RingBuffer::InsertMessage Size of cp " << cp_size << std::endl;
 
             ::memcpy(this->_buffer + this->_WriteOffset, tmp, cp_size);
             this->UpdateWriteOffset(cp_size);
