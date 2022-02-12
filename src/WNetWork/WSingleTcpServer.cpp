@@ -7,6 +7,10 @@ namespace wlb::NetWork
 
 bool WSingleTcpServer::Init(const WSessionStyle& style)
 {
+    this->_sessionTemp.clear(); 
+    this->_sessionMap.clear();
+    this->_accepterMap.clear();
+
     this->_sessionStyle = style;
 
     this->_handler = new(std::nothrow) WEpoll();
@@ -124,9 +128,9 @@ bool WSingleTcpServer::OnSessionClosed(WBaseSession::SessionId id)
         return true;
     }
 
-    if (this->_service != nullptr)
+    if (this->_listener != nullptr)
     {
-        this->_service->OnSessionClosed(id);
+        this->_listener->OnSessionClosed(id);
     }
 
     // 回收内存池
@@ -151,7 +155,7 @@ bool WSingleTcpServer::OnSessionMessage(WBaseSession::SessionId id, const std::s
 {
     std::cout << "WSingleTcpServer::OnRead " << std::endl;
 
-    if ( !this->_service->OnSessionMessage(id, recieve_message, send_message))
+    if ( !this->_listener->OnSessionMessage(id, recieve_message, send_message))
     {
         return false;
     }
@@ -160,9 +164,9 @@ bool WSingleTcpServer::OnSessionMessage(WBaseSession::SessionId id, const std::s
 }
 bool WSingleTcpServer::OnConnected(base_socket_type socket, const WPeerInfo& peerInfo)
 {
-    if (this->_service != nullptr)
+    if (this->_listener != nullptr)
     {
-        if ( !this->_service->OnConnected(socket, peerInfo))
+        if ( !this->_listener->OnConnected(socket, peerInfo))
         {
             // 拒绝服务
             return false;

@@ -2,7 +2,7 @@
 #include <map>
 #include <list>
 #include <thread>
-#include "WOS.h"
+#include "../WOS.h"
 #include "WSession.hpp"
 #include "WService.hpp"
 
@@ -26,10 +26,9 @@ public:
         virtual bool OnSessionClosed(WBaseSession::SessionId id) = 0;
         // virtual bool OnSessionShutdown(WBaseSession::SessionId id) = 0;
         // virtual bool OnSessionError(WBaseSession::SessionId id, int error_code) = 0;
-
     };
 public:
-    explicit WSingleTcpServer(Listener* listener) : _service(listener){};
+    explicit WSingleTcpServer(Listener* listener) : _listener(listener){};
     WSingleTcpServer(const WSingleTcpServer& other) = delete;
     WSingleTcpServer& operator=(const WSingleTcpServer& other) = delete;
     virtual ~WSingleTcpServer() {};
@@ -78,7 +77,7 @@ private:
     WSessionStyle _sessionStyle;
 
     // service handler
-    Listener* _service;
+    Listener* _listener;
 public:
 };
 

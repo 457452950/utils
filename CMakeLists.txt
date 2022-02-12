@@ -22,6 +22,11 @@ target_link_libraries(redis logger hiredis event)
 add_library(tinymysql   src/mysql/libMySQL.cpp)
 target_link_libraries(tinymysql logger mysqlclient)
 
+add_library(   
+    wtimer 
+    src/WTimer.cpp 
+)
+target_link_libraries(wtimer)
 
 add_library(   
     wnetwork 
@@ -29,14 +34,10 @@ add_library(
     src/WNetWork/WEpoll.cpp 
     src/WNetWork/WSession.cpp 
     src/WNetWork/WSingleTcpServer.cpp
+    src/WNetWork/WMultiTcpServer.cpp
     src/WBuffer.cpp 
 )
-target_link_libraries(wnetwork pthread)
+target_link_libraries(wnetwork pthread wtimer)
 
 
-add_library(   
-    wtimer 
-    src/WTimer.cpp 
-)
-target_link_libraries(wtimer)
 

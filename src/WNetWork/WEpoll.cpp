@@ -127,6 +127,8 @@ int32_t WBaseEpoll::GetEvents(epoll_event * events, int32_t events_size)
 
 bool WEpoll::Init(uint32_t events_size)
 {
+    this->_listeners.clear();
+
     if ( ! WBaseEpoll::Init() )
     {
         std::cout << "WBaseEpoll init failed" << std::endl;

@@ -1,5 +1,6 @@
 #pragma once
-#include "WOS.h"
+
+#include "../WOS.h"
 #include <stdint.h>
 #include "WNetWorkUtils.h"
 

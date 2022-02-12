@@ -14,6 +14,12 @@ bool WNetAccepter::Init(WNetWorkHandler* handler, const std::string& IpAddress, 
     /////////////////////////////////
     // Initialize socket
     this->_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);        // tcp v4
+    if (this->_socket == -1)
+    {
+        std::cout << "ERROR: Failed to create socket error" << strerror(errno) << std::endl;
+        return false;
+    }
+    std::cout << "WNetAccepter::Init new socket" << std::endl;
 
     if ( !SetSocketReuseAddr(this->_socket) || 
             !SetSocketReusePort(this->_socket) || 

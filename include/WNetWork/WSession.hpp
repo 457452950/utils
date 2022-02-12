@@ -1,7 +1,7 @@
 #pragma once
 
-#include "WEpoll.hpp"
-#include "WBuffer.hpp"
+#include "./WEpoll.hpp"
+#include "../WBuffer.hpp"
 #include "WNetWorkHandler.hpp"
 #include "WService.hpp"
 
