@@ -63,7 +63,7 @@ bool WMultiTcpServer::AddAccepter(const std::string & IpAddress, uint16_t port)
 {
     for (auto it : this->_servers)
     {
-        std::cout << "WMultiTcpServer::AddAccepter " << std::endl;
+        
         if (!it->AddAccepter(IpAddress, port))
         {
             return false;

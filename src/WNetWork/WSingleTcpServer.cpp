@@ -16,7 +16,7 @@ bool WSingleTcpServer::Init(const WSessionStyle& style)
     this->_handler = new(std::nothrow) WEpoll();
     if ( this->_handler != nullptr && !this->_handler->Init(100))
     {
-        std::cout << "WSingleTcpServer::Init(): Failed to initialize" << std::endl;
+        
         return false;
     }
 
@@ -25,7 +25,7 @@ bool WSingleTcpServer::Init(const WSessionStyle& style)
         return false;
     }
     
-    std::cout << "WSingleTcpServer::Init(): succ" << std::endl;
+    
     return true;
 }
 
@@ -33,7 +33,7 @@ void WSingleTcpServer::Close()
 {
     for (auto it : this->_sessionMap)
     {
-        std::cout << "WSingleTcpServer::Close: " << it.first << std::endl;
+        
         it.second->Close();
     }
 
@@ -91,18 +91,18 @@ bool WSingleTcpServer::AddAccepter(const std::string& IpAddress, uint16_t port)
     WNetAccepter* acc = new(std::nothrow) WNetAccepter(this);
     if (acc == nullptr)
     {
-        std::cout << "WNetAccepter new failed" << std::endl;
+        
         return false;
     }
-    std::cout << "WNetAccepter new succ" << std::endl;
+    
     
     if ( !acc->Init(this->_handler, IpAddress, port) )
     {
-        std::cout << "acc Init failed" << std::endl;
+        
         delete acc;
         return false;
     }
-    std::cout << "acc Init succ" << std::endl;
+    
 
     _accepterMap.insert(std::make_pair(acc->GetListenSocket(), acc));
     return true;
@@ -137,7 +137,7 @@ bool WSingleTcpServer::OnSessionClosed(WBaseSession::SessionId id)
     this->_sessionTemp.push_back(it->second);
     this->_sessionMap.erase(it);
     
-    std::cout << "temp:" << this->_sessionTemp.size() << " session:" << this->_sessionMap.size() << std::endl;
+    
 
     return true;
 }
@@ -153,7 +153,7 @@ bool WSingleTcpServer::OnSessionShutdown(WBaseSession::SessionId id)
 }
 bool WSingleTcpServer::OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message)
 {
-    std::cout << "WSingleTcpServer::OnRead " << std::endl;
+    
 
     if ( !this->_listener->OnSessionMessage(id, recieve_message, send_message))
     {
@@ -191,7 +191,7 @@ bool WSingleTcpServer::OnConnected(base_socket_type socket, const WPeerInfo& pee
     {
         return false;
     }
-    std::cout << "Session initialized ok!" << std::endl;
+    
 
     this->_sessionMap.insert(std::make_pair(socket, session));
     this->_sessionTemp.pop_front();

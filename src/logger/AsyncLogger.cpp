@@ -150,7 +150,7 @@ namespace Log
             while (m_LogList.empty())
             {
                 m_condition.wait(ulock);
-                // std::cout << "wake up" << std::endl;
+                // 
                 if (!m_bIsRunning && m_LogList.empty())
                     break;
             }
@@ -167,7 +167,7 @@ namespace Log
             }
 
         }
-        std::cout << "Log thread stop" << std::endl;
+        
     } 
 
 

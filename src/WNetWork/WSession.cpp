@@ -16,24 +16,24 @@ bool WNetAccepter::Init(WNetWorkHandler* handler, const std::string& IpAddress, 
     this->_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);        // tcp v4
     if (this->_socket == -1)
     {
-        std::cout << "ERROR: Failed to create socket error" << strerror(errno) << std::endl;
+        
         return false;
     }
-    std::cout << "WNetAccepter::Init new socket" << std::endl;
+    
 
     if ( !SetSocketReuseAddr(this->_socket) || 
             !SetSocketReusePort(this->_socket) || 
             !SetSocketKeepAlive(this->_socket) )
     {
-        std::cout << "WNetAccepter::Init SetSocketopt failed " << std::endl;
+        
         return false;
     }
     
     if ( !SetSocketNoBlock(this->_socket) )
     {
-        std::cout << "WNetAccepter::Init SetSocketNoBlock() failed" << std::endl;
+        
     }
-    std::cout << "WNetAccepter::Init SetSocketNoBlock() succ" << std::endl;
+    
 
     // ///////////////////////////////////////
     // Init members
@@ -43,41 +43,41 @@ bool WNetAccepter::Init(WNetWorkHandler* handler, const std::string& IpAddress, 
     this->_handler = handler;
     if (this->_handler == nullptr)
     {
-        std::cout << "WNetAccepter::Init handler nullptr" << std::endl;
+        
         return false;
     }
-    std::cout << "WNetAccepter::Init handler succ" << std::endl;
+    
 
     // ///////////////////////////////////////
     // Bind 
     if ( !this->Bind() )
     {
-        std::cout << "bind failed" << std::endl;
+        
         return false;
     }
-    std::cout << "bind succ" << std::endl;
+    
 
     /////////////////////////////////
     // Listen
     if ( !this->Listen() )
     {
-        std::cout << "Listen failed" << std::endl;
+        
         return false;
     }
-    std::cout << "Listen succ" << std::endl;
+    
     
     // //////////////////////////////
     // add socket in handler
     uint32_t op = 0;
     op |= WNetWorkHandler::OP_IN;
     op |= WNetWorkHandler::OP_ERR;
-    std::cout << "listen socket op:" << op << std::endl;
+    
     if ( !this->_handler->AddSocket(this, this->_socket, op) )
     {
-        std::cout << "WNetAccepter::Init AddSocket failed" << std::endl;
+        
         return false;
     }
-    std::cout << "WNetAccepter::Init AddSocket succ" << std::endl;
+    
     
     return true;
 }
@@ -90,33 +90,33 @@ bool WNetAccepter::Bind()
     in_addr ipaddr{0};
     if ( !StringToIpAddress(this->_address, ipaddr))
     {
-        std::cout << "WNetAccepter::Bind StringToIpAddr() failed" << std::endl;
+        
         return false;
     }
-    std::cout << "WNetAccepter::Bind StringToIpAddr() succ " << ipaddr.s_addr << std::endl;
+    
 
     try
     {
         ei.sin_port = ::htons(this->_port);
-        std::cout << "WNetAccepter::Bind port :" << ei.sin_port << std::endl;
+        
     }
     catch(const std::exception& e)
     {
         std::cerr << e.what() << '\n';
         return false;
     }
-    std::cout << "WNetAccepter::Bind htons succ" << std::endl;
+    
 
     int32_t ok = ::bind(this->_socket,
                 (struct sockaddr*)&(ei),
                 sizeof(ei));
     if ( ok == -1 )
     {
-        std::cout << "WNetAccepter::Bind bind failed" << strerror(errno) << std::endl;
+        
         close(this->_socket);
         return false;
     }
-    std::cout << "WNetAccepter::Bind bind succ" << std::endl;
+    
 
     return true;
 }
@@ -125,7 +125,7 @@ bool WNetAccepter::Listen()
 {
     if ( ::listen(this->_socket, 1024) == -1) 
     {
-        std::cout << "WNetAccepter::Listen error " << strerror(errno) << std::endl;
+        
         return false;
     }
     return true;
@@ -141,7 +141,7 @@ base_socket_type WNetAccepter::Accept(WPeerInfo& info)
                                     &len);
     if (clientsock <= 0)
     {
-        std::cout << "Couldn't accept error " << strerror(errno) << std::endl;
+        
         return 0;
     }
 
@@ -156,9 +156,9 @@ base_socket_type WNetAccepter::Accept(WPeerInfo& info)
     }
     catch (const std::exception& e)
     {
-        std::cout << e.what() << std::endl;
+        
     }
-    std::cout << "ip address:" << info.peer_address << ",port:" << info.peer_port << std::endl;
+    
     
     return clientsock;
 }
@@ -186,13 +186,13 @@ void WNetAccepter::OnRead()
         this->_listener->OnConnected(cli_sock, info);
     }
     
-    std::cout << "WNetAccepter::OnRead end" << std::endl;
+    
     return;
 }
 
 void WNetAccepter::OnError(int error_code)
 {
-    std::cout << "WNetAccepter::OnError " << strerror(error_code) << std::endl;
+    
     return;
 }
 
@@ -239,13 +239,13 @@ bool WFloatBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize,
 
 bool WFloatBufferSession::SetSocket(base_socket_type socket, const WPeerInfo& peerInfo)
 {
-    std::cout << "Setting socket " << socket << std::endl;
+    
     this->_socket = socket;
 
     if (    !SetTcpSocketNoDelay(this->_socket) || 
             !SetSocketKeepAlive(this->_socket) )
     {
-        std::cout << "WFloatBufferSession::SetSocket SetSocketopt failed " << std::endl;
+        
         return false;
     }
     if ( !SetSocketNoBlock(this->_socket))
@@ -329,12 +329,12 @@ bool WFloatBufferSession::Receive()
                                 0);
     if (recv_len <= -1)
     {
-        std::cout << "recv " << recv_len << " : error " << strerror(errno) << std::endl;
+        
         return false;
     }
     if (recv_len == 0 && _recvBuffer.GetTopRestBufferSize() != 0)
     {
-        std::cout << "recv = 0, error " << strerror(errno) << std::endl;
+        
         return false;
     }
     
@@ -392,7 +392,7 @@ void WFloatBufferSession::OnRead()
     {
         receive_message.clear();
         uint32_t len = this->_recvBuffer.GetFrontMessage(head, this->_headLen);
-        std::cout << "get len:" << len << std::endl;
+        
         if (len != this->_headLen)
         {
             // no enough message
@@ -400,7 +400,7 @@ void WFloatBufferSession::OnRead()
         }
         
         len = GetLengthFromWlbHead(head.c_str(), this->_headLen);
-        std::cout << "WFloatBufferSession::OnRead head len" << len << std::endl;
+        
         if (len == 0)
         {
             ::shutdown(this->_socket, SHUT_RDWR);
@@ -431,7 +431,7 @@ void WFloatBufferSession::OnWrite()
     std::string send_message;
     uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
     ssize_t send_len = ::send(this->_socket, send_message.c_str(), msg_len, 0);
-    std::cout << "WFloatBufferSession::OnWrite send_len:" << send_len << std::endl;
+    
     this->_sendBuffer.UpdateReadOffset(send_len);
 
     if (send_len < 0)
@@ -458,7 +458,7 @@ void WFloatBufferSession::OnShutdown()
     
     if ( ::shutdown(this->_socket, SHUT_RDWR) == -1 )
     {
-        std::cout << "WNetWorkHandler::OnShutdown shutdown failed" << strerror(errno) << std::endl;
+        
         return;
     }
     return;
@@ -513,12 +513,6 @@ uint32_t GetLengthFromWlbHead(const char* wlbHead, uint32_t head_length)
         try
         {
             memcpy(head.data.data, wlbHead, 4);
-            for (int i = 0; i < 4; i++)
-            {
-                printf("%d ", head.data.data[i]);
-            }
-            std::cout << std::endl; 
-            
             return head.data.length;
         }
         catch(const std::exception& e)
@@ -573,13 +567,13 @@ bool WFixedBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize,
 
 bool WFixedBufferSession::SetSocket(base_socket_type socket, const WPeerInfo& peerInfo)
 {
-    std::cout << "Setting socket " << socket << std::endl;
+    
     this->_socket = socket;
 
     if (    !SetTcpSocketNoDelay(this->_socket) || 
             !SetSocketKeepAlive(this->_socket) )
     {
-        std::cout << "WFixedBufferSession::SetSocket SetSocketopt failed " << std::endl;
+        
         return false;
     }
     if ( !SetSocketNoBlock(this->_socket))
@@ -658,12 +652,12 @@ bool WFixedBufferSession::Receive()
                                 0);
     if (recv_len <= -1)
     {
-        std::cout << "recv " << recv_len << " : error " << strerror(errno) << std::endl;
+        
         return false;
     }
     if (recv_len == 0 && _recvBuffer.GetTopRestBufferSize() != 0)
     {
-        std::cout << "recv = 0, error " << strerror(errno) << std::endl;
+        
         return false;
     }
     
@@ -721,13 +715,13 @@ void WFixedBufferSession::OnRead()
         receive_message.clear();
 
         uint32_t len = this->_recvBuffer.GetFrontMessage(receive_message, this->_messageSize);
-        std::cout << "get front message: " << len << std::endl;
+        
         if (len != this->_messageSize)
         {
-            std::cout << "no enough bytes:" << len << std::endl;
+            
             return;
         }
-        std::cout << "have enough bytes:" << len << std::endl;
+        
 
         if (!this->_listener->OnSessionMessage(this->_socket, receive_message, send_message))
         {
@@ -746,7 +740,7 @@ void WFixedBufferSession::OnWrite()
     std::string send_message;
     uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
     ssize_t send_len = ::send(this->_socket, send_message.c_str(), msg_len, 0);
-    std::cout << "WFixedBufferSession::OnWrite send_len:" << send_len << std::endl;
+    
     this->_sendBuffer.UpdateReadOffset(send_len);
 
     if (send_len < 0)
@@ -773,7 +767,7 @@ void WFixedBufferSession::OnShutdown()
     
     if ( ::shutdown(this->_socket, SHUT_RDWR) == -1 )
     {
-        std::cout << "WFixedBufferSession::OnShutdown shutdown failed" << strerror(errno) << std::endl;
+        
         return;
     }
     return;

@@ -65,10 +65,10 @@ bool WTimer::Start(long time_value, long interval)
     this->_fd = CreateNewTimerfd();
     if (this->_fd == -1)
     {
-        std::cout << "new timerfd error" << strerror(errno) << std::endl;
+        
         return false;
     }
-    std::cout << "timerfd created successfully" << std::endl;
+    
     
     struct itimerspec next_time{0};
     next_time.it_value.tv_sec = time_value / 1000L;
@@ -77,10 +77,10 @@ bool WTimer::Start(long time_value, long interval)
     next_time.it_interval.tv_nsec = (interval % 1000L) * 1000'000L;
     if (!SetTimerTime(this->_fd, SetTimeFlag::REL, &next_time))
     {
-        std::cout << "SetTimerTime failed" << strerror(errno) << std::endl;
+        
         return false;
     }
-    std::cout << "SetTimerTime succ" << std::endl;
+    
 
     this->_handler->AddTimer(this->_listener, this->_fd);
 

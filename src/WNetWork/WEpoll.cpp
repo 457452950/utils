@@ -18,10 +18,10 @@ bool EpollAddSocket(epoll_type epoll, base_socket_type socket, uint32_t events)
     event.events = events;
 
     if ( ::epoll_ctl(epoll, EPOLL_CTL_ADD, socket, &event) == 0 ){
-        std::cout << "Epoll Add Socket succ" << std::endl;
+        
         return true;
     }
-    std::cout << "Epoll Add Socket failed" << std::endl;
+    
     return false;
 }
 
@@ -32,10 +32,10 @@ bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t event
     event.events = events;
 
     if ( ::epoll_ctl(epoll, EPOLL_CTL_MOD, socket, &event) == 0 ){
-        std::cout << "Epoll Modify Socket succ" << std::endl;
+        
         return true;
     }
-    std::cout << "Epoll Modify Socket failed" << std::endl;
+    
     return false;
 }
 
@@ -92,16 +92,16 @@ bool WBaseEpoll::AddSocket(base_socket_type socket, uint32_t events)
 {
     if (this->_epoll == -1)
     {
-        std::cout << "WBaseEpoll::AddSocket failed epoll is -1" << std::endl;
+        
         return false;
     }
-    std::cout << "WBaseEpoll::AddSocket succ epoll is " << this->_epoll << std::endl;
+    
     if (socket == -1)
     {
         /* code */
     }
     
-    std::cout << "WBaseEpoll::AddSocket " << events << std::endl;
+    
     return EpollAddSocket(this->_epoll, socket, events);
 }
 
@@ -131,16 +131,16 @@ bool WEpoll::Init(uint32_t events_size)
 
     if ( ! WBaseEpoll::Init() )
     {
-        std::cout << "WBaseEpoll init failed" << std::endl;
+        
         return false;
     }
-    std::cout << "WBaseEpoll init succ" << std::endl;
+    
 
     events_size < default_events_size ? 
             this->_events_size = default_events_size : 
             this->_events_size = events_size;
 
-    std::cout << "WBaseEpoll init: events_size = " << std::to_string(events_size) << std::endl;
+    
 
     return true;
 }
@@ -150,7 +150,7 @@ void WEpoll::GetAndEmitEvents()
     this->_events = new(std::nothrow) epoll_event[this->_events_size];
     if (_events == nullptr)
     {
-        std::cout << "WEpoll::GetAndEmitEvents: new failed " << std::endl;
+        
         return;
     }
     
@@ -174,26 +174,26 @@ void WEpoll::GetAndEmitEvents()
             }
             listener = it->second;
 
-            std::cout << "WEpoll::GetAndEmitEvents Event " << _events[index].events << "" << std::endl;
+            
             if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
             {
-                std::cout << "epoll closed" << std::endl;
+                
             }
             if (_events[index].events & EPOLLERR)
             {
-                std::cout << "epoll error" << std::endl;
+                
             }
             if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
             {
-                std::cout << "epoll shutdown" << std::endl;
+                
             }
             if (_events[index].events & EPOLLIN)
             {
-                std::cout << "epoll in" << std::endl;
+                
             }
             if (_events[index].events & EPOLLOUT)
             {
-                std::cout << "epoll out" << std::endl;
+                
             }
 
             if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
@@ -225,7 +225,7 @@ void WEpoll::GetAndEmitEvents()
                 this->_events_size = 10 + (curr_events_size / 10 + this->_events_size * 9 / 10):
                 this->_events_size = curr_events_size * 1.5;
         
-        // std::cout << "WEpoll GetAndEmitEvents _events_size: " << this->_events_size << std::endl;
+        // 
     }
     
     delete[] this->_events;
@@ -301,7 +301,7 @@ bool WTimerEpoll::Init()
     {
         return false;
     }
-    std::cout << "WTimerEpoll Init ok" << std::endl;
+    
     return true;
 }
 
@@ -315,7 +315,7 @@ void WTimerEpoll::GetAndEmitTimer()
     this->_events = new(std::nothrow) epoll_event[this->_events_size];
     if (_events == nullptr)
     {
-        std::cout << "WEpoll::GetAndEmitEvents: new failed " << std::endl;
+        
         return;
     }
     
@@ -335,16 +335,16 @@ void WTimerEpoll::GetAndEmitTimer()
             if (it == this->_listeners.end())
             {
                 // cant find listener
-                std::cout << "cannot find listener" << std::endl;
+                
                 return;
             }
             listener = it->second;
 
-            std::cout << "WEpoll::GetAndEmitEvents Event " << _events[index].events << "" << std::endl;
+            
 
             if (_events[index].events & EPOLLIN)
             {
-                std::cout << "epoll in" << std::endl;
+                
                 listener->OnTime(timer);
                 uint64_t exp = 0;
                 read(timer, &exp, sizeof(uint64_t));
@@ -355,7 +355,7 @@ void WTimerEpoll::GetAndEmitTimer()
                 this->_events_size = 10 + (curr_events_size / 10 + this->_events_size * 9 / 10):
                 this->_events_size = curr_events_size * 1.5;
         
-        // std::cout << "WEpoll GetAndEmitEvents _events_size: " << this->_events_size << std::endl;
+        // 
     }
     
     delete[] this->_events;

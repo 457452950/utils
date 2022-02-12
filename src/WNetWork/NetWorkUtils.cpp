@@ -28,7 +28,7 @@ bool IpAddrToString(in_addr addr, std::string& buf)
     }
     catch(const std::exception& e)
     {
-        std::cout << "StringToIpAddress : " << e.what() << " : " << strerror(errno) << std::endl;
+        
     }
     return false;
 }
@@ -51,7 +51,7 @@ bool IpAddrToString(in6_addr addr, std::string& buf)
     }
     catch(const std::exception& e)
     {
-        std::cout << "StringToIpAddress : " << e.what() << " : " << strerror(errno) << std::endl;
+        
     }
     return false;
 }
@@ -68,7 +68,7 @@ bool StringToIpAddress(const std::string& ip_str, in_addr& addr)
     }
     catch(const std::exception& e)
     {
-        std::cout << "StringToIpAddress : " << e.what() << " : " << strerror(errno) << std::endl;
+        
     }
     return false;
 }
@@ -85,7 +85,7 @@ bool StringToIpAddress(const std::string& ip_str, in6_addr& addr)
     }
     catch(const std::exception& e)
     {
-        std::cout << "StringToIpAddress : " << e.what() << " : " << strerror(errno) << std::endl;
+        
     }
     return false;
 }
@@ -113,7 +113,7 @@ bool SetSocketReuseAddr(base_socket_type socket)
     }
     catch(const std::exception& e)
     {
-        std::cout << "set socket reuse address: " << e.what() << std::endl;
+        
     }
     return false;
 }
@@ -131,7 +131,7 @@ bool SetSocketReusePort(base_socket_type socket)
     }
     catch(const std::exception& e)
     {
-        std::cout << "set socket reuse port" << e.what() << std::endl;
+        
     }
     return false;
 }
@@ -149,7 +149,7 @@ bool SetSocketKeepAlive(base_socket_type socket)
     }
     catch(const std::exception& e)
     {
-        std::cout << "set socket reuse port" << e.what() << std::endl;
+        
     }
     return false;
 }
