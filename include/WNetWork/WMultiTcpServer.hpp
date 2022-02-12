@@ -52,7 +52,7 @@ private:
 
     // threads
     uint16_t _threadsCount{0};
-    std::list<WSingleTcpServer*> _servers{nullptr};
+    std::list<WSingleTcpServer*> _servers;
 };
 
 
