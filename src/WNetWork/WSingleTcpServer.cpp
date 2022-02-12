@@ -16,7 +16,6 @@ bool WSingleTcpServer::Init(const WSessionStyle& style)
     this->_handler = new(std::nothrow) WEpoll();
     if ( this->_handler != nullptr && !this->_handler->Init(100))
     {
-        
         return false;
     }
 
@@ -33,7 +32,6 @@ void WSingleTcpServer::Close()
 {
     for (auto it : this->_sessionMap)
     {
-        
         it.second->Close();
     }
 
@@ -45,6 +43,7 @@ void WSingleTcpServer::Destroy()
     if (this->_workThread != nullptr)
     {
         delete this->_workThread;
+        this->_workThread = nullptr;
     }
 
     while (!this->_sessionTemp.empty())
@@ -55,16 +54,16 @@ void WSingleTcpServer::Destroy()
     }
     for (auto it : this->_sessionMap)
     {
-        it.second->Close();
         it.second->Destroy();
         delete it.second;
-        this->_sessionMap.erase(it.first);
     }
+    this->_sessionMap.clear();
+
     for (auto it : this->_accepterMap)
     {
         delete it.second;
-        this->_sessionMap.erase(it.first);
     }
+    this->_accepterMap.clear();
     
     if (this->_handler != nullptr)
     {

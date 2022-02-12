@@ -175,7 +175,7 @@ private:
 protected:
     std::map<base_socket_type, WNetWorkHandler::Listener*> _listeners;
 
-    epoll_event * _events{nullptr};
+    epoll_event * _events{nullptr};     // epoll_wait 获取事件数组
     int32_t _events_size{0};
 
     const int32_t default_events_size{128};
@@ -202,6 +202,7 @@ public:
     // override WTimerHandler
     bool Init() override;
     void Close() override;
+    void Destroy() override;
 
     void GetAndEmitTimer() override;
     void AddTimer(Listener* listener, timerfd timer) override;

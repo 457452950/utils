@@ -40,6 +40,8 @@ void WMultiTcpServer::Destroy()
         it->Destroy();
         delete it;
     }
+    this->_servers.clear();
+    
     this->_listener = nullptr;
 }
 

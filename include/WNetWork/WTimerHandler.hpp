@@ -19,6 +19,7 @@ public:
 
     virtual bool Init() = 0;
     virtual void Close()  = 0;
+    virtual void Destroy() = 0;
 
     virtual void AddTimer(Listener* listener, timerfd timer) = 0;
     virtual void RemoveTimer(timerfd timer) = 0;

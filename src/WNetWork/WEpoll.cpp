@@ -236,7 +236,9 @@ void WEpoll::Close()
     if (this->_events != nullptr)
     {
         delete [] this->_events;
+        this->_events = nullptr;
     }
+    this->_listeners.clear();
     WBaseEpoll::Close();
 }
 
@@ -308,6 +310,17 @@ bool WTimerEpoll::Init()
 void WTimerEpoll::Close()
 {
     WBaseEpoll::Close();
+    this->_listeners.clear();
+}
+
+void WTimerEpoll::Destroy()
+{
+    if (this->_events != nullptr)
+    {
+        delete [] this->_events;
+        this->_events = nullptr;
+    }
+    
 }
 
 void WTimerEpoll::GetAndEmitTimer()
@@ -315,7 +328,6 @@ void WTimerEpoll::GetAndEmitTimer()
     this->_events = new(std::nothrow) epoll_event[this->_events_size];
     if (_events == nullptr)
     {
-        
         return;
     }
     
@@ -335,7 +347,6 @@ void WTimerEpoll::GetAndEmitTimer()
             if (it == this->_listeners.end())
             {
                 // cant find listener
-                
                 return;
             }
             listener = it->second;
@@ -344,7 +355,6 @@ void WTimerEpoll::GetAndEmitTimer()
 
             if (_events[index].events & EPOLLIN)
             {
-                
                 listener->OnTime(timer);
                 uint64_t exp = 0;
                 read(timer, &exp, sizeof(uint64_t));
