@@ -17,7 +17,6 @@ bool FastLogger::Init(LOG_LEVEL level, const char* file_name)
     FastLogger::_instance = new(std::nothrow) FastLogger();
     if (_instance == nullptr)
     {
-        
         return false;
     }
 

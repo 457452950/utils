@@ -67,7 +67,8 @@ namespace Log
             s_Instance = new Logger();
             s_LogLevel = level;
             s_Instance->m_bIsRunning = true;
-            s_Instance->m_pThread = new(std::nothrow) std::thread(&Logger::Loop, s_Instance); 
+            s_Instance->m_pThread = new(std::nothrow) std::thread(&Logger::Loop, s_Instance);
+            Logger::s_bIsActive = true;
         }
         static void Stop()
         {
@@ -81,6 +82,7 @@ namespace Log
             }
         }
         static Logger* getInstance();
+        static bool s_bIsActive;
         void operator=(Logger*) = delete;
         Logger(const Logger&) = delete;
 
@@ -134,7 +136,7 @@ namespace Log
     };
 
 #define LOG(level)                    \
-    if (Logger::s_LogLevel <= level)           \
+    if (Logger::s_LogLevel <= level && Logger::s_bIsActive)           \
         Logger::getInstance()->Write(#level, __FILE__, __LINE__,     \
                             __DATE__, __TIME__, __FUNCTION__)->Get()
 

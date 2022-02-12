@@ -73,7 +73,6 @@ void RingBuffer::UpdateWriteOffset(uint32_t len)
     {
         return;
     }
-     
     
     this->_WriteOffset += len;
     this->_WriteOffset %= this->_maxBufferSize;
@@ -83,7 +82,7 @@ void RingBuffer::UpdateWriteOffset(uint32_t len)
     {
         this->_isFull == true;
     }
-     
+    
 }
 
 void RingBuffer::UpdateReadOffset(uint32_t len)
@@ -102,7 +101,6 @@ void RingBuffer::UpdateReadOffset(uint32_t len)
         this->_isEmpty = true;
     }
     
-     
 }
 
 uint32_t RingBuffer::InsertMessage(const std::string& message)
@@ -121,7 +119,6 @@ uint32_t RingBuffer::InsertMessage(const std::string& message)
         try
         {
             uint32_t cp_size = tmp_size > top_size ? top_size : tmp_size;
-            
 
             ::memcpy(this->_buffer + this->_WriteOffset, tmp, cp_size);
             this->UpdateWriteOffset(cp_size);
@@ -144,7 +141,6 @@ const uint32_t RingBuffer::GetFrontMessage(std::string& message, uint32_t len)
     message.clear();
     if (this->_isEmpty)
     {
-        
         return 0;
     }
     
@@ -153,7 +149,6 @@ const uint32_t RingBuffer::GetFrontMessage(std::string& message, uint32_t len)
         uint32_t msg_size = this->_WriteOffset - this->_ReadOffset;
         if (len > msg_size)
         {
-            
             return 0;   // Not enough message
         }
         message.append(this->_buffer + this->_ReadOffset, len);
@@ -166,12 +161,9 @@ const uint32_t RingBuffer::GetFrontMessage(std::string& message, uint32_t len)
 
         if (front_size + back_size < len)
         {
-            
             return 0; // Not enough message
         }
-         
-    
-
+        
         uint32_t cp_size = back_size > len ? len : back_size;
         while (cp_size != 0)
         {
@@ -182,7 +174,6 @@ const uint32_t RingBuffer::GetFrontMessage(std::string& message, uint32_t len)
         }
     }
     
-     
     return message.size();
 }
 
@@ -210,7 +201,7 @@ const uint32_t RingBuffer::GetAllMessage(std::string& message)
         cp_size = front_size + back_size;
     }
     
-     
+    
     return cp_size;
 }
 

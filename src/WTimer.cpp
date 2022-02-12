@@ -65,10 +65,8 @@ bool WTimer::Start(long time_value, long interval)
     this->_fd = CreateNewTimerfd();
     if (this->_fd == -1)
     {
-        
         return false;
     }
-    
     
     struct itimerspec next_time{0};
     next_time.it_value.tv_sec = time_value / 1000L;
