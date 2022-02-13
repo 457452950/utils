@@ -156,9 +156,10 @@ void WMultiTcpServer::OnTime(timerfd id)
     if (this->_timer->GetId() == id)
     {
         std::cout << "WMultiTcpServer::OnTime " << std::endl;
+        int index = 0;
         for (auto it : this->_servers)
         {
-            ;
+            std::cout << index++ << " " << it->GetActiveSessionCount() << std::endl;
         }
         
     }

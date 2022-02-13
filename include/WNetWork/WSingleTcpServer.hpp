@@ -44,6 +44,8 @@ public:
     // class methods
     bool AddAccepter(const std::string & IpAddress, uint16_t port);
 
+    const uint16_t GetActiveSessionCount() { return this->_sessionMap.size(); };
+
 protected:
     // override listener methods
     bool OnConnected(base_socket_type socket, const WPeerInfo& peerInfo) override;

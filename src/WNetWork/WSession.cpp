@@ -141,7 +141,6 @@ base_socket_type WNetAccepter::Accept(WPeerInfo& info)
                                     &len);
     if (clientsock <= 0)
     {
-        
         return 0;
     }
 
@@ -329,12 +328,10 @@ bool WFloatBufferSession::Receive()
                                 0);
     if (recv_len <= -1)
     {
-        
         return false;
     }
     if (recv_len == 0 && _recvBuffer.GetTopRestBufferSize() != 0)
     {
-        
         return false;
     }
     
