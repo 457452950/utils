@@ -30,6 +30,8 @@ bool WSingleTcpServer::Init(const WSessionStyle& style)
 
 void WSingleTcpServer::Close()
 {
+    this->_running = false;
+
     for (auto it : this->_sessionMap)
     {
         it.second->Close();

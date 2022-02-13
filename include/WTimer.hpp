@@ -46,6 +46,7 @@ public:
     bool operator!=(const timerfd& rhs);
 
     bool Start(long time_value, long interval = 0);
+    inline const timerfd GetId() const { return this->_fd; };
 protected:
     timerfd _fd{-1};
     bool _active{false};

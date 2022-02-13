@@ -3,12 +3,33 @@
 #include <thread>
 #include <list>
 #include "WSingleTcpServer.hpp"
+#include "../WTimer.hpp"
 
 
 namespace wlb::NetWork
 {
 
-class WMultiTcpServer : public WSingleTcpServer::Listener
+/////////////////////////////////////////////////////////
+// timer
+extern WTimerHandler* timeHandler;
+
+class WServerTimer : public wlb::WTimer
+{
+public:
+    explicit WServerTimer(WTimerHandler::Listener* listener) 
+            : WTimer(listener, timeHandler) {}
+    virtual ~WServerTimer() {}
+
+};
+
+
+
+
+////////////////////////////////////////////////////////////////////////
+// server
+
+class WMultiTcpServer : public WSingleTcpServer::Listener,
+                        public WTimerHandler::Listener
 {
 public:
     class Listener
@@ -39,6 +60,9 @@ public:
     // class methods
     bool AddAccepter(const std::string & IpAddress, uint16_t port);
 
+private:
+    void Loop();
+
 protected:
     // overrides
     virtual bool OnConnected(WBaseSession::SessionId id, const WPeerInfo& peerInfo) override;
@@ -47,17 +71,20 @@ protected:
     // virtual bool OnSessionShutdown(WBaseSession::SessionId id) override;
     // virtual bool OnSessionError(WBaseSession::SessionId id, int error_code) override;
     
+    // timer override
+    virtual void OnTime(timerfd id) override;
 private:
     Listener* _listener{nullptr};
 
     // threads
     uint16_t _threadsCount{0};
     std::list<WSingleTcpServer*> _servers;
+
+    bool _isRunning{false};
+    std::thread* _timerThread{nullptr};
+
+    WServerTimer* _timer{nullptr};
 };
-
-
-
-
 
 
 }

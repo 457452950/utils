@@ -4,6 +4,24 @@
 namespace wlb::NetWork
 {
 
+
+/////////////////////////////////
+// timer
+
+WTimerHandler* timeHandler = new WTimerEpoll;
+
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////
+// server
+
 bool WMultiTcpServer::Init(uint16_t threads, const WSessionStyle& style)
 {
     this->_threadsCount = threads < 1 ? 1 : threads;
@@ -20,11 +38,27 @@ bool WMultiTcpServer::Init(uint16_t threads, const WSessionStyle& style)
         this->_servers.push_back(the);
     }
 
+    if (!timeHandler->Init())
+    {
+        return false;
+    }
+
+    this->_timer = new(std::nothrow) WServerTimer(this);
+    if (this->_timer == nullptr)
+    {
+        return false;
+    }
+    
+    this->_timer->Start(1000, 1000);
+
     return true;
 }
 
 void WMultiTcpServer::Close()
 {
+    this->_isRunning = false;
+    timeHandler->Close();
+
     // 采用迭代器，防止init失败时，this->_threadsCount失效
     for (auto it : this->_servers)
     {
@@ -43,14 +77,20 @@ void WMultiTcpServer::Destroy()
     this->_servers.clear();
     
     this->_listener = nullptr;
+
+    timeHandler->Destroy();
 }
 
 void WMultiTcpServer::run()
 {
+    this->_isRunning = true;
+
     for (auto it : this->_servers)
     {
         it->run();
     }
+
+    this->_timerThread = new std::thread(&WMultiTcpServer::Loop, this);
 }
 
 void WMultiTcpServer::WaitForQuit()
@@ -65,7 +105,6 @@ bool WMultiTcpServer::AddAccepter(const std::string & IpAddress, uint16_t port)
 {
     for (auto it : this->_servers)
     {
-        
         if (!it->AddAccepter(IpAddress, port))
         {
             return false;
@@ -102,5 +141,28 @@ bool WMultiTcpServer::OnSessionClosed(WBaseSession::SessionId id)
     
     return this->_listener->OnSessionClosed(id);
 }
+
+void WMultiTcpServer::Loop()
+{
+    while (this->_isRunning)
+    {
+        timeHandler->GetAndEmitTimer();
+    }
+}
+
+void WMultiTcpServer::OnTime(timerfd id)
+{
+    std::cout << "time out" << std::endl;
+    if (this->_timer->GetId() == id)
+    {
+        std::cout << "WMultiTcpServer::OnTime " << std::endl;
+        for (auto it : this->_servers)
+        {
+            ;
+        }
+        
+    }
+}
+
 
 }

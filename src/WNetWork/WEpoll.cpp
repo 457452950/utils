@@ -336,6 +336,7 @@ void WTimerEpoll::GetAndEmitTimer()
     if (curr_events_size == -1)
     {
         // error
+        std::cout << "error no:" << errno << " " << strerror(errno) << std::endl;
     }
     else
     {
