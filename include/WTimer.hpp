@@ -1,3 +1,4 @@
+#pragma once
 #include "WOS.h"
 
 #if defined(OS_IS_LINUX)

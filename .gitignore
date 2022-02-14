@@ -19,6 +19,7 @@ lib/libasynclogger.a
 lib/libtinymysql.a
 lib/libwnetwork.a
 lib/libwtimer.a
+lib/libwdebug.a
 
 .vscode/settings.json
 build/*

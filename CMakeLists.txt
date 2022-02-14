@@ -39,5 +39,9 @@ add_library(
 )
 target_link_libraries(wnetwork pthread wtimer)
 
-
+add_library(
+    wdebug
+    src/WDebugger.cpp
+)
+target_link_libraries(wdebug wtimer)
 
