@@ -70,6 +70,7 @@ void WSingleTcpServer::Destroy()
     if (this->_handler != nullptr)
     {
         delete this->_handler;
+        this->_handler = nullptr;
     }
 }
 

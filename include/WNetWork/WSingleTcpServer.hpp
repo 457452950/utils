@@ -45,6 +45,7 @@ public:
     bool AddAccepter(const std::string & IpAddress, uint16_t port);
 
     const uint16_t GetActiveSessionCount() { return this->_sessionMap.size(); };
+    const uint16_t GetTempSessionCount() { return this->_sessionTemp.size(); };
 
 protected:
     // override listener methods

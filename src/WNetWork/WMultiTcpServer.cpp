@@ -75,8 +75,16 @@ void WMultiTcpServer::Destroy()
         delete it;
     }
     this->_servers.clear();
+    if (this->_timerThread != nullptr)
+    {
+        delete this->_timerThread;
+        this->_timerThread = nullptr;
+    }
+    
     
     this->_listener = nullptr;
+
+    delete this->_timer;
 
     timeHandler->Destroy();
 }
@@ -159,7 +167,7 @@ void WMultiTcpServer::OnTime(timerfd id)
         int index = 0;
         for (auto it : this->_servers)
         {
-            std::cout << index++ << " " << it->GetActiveSessionCount() << std::endl;
+            std::cout << index++ << " " << it->GetActiveSessionCount() << " " << it->GetTempSessionCount() << std::endl;
         }
         
     }
