@@ -1,10 +1,13 @@
 #include "WNetWork/WEpoll.hpp"
 #include <iostream>
+#include "WDebugger.hpp"
 
 #if defined(OS_IS_LINUX)
 
 namespace wlb::NetWork
 {
+
+using namespace wlb::debug;
 
 epoll_type CreateNeWBaseEpoll()
 {
@@ -148,6 +151,7 @@ bool WEpoll::Init(uint32_t events_size)
 void WEpoll::GetAndEmitEvents()
 {
     this->_events = new(std::nothrow) epoll_event[this->_events_size];
+    NEWADD;
     if (_events == nullptr)
     {
         
@@ -169,8 +173,7 @@ void WEpoll::GetAndEmitEvents()
             auto it = this->_listeners.find(socket);
             if (it == this->_listeners.end())
             {
-                // cant find listener
-                return;
+                continue;
             }
             listener = it->second;
 
@@ -229,6 +232,7 @@ void WEpoll::GetAndEmitEvents()
     }
     
     delete[] this->_events;
+    DELADD;
 }
 
 void WEpoll::Close()
@@ -236,6 +240,7 @@ void WEpoll::Close()
     if (this->_events != nullptr)
     {
         delete [] this->_events;
+        DELADD;
         this->_events = nullptr;
     }
     this->_listeners.clear();
@@ -326,6 +331,7 @@ void WTimerEpoll::Destroy()
 void WTimerEpoll::GetAndEmitTimer()
 {
     this->_events = new(std::nothrow) epoll_event[this->_events_size];
+    NEWADD;
     if (_events == nullptr)
     {
         return;
@@ -348,7 +354,7 @@ void WTimerEpoll::GetAndEmitTimer()
             if (it == this->_listeners.end())
             {
                 // cant find listener
-                return;
+                continue;
             }
             listener = it->second;
 
@@ -370,6 +376,7 @@ void WTimerEpoll::GetAndEmitTimer()
     }
     
     delete[] this->_events;
+    DELADD;
 }
 
 void WTimerEpoll::AddTimer(Listener* listener, timerfd timer)

@@ -1,8 +1,11 @@
 #include "WNetWork/WNetWorkUtils.h"
 #include <iostream>
+#include "WDebugger.hpp"
 
 namespace wlb::NetWork
 {
+
+using namespace wlb::debug;
 
 #if OS_IS_WINDOWS
 
@@ -16,6 +19,7 @@ bool IpAddrToString(in_addr addr, std::string& buf)
     {
         int32_t _len = 30;
         char* _buf = new char[_len];
+        NEWADD;
         if ( ::inet_ntop((int)AF_FAMILY::INET, (void*)&addr, _buf, _len) == nullptr)
         {
             buf.clear();
@@ -24,6 +28,7 @@ bool IpAddrToString(in_addr addr, std::string& buf)
 
         buf.assign(_buf);
         delete[] _buf;
+        DELADD;
         return true;
     }
     catch(const std::exception& e)
@@ -39,6 +44,7 @@ bool IpAddrToString(in6_addr addr, std::string& buf)
     {
         int32_t _len = 50;
         char* _buf = new char[_len];
+        NEWADD;
         if ( ::inet_ntop((int)AF_FAMILY::INET6, (void*)&addr, _buf, _len) == nullptr)
         {
             buf.clear();
@@ -47,6 +53,7 @@ bool IpAddrToString(in6_addr addr, std::string& buf)
 
         buf.assign(_buf);
         delete[] _buf;
+        DELADD;
         return true;
     }
     catch(const std::exception& e)

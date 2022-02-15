@@ -9,8 +9,8 @@ namespace wlb
 class RingBuffer
 {
 public:
-    explicit RingBuffer() = default;
-    ~RingBuffer() = default;
+    explicit RingBuffer();
+    ~RingBuffer();
 
     // class life time
     bool Init(uint32_t maxBufferSize);

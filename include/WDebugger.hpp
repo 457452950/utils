@@ -50,6 +50,18 @@ extern Debugger* debugger;
     if (debugger != nullptr && debugger->IsActive()) \
         debugger->MemberRemove(name);
 
+#define NEWADD \
+    DEBUGADD("new")
+#define DELADD \
+    DEBUGADD("delete")\
+    DEBUGRM("new")
+
+#define NEWARRAYADD \
+    DEBUGADD("new[]")
+#define DELARRAYADD \
+    DEBUGADD("delete[]")\
+    DEBUGRM("new[]")
+
 }   // namespace wlb::debug
 
 

@@ -1,13 +1,35 @@
 #include "WBuffer.hpp"
 #include <iostream>
+#include "WDebugger.hpp"
 
 namespace wlb
 {
+
+using namespace debug;
+
+#define RINGBUFADD \
+DEBUGADD("RingBuffer")
+#define RINGBUFRM \
+DEBUGRM("RingBuffer")
+
+
+RingBuffer::RingBuffer()
+{
+    RINGBUFADD;
+}
+
+RingBuffer::~RingBuffer()
+{
+    this->Destroy();
+    RINGBUFRM;
+}
 
 bool RingBuffer::Init(uint32_t maxBufferSize)
 {
     this->_maxBufferSize = maxBufferSize;
     this->_buffer = new(std::nothrow) char[maxBufferSize];
+    NEWADD;
+    NEWARRAYADD;
 
     if ( this->_buffer == nullptr)
     {
@@ -26,6 +48,8 @@ void RingBuffer::Destroy()
 {
     if (this->_buffer != nullptr)
     {
+        DELADD;
+        DELARRAYADD;
         delete[] this->_buffer;
         this->_buffer = nullptr;
     }

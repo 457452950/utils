@@ -139,8 +139,6 @@ bool WSingleTcpServer::OnSessionClosed(WBaseSession::SessionId id)
     this->_sessionTemp.push_back(it->second);
     this->_sessionMap.erase(it);
     
-    
-
     return true;
 }
 bool WSingleTcpServer::OnSessionShutdown(WBaseSession::SessionId id)
@@ -188,8 +186,7 @@ bool WSingleTcpServer::OnConnected(base_socket_type socket, const WPeerInfo& pee
         exit(-2);
     }
     
-    if ( !session->Init(this->_handler, this->_sessionStyle.maxBufferSize, this->_sessionStyle.flag) 
-        || !session->SetSocket(socket, peerInfo))
+    if ( !session->SetSocket(socket, peerInfo) )
     {
         return false;
     }
@@ -260,6 +257,13 @@ bool WSingleTcpServer::UpdateSesssionTemp()
         {
             return false;
         }
+        
+        
+        if ( !session->Init(this->_handler, this->_sessionStyle.maxBufferSize, this->_sessionStyle.flag) )
+        {
+            return false;
+        }
+        
         
         this->_sessionTemp.push_front(session);
     }

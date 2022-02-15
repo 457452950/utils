@@ -25,9 +25,10 @@ public:
         virtual bool OnConnected(base_socket_type socket, const WPeerInfo& peerInfo) = 0;
     };
 public:
-    explicit WNetAccepter(Listener* listener) : _listener(listener) {};
+    explicit WNetAccepter(Listener* listener);
     WNetAccepter(const WNetAccepter& other) = delete;
     WNetAccepter& operator=(const WNetAccepter& other) = delete;
+    ~WNetAccepter();
 
     bool Init(WNetWorkHandler* handler, const std::string& IpAddress, uint16_t port);
     void Close();
@@ -161,10 +162,10 @@ class WFloatBufferSession : public WBaseSession, public WNetWorkHandler::Listene
     //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     //  |4|3|2|1|  ... message body  ...|    
 public:
-    explicit WFloatBufferSession(WBaseSession::Listener* listener):_listener(listener) {};
+    explicit WFloatBufferSession(WBaseSession::Listener* listener);
     WFloatBufferSession(const WFloatBufferSession& other) = delete;
     WFloatBufferSession& operator=(const WFloatBufferSession& other) = delete;
-    virtual ~WFloatBufferSession() = default;
+    virtual ~WFloatBufferSession();
 
     // class life time
     bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t headLen = 4) override;
@@ -221,10 +222,10 @@ private:
 class WFixedBufferSession : public WBaseSession, public WNetWorkHandler::Listener
 {
 public:
-    explicit WFixedBufferSession(WBaseSession::Listener* listener):_listener(listener) {};
+    explicit WFixedBufferSession(WBaseSession::Listener* listener);
     WFixedBufferSession(const WFixedBufferSession& other) = delete;
     WFixedBufferSession& operator=(const WFixedBufferSession& other) = delete;
-    virtual ~WFixedBufferSession() = default;
+    virtual ~WFixedBufferSession();
 
     // class life time
     bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t messageSize = 4) override;

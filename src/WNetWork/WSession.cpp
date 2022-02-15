@@ -1,5 +1,23 @@
 #include "WNetWork/WSession.hpp"
 #include <iostream>
+#include "../WDebugger.hpp"
+
+using namespace wlb::debug;
+
+#define ACCEPTERADD \
+DEBUGADD("WNetAccepter")
+#define ACCEPTERRM \
+DEBUGRM("WNetAccepter")
+
+#define FLOATSESSADD \
+DEBUGADD("WFloatBufferSession")
+#define FLOATSESSRM \
+DEBUGRM("WFloatBufferSession")
+
+#define FIXEDSESSADD \
+DEBUGADD("WFixedBufferSession")
+#define FIXEDSESSRM \
+DEBUGRM("WFixedBufferSession")
 
 namespace wlb::NetWork
 {
@@ -8,6 +26,18 @@ namespace wlb::NetWork
 // Created by wlb on 2021/9/17.
 // Accepter
 ////////////////////////////////////////////////////////
+
+
+WNetAccepter::WNetAccepter(Listener* listener) : _listener(listener) 
+{
+    ACCEPTERADD;
+}
+
+WNetAccepter::~WNetAccepter() 
+{
+    ACCEPTERRM;
+    this->Close();
+}
 
 bool WNetAccepter::Init(WNetWorkHandler* handler, const std::string& IpAddress, uint16_t port)
 {
@@ -204,6 +234,16 @@ void WNetAccepter::OnError(int error_code)
 // Created by wlb on 2021/9/17.
 // Seession
 ////////////////////////////////////////////////////////
+
+WFloatBufferSession::WFloatBufferSession(WBaseSession::Listener* listener):_listener(listener) 
+{
+    FLOATSESSADD;
+}
+WFloatBufferSession::~WFloatBufferSession()
+{
+    FLOATSESSRM;
+    this->Destroy();
+}
 
 bool WFloatBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t headLen)
 {
@@ -530,6 +570,16 @@ uint32_t GetLengthFromWlbHead(const char* wlbHead, uint32_t head_length)
 
 /////////////////////////////////
 // WFixedBufferSession
+
+
+WFixedBufferSession::WFixedBufferSession(WBaseSession::Listener* listener):_listener(listener) 
+{
+    FIXEDSESSADD;
+}
+WFixedBufferSession::~WFixedBufferSession()
+{
+    FIXEDSESSRM;
+}
 
 bool WFixedBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t messageSize)
 {
