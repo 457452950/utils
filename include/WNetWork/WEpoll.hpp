@@ -127,7 +127,7 @@ bool EpollRemoveSocket(epoll_type epoll, base_socket_type socket);
 
 // return 0 No Events
 // return -1 errno
-int32_t EpollGetEvents(epoll_type epoll, struct epoll_event * events, int32_t events_size);
+int32_t EpollGetEvents(epoll_type epoll, struct epoll_event * events, int32_t events_size, int32_t timeout = 0);
 
 void CloseEpoll(epoll_type epoll);
 
@@ -146,7 +146,7 @@ public:
     virtual bool ModifySocket(base_socket_type socket, uint32_t events);
     virtual void RemoveSocket(base_socket_type socket);
 
-    virtual int32_t GetEvents(epoll_event* events, int32_t events_size);
+    virtual int32_t GetEvents(epoll_event* events, int32_t events_size, int32_t timeout = 0);
 
 protected:
     epoll_type _epoll{-1};
@@ -161,10 +161,12 @@ public:
     explicit WEpoll() {};
     virtual ~WEpoll() = default;
 
-    bool Init(uint32_t events_size);
-    void Close();
-    void GetAndEmitEvents();
+    // WNetWorkHandler
+    bool Init(uint32_t events_size) override;
+    void Close() override;
+    void GetAndEmitEvents(int timeout = 0) override;
 
+    // WBaseEpoll
     bool AddSocket(WNetWorkHandler::Listener* listener, base_socket_type socket, uint32_t op) override;
     bool ModifySocket(base_socket_type socket, uint32_t op) override;
     void RemoveSocket(base_socket_type socket) override;
@@ -181,7 +183,7 @@ protected:
     const int32_t default_events_size{128};
 
 private:
-    int32_t GetEvents(epoll_event* events, int32_t events_size) { return 0; };
+    int32_t GetEvents(epoll_event* events, int32_t events_size, int32_t timeout = 0) override { return 0; };
 
 };
 
@@ -204,7 +206,9 @@ public:
     void Close() override;
     void Destroy() override;
 
-    void GetAndEmitTimer() override;
+    void GetAndEmitTimer(int32_t timeout = 0) override;
+
+    // override WBaseEpoll
     void AddTimer(Listener* listener, timerfd timer) override;
     void RemoveTimer(timerfd timer) override;
 

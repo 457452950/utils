@@ -39,8 +39,8 @@ public:
     WNetWorkHandler& operator=(const WNetWorkHandler&) = delete;
 
     virtual bool Init(uint32_t events_size) = 0;
-    virtual void Close()  = 0;
-    virtual void GetAndEmitEvents() = 0;
+    virtual void Close() = 0;
+    virtual void GetAndEmitEvents(int32_t timeout = 0) = 0;
 
     virtual bool AddSocket(Listener* listener, base_socket_type socket, uint32_t events) = 0;
     virtual bool ModifySocket(base_socket_type socket, uint32_t events) = 0;

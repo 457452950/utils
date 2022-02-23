@@ -23,7 +23,7 @@ public:
 
     virtual void AddTimer(Listener* listener, timerfd timer) = 0;
     virtual void RemoveTimer(timerfd timer) = 0;
-    virtual void GetAndEmitTimer() = 0;
+    virtual void GetAndEmitTimer(int32_t timeout = 0) = 0;
 };
 
 } // namespace wlb

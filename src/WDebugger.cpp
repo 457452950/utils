@@ -79,7 +79,7 @@ void Debugger::Loop()
 {
     while (this->_isActive)
     {
-        debuggerHandler->GetAndEmitTimer();
+        debuggerHandler->GetAndEmitTimer(-1);
     }
 }
 

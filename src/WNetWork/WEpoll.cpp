@@ -51,14 +51,14 @@ bool EpollRemoveSocket(epoll_type epoll, base_socket_type socket)
     return false;
 }
 
-int32_t EpollGetEvents(epoll_type epoll, struct epoll_event * events, int32_t events_size)
+int32_t EpollGetEvents(epoll_type epoll, struct epoll_event * events, int32_t events_size, int32_t timeout)
 {
     if (events_size <= 0)
     {
         return 0;
     }
     
-    return ::epoll_wait(epoll, events, events_size, 1);
+    return ::epoll_wait(epoll, events, events_size, timeout);
 }
 
 void CloseEpoll(epoll_type epoll)
@@ -118,9 +118,9 @@ void WBaseEpoll::RemoveSocket(base_socket_type socket)
     EpollRemoveSocket(this->_epoll, socket);
 }
 
-int32_t WBaseEpoll::GetEvents(epoll_event * events, int32_t events_size)
+int32_t WBaseEpoll::GetEvents(epoll_event * events, int32_t events_size, int32_t timeout)
 {
-    return EpollGetEvents(this->_epoll, events, events_size);
+    return EpollGetEvents(this->_epoll, events, events_size, timeout);
 }
 
 
@@ -148,7 +148,7 @@ bool WEpoll::Init(uint32_t events_size)
     return true;
 }
 
-void WEpoll::GetAndEmitEvents()
+void WEpoll::GetAndEmitEvents(int32_t timeout)
 {
     this->_events = new(std::nothrow) epoll_event[this->_events_size];
     NEWADD;
@@ -158,7 +158,7 @@ void WEpoll::GetAndEmitEvents()
         return;
     }
     
-    int32_t curr_events_size = WBaseEpoll::GetEvents(_events, this->_events_size);
+    int32_t curr_events_size = WBaseEpoll::GetEvents(_events, this->_events_size, timeout);
 
     if (curr_events_size == -1)
     {
@@ -328,7 +328,7 @@ void WTimerEpoll::Destroy()
     
 }
 
-void WTimerEpoll::GetAndEmitTimer()
+void WTimerEpoll::GetAndEmitTimer(int32_t timeout)
 {
     this->_events = new(std::nothrow) epoll_event[this->_events_size];
     NEWADD;
@@ -337,7 +337,7 @@ void WTimerEpoll::GetAndEmitTimer()
         return;
     }
     
-    int32_t curr_events_size = WBaseEpoll::GetEvents(_events, this->_events_size);
+    int32_t curr_events_size = WBaseEpoll::GetEvents(_events, this->_events_size, timeout);
 
     if (curr_events_size == -1)
     {

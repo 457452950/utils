@@ -201,7 +201,7 @@ void WSingleTcpServer::Loop()
 {
     while (_running)
     {
-        this->_handler->GetAndEmitEvents();
+        this->_handler->GetAndEmitEvents(-1);
         // std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }

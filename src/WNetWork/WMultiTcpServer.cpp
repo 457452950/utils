@@ -154,7 +154,7 @@ void WMultiTcpServer::Loop()
 {
     while (this->_isRunning)
     {
-        timeHandler->GetAndEmitTimer();
+        timeHandler->GetAndEmitTimer(-1);
     }
 }
 
