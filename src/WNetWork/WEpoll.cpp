@@ -207,6 +207,7 @@ void WEpoll::GetAndEmitEvents(int32_t timeout)
             else if (_events[index].events & EPOLLERR)
             {
                 listener->OnError(errno);
+                RemoveSocket(socket);
             }
             else if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
             {

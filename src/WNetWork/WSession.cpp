@@ -222,6 +222,7 @@ void WNetAccepter::OnRead()
 void WNetAccepter::OnError(int error_code)
 {
     
+    this->Close();
     return;
 }
 
@@ -392,14 +393,12 @@ void WFloatBufferSession::OnError(int error_no)
     if (this->_listener != nullptr)
     {
         bool ok = this->_listener->OnSessionError(this->_socket, error_no);
-        if (!ok)
-        {
-            ::shutdown(this->_socket, SHUT_WR);
-        }
+        
         
     }
     
     HandleError(error_no);
+    this->Close();
     return;
 }
 
@@ -725,14 +724,11 @@ void WFixedBufferSession::OnError(int error_no)
     if (this->_listener != nullptr)
     {
         bool ok = this->_listener->OnSessionError(this->_socket, error_no);
-        if (!ok)
-        {
-            ::shutdown(this->_socket, SHUT_WR);
-        }
         
     }
     
     HandleError(error_no);
+    this->Close();
     return;
 }
 
