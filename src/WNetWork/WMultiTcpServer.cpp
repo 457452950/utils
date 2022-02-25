@@ -150,6 +150,25 @@ bool WMultiTcpServer::OnSessionClosed(WBaseSession::SessionId id)
     return this->_listener->OnSessionClosed(id);
 }
 
+bool WMultiTcpServer::OnSessionShutdown(WBaseSession::SessionId id) 
+{
+    if (this->_listener == nullptr)
+    {
+        return false;
+    }
+    
+    return this->_listener->OnSessionShutdown(id);
+}
+bool WMultiTcpServer::OnSessionError(WBaseSession::SessionId id, int error_code) 
+{
+    if (this->_listener == nullptr)
+    {
+        return false;
+    }
+    
+    return this->_listener->OnSessionError(id, error_code);
+}
+
 void WMultiTcpServer::Loop()
 {
     while (this->_isRunning)

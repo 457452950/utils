@@ -390,14 +390,14 @@ void WFloatBufferSession::HandleError(int error_code)
 
 void WFloatBufferSession::OnError(int error_no)
 {
+    HandleError(error_no);
+
     if (this->_listener != nullptr)
     {
         bool ok = this->_listener->OnSessionError(this->_socket, error_no);
         
-        
     }
     
-    HandleError(error_no);
     this->Close();
     return;
 }
@@ -721,13 +721,14 @@ void WFixedBufferSession::HandleError(int error_code)
 
 void WFixedBufferSession::OnError(int error_no)
 {
+    HandleError(error_no);
+    
     if (this->_listener != nullptr)
     {
         bool ok = this->_listener->OnSessionError(this->_socket, error_no);
         
     }
     
-    HandleError(error_no);
     this->Close();
     return;
 }

@@ -118,6 +118,12 @@ bool WSingleTcpServer::OnSessionError(WBaseSession::SessionId id, int error_code
         return false;
     }
 
+    if (this->_listener != nullptr)
+    {
+        this->_listener->OnSessionError(id, error_code);
+    }
+    
+
     return true;
 }
 
@@ -148,6 +154,12 @@ bool WSingleTcpServer::OnSessionShutdown(WBaseSession::SessionId id)
     {
         return false;
     }
+
+    if (this->_listener != nullptr)
+    {
+        this->_listener->OnSessionShutdown(id);
+    }
+    
 
     return true;
 }
