@@ -29,10 +29,10 @@ add_library(
 target_link_libraries(wdebug wtimer)
 
 add_library(
-    wlib
+    wlb
     src/WBuffer.cpp
 )
-target_link_libraries(wlib logger wdebug)
+target_link_libraries(wlb logger wdebug)
 
 add_library(   
     wtimer 

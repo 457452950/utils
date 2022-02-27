@@ -1,9 +1,11 @@
 #include "WNetWork/WMultiTcpServer.hpp"
 #include <iostream>
+#include "Logger.h"
 
 namespace wlb::NetWork
 {
 
+using namespace wlb::Log;
 
 /////////////////////////////////
 // timer
@@ -179,14 +181,12 @@ void WMultiTcpServer::Loop()
 
 void WMultiTcpServer::OnTime(timerfd id)
 {
-    std::cout << "time out" << std::endl;
     if (this->_timer->GetId() == id)
     {
-        std::cout << "WMultiTcpServer::OnTime " << std::endl;
         int index = 0;
         for (auto it : this->_servers)
         {
-            std::cout << index++ << " " << it->GetActiveSessionCount() << " " << it->GetTempSessionCount() << std::endl;
+            LOG(L_INFO) << index++ << " " << it->GetActiveSessionCount() << " " << it->GetTempSessionCount();
         }
         
     }
