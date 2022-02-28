@@ -1,3 +1,4 @@
+#pragma once
 #include <cstring>
 #include <string>
 #include <mutex>
@@ -30,7 +31,14 @@ public:
     // 
 
 // Sync
+    // String
+    virtual void Get(const std::string& key, std::string& value) = 0;
 
+    // List
+
+    // Set
+
+    // 
 
 
 

@@ -151,7 +151,7 @@ int CRedisClient::AsyncCommand(const char* format)
 
 void* CRedisClient::Command(const char* format)
 {
-    LOG(L_INFO) << " cmd : " << format;
+    std::cout << " cmd : " << format << std::endl;
     return ::redisCommand(s_pRedisContext, format);
 }
 
@@ -175,15 +175,22 @@ void CRedisClient::Set(const char* key, const char* value, int time_out_s)
         std::string cmd("SETEX ");
         cmd = cmd + key + " " + _time + " " + value;
         int res = this->AsyncCommand(cmd.c_str());
-        LOG(L_INFO) << res;
         return;
     }
+}
 
-    // std::string cmd("SET ");
-    // cmd = cmd + key + " " + value;
-    // redisReply* reply = (redisReply*)this->Command(cmd.c_str());
-    // LOG(L_INFO) << reply->str;
-    // freeReplyObject(reply);
+void CRedisClient::Get(const std::string& key, std::string& value)
+{
+    value.clear();
+    
+    std::string cmd("GET ");
+    cmd = cmd + key;
+    redisReply* reply = (redisReply*)this->Command(cmd.c_str());
+    if (reply == nullptr || reply->len == 0) {
+        return;
+    }
+    value = std::string(reply->str);
+    freeReplyObject(reply);
 }
 
 }

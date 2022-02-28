@@ -22,7 +22,14 @@ public:
     // 
 
 // Sync
+    // String
+    virtual void Get(const std::string& key, std::string& value) override;
 
+    // List
+
+    // Set
+
+    // 
 
 
 
