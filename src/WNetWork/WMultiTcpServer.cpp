@@ -125,7 +125,7 @@ bool WMultiTcpServer::AddAccepter(const std::string & IpAddress, uint16_t port)
 }
 
 
-bool WMultiTcpServer::OnConnected(WBaseSession::SessionId id, const WPeerInfo& peerInfo)
+bool WMultiTcpServer::OnConnected(WBaseSession::SessionId id, const WEndPointInfo& peerInfo)
 {
     if (this->_listener == nullptr)
     {

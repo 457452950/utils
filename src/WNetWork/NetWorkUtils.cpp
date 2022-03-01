@@ -97,6 +97,139 @@ bool StringToIpAddress(const std::string& ip_str, in6_addr& addr)
     return false;
 }
 
+
+bool HtoNS(const uint16_t host_num, uint16_t& net_num)
+{
+    try
+    {
+        net_num = ::htons(host_num);
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << e.what() << '\n';
+    }
+    return false;
+}
+bool NtoHS(const uint16_t net_num, uint16_t& host_num)
+{
+    try
+    {
+        host_num = ::ntohs(net_num);
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << e.what() << '\n';
+    }
+    return false;
+}
+
+bool MakeSockAddr_in(const std::string& ip_address, uint16_t port, sockaddr_in& addr){
+    addr.sin_family = AF_INET;
+    uint16_t h_port = 0;
+    in_addr h_addr;
+
+    if (!HtoNS(port, h_port))
+    {
+        return false;
+    }
+    if (!StringToIpAddress(ip_address, h_addr))
+    {
+        return false;
+    }
+        
+    addr.sin_port = h_port;
+    addr.sin_addr = h_addr;
+    return true;
+}
+
+
+bool Bind(base_socket_type socket, const std::string& host, uint16_t port, bool isv4)
+{
+    if (isv4)
+    {    
+        sockaddr_in ei{0};
+        ei.sin_family   = AF_INET;
+
+        in_addr ipaddr{0};
+        if ( !StringToIpAddress(host, ipaddr))
+        {
+            return false;
+        }
+        
+        if (!wlb::NetWork::HtoNS(port, ei.sin_port))
+            return false;
+        
+        int32_t ok = ::bind(socket,
+                    (struct sockaddr*)&(ei),
+                    sizeof(ei));
+        if ( ok == -1 )
+        {
+            return false;
+        }
+        
+        return true;
+    }
+    return false;
+}
+
+bool Bind(base_socket_type socket, const WEndPointInfo& serverInfo)
+{
+    Bind(socket, serverInfo.ip_address, serverInfo.port, serverInfo.isv4);
+}
+
+base_socket_type Accept(base_socket_type socket, WEndPointInfo& info, bool isv4)
+{
+    if (isv4)
+    {
+        sockaddr_in client_info;
+        socklen_t len = sizeof(client_info);
+        base_socket_type clientsock = ::accept(
+                                        socket,
+                                        (struct sockaddr*)&client_info,
+                                        &len);
+        if (clientsock < 0)
+        {
+            return -1;
+        }
+
+        info = WEndPointInfo::FromNet(client_info);
+        
+        return clientsock;  
+    }
+    
+}
+
+base_socket_type AcceptV4(base_socket_type socket, WEndPointInfo& info) {
+    return Accept(socket, info, true);
+}
+
+bool ConnectToHost(base_socket_type socket, const std::string& host, uint16_t port, bool isv4)
+{
+    if (isv4)
+    {
+        sockaddr_in addr;
+        if (!MakeSockAddr_in(host, port, addr))
+        {
+            return false;
+        }
+        if (::connect(socket, (sockaddr*)&addr, sizeof(sockaddr_in)) == 0)
+        {
+            return true;
+        }
+    }
+    else
+    {
+        return false;
+    }
+    return false;
+}
+bool ConnectToHost(base_socket_type socket, const WEndPointInfo& info)
+{
+    return ConnectToHost(socket, info.ip_address, info.port, info.isv4);
+}
+
 bool SetSocketNoBlock(base_socket_type socket)
 {
     if ( ::fcntl(socket, F_SETFL, ::fcntl(socket, F_GETFL, 0) | O_NONBLOCK) == -1 )

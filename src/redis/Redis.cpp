@@ -39,6 +39,7 @@ void pushCallback(redisAsyncContext *c, void *r, void *privdata)
     if (reply == NULL) 
         return;
     LOG(L_ERROR) << "reply : " << reply->str << " , cmd : " << (char*)privdata;
+    std::cout << "reply : " << reply->str << " , cmd : " << (char*)privdata << std::endl;
 }
 
 std::mutex    CRedisClient::_mutex;
@@ -175,6 +176,7 @@ void CRedisClient::Set(const char* key, const char* value, int time_out_s)
         std::string cmd("SETEX ");
         cmd = cmd + key + " " + _time + " " + value;
         int res = this->AsyncCommand(cmd.c_str());
+        std::cout << "res" << res << std::endl;
         return;
     }
 }

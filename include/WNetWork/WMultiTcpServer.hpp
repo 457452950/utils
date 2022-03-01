@@ -36,7 +36,7 @@ public:
     {
     public:
         virtual ~Listener() {}
-        virtual bool OnConnected(WBaseSession::SessionId id, const WPeerInfo& peerInfo) = 0;
+        virtual bool OnConnected(WBaseSession::SessionId id, const WEndPointInfo& peerInfo) = 0;
         virtual bool OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message) = 0;
         virtual bool OnSessionClosed(WBaseSession::SessionId id) = 0;
         virtual bool OnSessionShutdown(WBaseSession::SessionId id) = 0;
@@ -65,7 +65,7 @@ private:
 
 protected:
     // overrides
-    virtual bool OnConnected(WBaseSession::SessionId id, const WPeerInfo& peerInfo) override;
+    virtual bool OnConnected(WBaseSession::SessionId id, const WEndPointInfo& peerInfo) override;
     virtual bool OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message) override;
     virtual bool OnSessionClosed(WBaseSession::SessionId id) override;
     virtual bool OnSessionShutdown(WBaseSession::SessionId id) override;

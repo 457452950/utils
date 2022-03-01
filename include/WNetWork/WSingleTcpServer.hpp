@@ -21,7 +21,7 @@ public:
     {
     public:
         virtual ~Listener() {}
-        virtual bool OnConnected(WBaseSession::SessionId id, const WPeerInfo& peerInfo) = 0;
+        virtual bool OnConnected(WBaseSession::SessionId id, const WEndPointInfo& peerInfo) = 0;
         virtual bool OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message) = 0;
         virtual bool OnSessionClosed(WBaseSession::SessionId id) = 0;
         virtual bool OnSessionShutdown(WBaseSession::SessionId id) = 0;
@@ -49,7 +49,7 @@ public:
 
 protected:
     // override listener methods
-    bool OnConnected(base_socket_type socket, const WPeerInfo& peerInfo) override;
+    bool OnConnected(base_socket_type socket, const WEndPointInfo& peerInfo) override;
 
     bool OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message) override;
     bool OnSessionClosed(WBaseSession::SessionId id) override;
@@ -62,7 +62,7 @@ private:
 
     bool UpdateSesssionTemp();
 
-    // bool CreateNewSession(base_socket_type socket, const WPeerInfo& peerInfo);
+    // bool CreateNewSession(base_socket_type socket, const WEndPointInfo& peerInfo);
     void RemoveSession(std::map<base_socket_type, WBaseSession *>::iterator it);
 
 private:

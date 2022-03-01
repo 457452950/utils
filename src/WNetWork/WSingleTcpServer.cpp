@@ -174,7 +174,7 @@ bool WSingleTcpServer::OnSessionMessage(WBaseSession::SessionId id, const std::s
 
     return true;
 }
-bool WSingleTcpServer::OnConnected(base_socket_type socket, const WPeerInfo& peerInfo)
+bool WSingleTcpServer::OnConnected(base_socket_type socket, const WEndPointInfo& peerInfo)
 {
     if (this->_listener != nullptr)
     {
@@ -198,7 +198,7 @@ bool WSingleTcpServer::OnConnected(base_socket_type socket, const WPeerInfo& pee
         exit(-2);
     }
     
-    if ( !session->SetSocket(socket, peerInfo) )
+    if ( !session->SetConnectedSocket(socket, peerInfo) )
     {
         return false;
     }
@@ -227,7 +227,7 @@ void WSingleTcpServer::RemoveSession(std::map<base_socket_type, WBaseSession *>:
     this->_sessionMap.erase(it);
 }
 
-// bool WSingleTcpServer::CreateNewSession(base_socket_type socket, const WPeerInfo& peerInfo)
+// bool WSingleTcpServer::CreateNewSession(base_socket_type socket, const WEndPointInfo& peerInfo)
 // {
 //     WBaseSession* session = new(std::nothrow) WFloatBufferSession(this);
 //     if (session == nullptr)

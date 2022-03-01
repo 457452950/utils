@@ -80,9 +80,8 @@ bool WNetAccepter::Init(WNetWorkHandler* handler, const std::string& IpAddress, 
 
     // ///////////////////////////////////////
     // Bind 
-    if ( !this->Bind() )
+    if ( !wlb::NetWork::Bind(this->_socket, this->_address, this->_port) )
     {
-        
         return false;
     }
     
@@ -108,88 +107,22 @@ bool WNetAccepter::Init(WNetWorkHandler* handler, const std::string& IpAddress, 
         return false;
     }
     
-    
     return true;
 }
 
-bool WNetAccepter::Bind()
-{
-    sockaddr_in ei{0};
-    ei.sin_family   = AF_INET;
-
-    in_addr ipaddr{0};
-    if ( !StringToIpAddress(this->_address, ipaddr))
-    {
-        
-        return false;
-    }
-    
-
-    try
-    {
-        ei.sin_port = ::htons(this->_port);
-        
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-        return false;
-    }
-    
-
-    int32_t ok = ::bind(this->_socket,
-                (struct sockaddr*)&(ei),
-                sizeof(ei));
-    if ( ok == -1 )
-    {
-        
-        close(this->_socket);
-        return false;
-    }
-    
-
-    return true;
-}
 
 bool WNetAccepter::Listen()
 {
     if ( ::listen(this->_socket, 1024) == -1) 
     {
-        
         return false;
     }
     return true;
 }
 
-base_socket_type WNetAccepter::Accept(WPeerInfo& info)
+base_socket_type WNetAccepter::Accept(WEndPointInfo& info)
 {
-    sockaddr_in client_info;
-    socklen_t len = sizeof(client_info);
-    base_socket_type clientsock = ::accept(
-                                    this->_socket,
-                                    (struct sockaddr*)&client_info,
-                                    &len);
-    if (clientsock <= 0)
-    {
-        return 0;
-    }
-
-    in_addr _add = client_info.sin_addr;
-    if ( !IpAddrToString(_add, info.peer_address))
-    {
-        // error parse ip address
-    }
-    try 
-    {
-        info.peer_port =::ntohs(client_info.sin_port);
-    }
-    catch (const std::exception& e)
-    {
-        
-    }
-    
-    
-    return clientsock;
+    return wlb::NetWork::Accept(this->_socket, info, true);
 }
 
 base_socket_type WNetAccepter::GetListenSocket()
@@ -207,7 +140,7 @@ void WNetAccepter::Close()
 
 void WNetAccepter::OnRead()
 {
-    WPeerInfo info;
+    WEndPointInfo info;
     base_socket_type cli_sock = this->Accept(info);
 
     if (this->_listener != nullptr)
@@ -215,13 +148,11 @@ void WNetAccepter::OnRead()
         this->_listener->OnConnected(cli_sock, info);
     }
     
-    
     return;
 }
 
 void WNetAccepter::OnError(int error_code)
 {
-    
     this->Close();
     return;
 }
@@ -277,7 +208,7 @@ bool WFloatBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize,
     return true;
 }
 
-bool WFloatBufferSession::SetSocket(base_socket_type socket, const WPeerInfo& peerInfo)
+bool WFloatBufferSession::SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo)
 {
     
     this->_socket = socket;
@@ -611,7 +542,7 @@ bool WFixedBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize,
     return true;
 }
 
-bool WFixedBufferSession::SetSocket(base_socket_type socket, const WPeerInfo& peerInfo)
+bool WFixedBufferSession::SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo)
 {
     
     this->_socket = socket;

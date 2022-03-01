@@ -22,7 +22,7 @@ public:
     {
     public:
         virtual ~Listener() {};
-        virtual bool OnConnected(base_socket_type socket, const WPeerInfo& peerInfo) = 0;
+        virtual bool OnConnected(base_socket_type socket, const WEndPointInfo& peerInfo) = 0;
     };
 public:
     explicit WNetAccepter(Listener* listener);
@@ -35,7 +35,7 @@ public:
     base_socket_type GetListenSocket();
     
 protected:
-    base_socket_type Accept(WPeerInfo& info);
+    base_socket_type Accept(WEndPointInfo& info);
 
 protected:
     void OnError(int error_code) override;
@@ -49,7 +49,6 @@ protected:
 
 
 private:
-    bool Bind();
     bool Listen();
 
 private:
@@ -90,7 +89,7 @@ public:
 
     // class life control
     virtual bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t flags = 0) = 0;
-    virtual bool SetSocket(base_socket_type socket,const WPeerInfo& peerInfo) = 0;
+    virtual bool SetConnectedSocket(base_socket_type socket,const WEndPointInfo& peerInfo) = 0;
     virtual void Clear() = 0;
     virtual void Destroy() = 0;
 
@@ -169,7 +168,7 @@ public:
 
     // class life time
     bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t headLen = 4) override;
-    bool SetSocket(base_socket_type socket, const WPeerInfo& peerInfo) override;
+    bool SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo) override;
     void Clear() override;
     void Destroy() override;
 
@@ -184,8 +183,8 @@ public:
     inline bool isConnected() override { return this->_isConnected; };
     inline const std::string& getErrorMessage() override { return this->_errorMessage; };
 
-    const std::string& getPeerIpAddress() override { return this->_peerInfo.peer_address; };
-    const uint16_t getPeerPort() override { return this->_peerInfo.peer_port; };
+    const std::string& getPeerIpAddress() override { return this->_peerInfo.ip_address; };
+    const uint16_t getPeerPort() override { return this->_peerInfo.port; };
 
 protected:
     // return false if need to close
@@ -212,7 +211,7 @@ private:
     std::string _errorMessage;
 
     // peer information
-    WPeerInfo _peerInfo;
+    WEndPointInfo _peerInfo;
 
     // from out side
     WNetWorkHandler* _handler{nullptr};
@@ -229,7 +228,7 @@ public:
 
     // class life time
     bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t messageSize = 4) override;
-    bool SetSocket(base_socket_type socket, const WPeerInfo& peerInfo) override;
+    bool SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo) override;
     void Clear() override;
     void Destroy() override;
 
@@ -244,8 +243,8 @@ public:
     inline bool isConnected() override { return this->_isConnected; };
     inline const std::string& getErrorMessage() override { return this->_errorMessage; };
 
-    const std::string& getPeerIpAddress() override { return this->_peerInfo.peer_address; };
-    const uint16_t getPeerPort() override { return this->_peerInfo.peer_port; };
+    const std::string& getPeerIpAddress() override { return this->_peerInfo.ip_address; };
+    const uint16_t getPeerPort() override { return this->_peerInfo.port; };
 
 protected:
     // return false if need to close
@@ -272,7 +271,7 @@ private:
     std::string _errorMessage;
 
     // peer information
-    WPeerInfo _peerInfo;
+    WEndPointInfo _peerInfo;
 
     // from out side
     WNetWorkHandler* _handler{nullptr};
