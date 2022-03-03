@@ -236,18 +236,16 @@ bool WFloatBufferSession::SetConnectedSocket(base_socket_type socket, const WEnd
 
 void WFloatBufferSession::Close()
 {
-    // close
-    this->_isConnected = false;
-    ::close(this->_socket);
-    this->_socket = -1;
-
     // clear
     this->Clear();
 }
 
 void WFloatBufferSession::Clear()
 {
+    this->_handler->RemoveSocket(this->_socket);
     this->_isConnected = false;
+    ::close(this->_socket);
+    this->_socket = -1;
     _recvBuffer.Clear();
     _sendBuffer.Clear();
 }
@@ -572,18 +570,17 @@ bool WFixedBufferSession::SetConnectedSocket(base_socket_type socket, const WEnd
 
 void WFixedBufferSession::Close()
 {
-    // close
-    this->_isConnected = false;
-    ::close(this->_socket);
-    this->_socket = -1;
-
     // clear
     this->Clear();
 }
 
 void WFixedBufferSession::Clear()
 {
+    this->_handler->RemoveSocket(this->_socket);
     this->_isConnected = false;
+    ::close(this->_socket);
+    this->_socket = -1;
+
     _recvBuffer.Clear();
     _sendBuffer.Clear();
 }

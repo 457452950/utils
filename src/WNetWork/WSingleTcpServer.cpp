@@ -220,7 +220,6 @@ void WSingleTcpServer::Loop()
 
 void WSingleTcpServer::RemoveSession(std::map<base_socket_type, WBaseSession *>::iterator it)
 {
-    this->_handler->RemoveSocket(it->first);
     it->second->Close();
     it->second->Destroy();
     delete it->second;
