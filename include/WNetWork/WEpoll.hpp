@@ -118,6 +118,8 @@ bool EpollAddSocket(epoll_type epoll, base_socket_type socket, uint32_t events);
 bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t events);
 bool EpollRemoveSocket(epoll_type epoll, base_socket_type socket);
 
+bool EpollAddSocket(epoll_type epoll, base_socket_type socket, uint32_t events, epoll_data_t data);
+bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t events, epoll_data_t data);
 // 
 // struct epoll_event
 // {
@@ -146,6 +148,9 @@ public:
     virtual bool ModifySocket(base_socket_type socket, uint32_t events);
     virtual void RemoveSocket(base_socket_type socket);
 
+    virtual bool AddSocket(base_socket_type socket, uint32_t events, epoll_data_t data);
+    virtual bool ModifySocket(base_socket_type socket, uint32_t events, epoll_data_t data);
+
     virtual int32_t GetEvents(epoll_event* events, int32_t events_size, int32_t timeout = 0);
 
 protected:
@@ -154,9 +159,12 @@ protected:
 };
 
 
-
 class WEpoll : public WBaseEpoll, public WNetWorkHandler
 {
+    struct WEpollData{
+        WNetWorkHandler::Listener* listener;
+        base_socket_type socket;
+    };
 public: 
     explicit WEpoll() {};
     virtual ~WEpoll() = default;
@@ -168,14 +176,13 @@ public:
 
     // WBaseEpoll
     bool AddSocket(WNetWorkHandler::Listener* listener, base_socket_type socket, uint32_t op) override;
-    bool ModifySocket(base_socket_type socket, uint32_t op) override;
+    bool ModifySocket(WNetWorkHandler::Listener* listener, base_socket_type socket, uint32_t op) override;
     void RemoveSocket(base_socket_type socket) override;
 
 private:
     uint32_t GetEpollEventsFromOP(uint32_t op);
 
 protected:
-    std::map<base_socket_type, WNetWorkHandler::Listener*> _listeners;
 
     epoll_event * _events{nullptr};     // epoll_wait 获取事件数组
     int32_t _events_size{0};

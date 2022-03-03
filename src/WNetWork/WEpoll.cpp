@@ -21,7 +21,6 @@ bool EpollAddSocket(epoll_type epoll, base_socket_type socket, uint32_t events)
     event.events = events;
 
     if ( ::epoll_ctl(epoll, EPOLL_CTL_ADD, socket, &event) == 0 ){
-        
         return true;
     }
     
@@ -35,7 +34,31 @@ bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t event
     event.events = events;
 
     if ( ::epoll_ctl(epoll, EPOLL_CTL_MOD, socket, &event) == 0 ){
-        
+        return true;
+    }
+    
+    return false;
+}
+
+bool EpollAddSocket(epoll_type epoll, base_socket_type socket, uint32_t events, epoll_data_t data)
+{
+    struct epoll_event event;
+    event.data = data;
+    event.events = events;
+
+    if ( ::epoll_ctl(epoll, EPOLL_CTL_ADD, socket, &event) == 0 ){
+        return true;
+    }
+    
+    return false;
+}
+bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t events, epoll_data_t data)
+{
+    struct epoll_event event;
+    event.data = data;
+    event.events = events;
+
+    if ( ::epoll_ctl(epoll, EPOLL_CTL_MOD, socket, &event) == 0 ){
         return true;
     }
     
@@ -95,26 +118,73 @@ bool WBaseEpoll::AddSocket(base_socket_type socket, uint32_t events)
 {
     if (this->_epoll == -1)
     {
-        
         return false;
     }
     
     if (socket == -1)
     {
-        /* code */
+        return false;
     }
-    
     
     return EpollAddSocket(this->_epoll, socket, events);
 }
 
 bool WBaseEpoll::ModifySocket(base_socket_type socket, uint32_t events)
 {
+    if (this->_epoll == -1)
+    {
+        return false;
+    }
+    
+    if (socket == -1)
+    {
+        return false;
+    }
+    
     return EpollModifySocket(this->_epoll, socket, events);
+}
+bool WBaseEpoll::AddSocket(base_socket_type socket, uint32_t events, epoll_data_t data)
+{
+    if (this->_epoll == -1)
+    {
+        return false;
+    }
+    
+    if (socket == -1)
+    {
+        return false;
+    }
+    
+    return EpollAddSocket(this->_epoll, socket, events, data);
+}
+
+bool WBaseEpoll::ModifySocket(base_socket_type socket, uint32_t events, epoll_data_t data)
+{
+    if (this->_epoll == -1)
+    {
+        return false;
+    }
+    
+    if (socket == -1)
+    {
+        return false;
+    }
+    
+    return EpollModifySocket(this->_epoll, socket, events, data);
 }
 
 void WBaseEpoll::RemoveSocket(base_socket_type socket)
 {
+    if (this->_epoll == -1)
+    {
+        return;
+    }
+    
+    if (socket == -1)
+    {
+        return;
+    }
+    
     EpollRemoveSocket(this->_epoll, socket);
 }
 
@@ -130,21 +200,15 @@ int32_t WBaseEpoll::GetEvents(epoll_event * events, int32_t events_size, int32_t
 
 bool WEpoll::Init(uint32_t events_size)
 {
-    this->_listeners.clear();
-
-    if ( ! WBaseEpoll::Init() )
+    if ( !WBaseEpoll::Init() )
     {
-        
         return false;
     }
-    
 
     events_size < default_events_size ? 
             this->_events_size = default_events_size : 
             this->_events_size = events_size;
-
     
-
     return true;
 }
 
@@ -166,17 +230,11 @@ void WEpoll::GetAndEmitEvents(int32_t timeout)
     }
     else
     {
-        Listener* listener;
         for (int32_t index = 0; index < curr_events_size; ++index)
         {
-            base_socket_type socket = _events[index].data.fd;
-            auto it = this->_listeners.find(socket);
-            if (it == this->_listeners.end())
-            {
-                continue;
-            }
-            listener = it->second;
-
+            WEpollData* data = (WEpollData*)_events[index].data.ptr;
+            WNetWorkHandler::Listener* listener = data->listener;
+            base_socket_type sock = data->socket;
             
             if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
             {
@@ -202,12 +260,12 @@ void WEpoll::GetAndEmitEvents(int32_t timeout)
             if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
             {
                 listener->OnClosed();
-                RemoveSocket(socket);
+                RemoveSocket(sock);
             }
             else if (_events[index].events & EPOLLERR)
             {
                 listener->OnError(errno);
-                RemoveSocket(socket);
+                RemoveSocket(sock);
             }
             else if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
             {
@@ -244,7 +302,6 @@ void WEpoll::Close()
         DELADD;
         this->_events = nullptr;
     }
-    this->_listeners.clear();
     WBaseEpoll::Close();
 }
 
@@ -252,24 +309,36 @@ bool WEpoll::AddSocket(WNetWorkHandler::Listener* listener,
                         base_socket_type socket, 
                         uint32_t op)
 {
-    this->_listeners.insert(std::make_pair(socket, listener));
+    epoll_data_t data;
+    data.ptr = new(std::nothrow) WEpollData({listener, socket});
+    if (data.ptr == nullptr)
+    {
+        return false;
+    }
+    
 
     uint32_t _event = 0;
     _event = GetEpollEventsFromOP(op);
-    return WBaseEpoll::AddSocket(socket, _event);
+    return WBaseEpoll::AddSocket(socket, _event, data);
 }
 
-bool WEpoll::ModifySocket(base_socket_type socket, uint32_t op)
+bool WEpoll::ModifySocket(WNetWorkHandler::Listener* listener, base_socket_type socket, uint32_t op)
 {
+    epoll_data_t data;
+    data.ptr = new(std::nothrow) WEpollData({listener, socket});
+    if (data.ptr == nullptr)
+    {
+        return false;
+    }
+
     uint32_t _event = 0;
     _event = GetEpollEventsFromOP(op);
-    return WBaseEpoll::ModifySocket(socket, _event);
+    return WBaseEpoll::ModifySocket(socket, _event, data);
 }
 
 void WEpoll::RemoveSocket(base_socket_type socket)
 {
     WBaseEpoll::RemoveSocket(socket);
-    this->_listeners.erase(socket);
 }
 
 uint32_t WEpoll::GetEpollEventsFromOP(uint32_t op)

@@ -11,7 +11,7 @@ template<typename T>
 class WList
 {
 public:
-    struct WListNode {
+    class WListNode {
         friend class WList;
     public:
         WListNode() {}
@@ -32,12 +32,12 @@ public:
         WList* _parent{nullptr};
     };
 private:
-    struct WListHead : public WListNode
+    class WListHead : public WListNode
     {
     private:
         WListHead* last{nullptr};
     };
-    struct WListTail : public WListNode
+    class WListTail : public WListNode
     {
     private:
         WListHead* next{nullptr};
@@ -92,7 +92,6 @@ bool WList<T>::Init()
 template <typename T>
 void WList<T>::clear()
 {
-    std::cout << "clear" << std::endl;
     this->DestroyAllNodes();
     this->_count = 0;
 }

@@ -283,7 +283,7 @@ bool WFloatBufferSession::Send(const std::string& message)
 
     // 添加进 send events
     this->_op |= WNetWorkHandler::OP_OUT;
-    if ( !_handler->ModifySocket(this->_socket, this->_op) )
+    if ( !_handler->ModifySocket(this, this->_socket, this->_op) )
     {
         return false;
     }
@@ -411,7 +411,7 @@ void WFloatBufferSession::OnWrite()
     if (_sendBuffer.Empty())
     {
         this->_op -= WNetWorkHandler::OP_OUT;
-        this->_handler->ModifySocket(this->_socket, this->_op);
+        this->_handler->ModifySocket(this, this->_socket, this->_op);
     }
 
     return;
@@ -614,7 +614,7 @@ bool WFixedBufferSession::Send(const std::string& message)
 
     // 添加进 send events
     this->_op |= WNetWorkHandler::OP_OUT;
-    if ( !_handler->ModifySocket(this->_socket, this->_op) )
+    if ( !_handler->ModifySocket(this, this->_socket, this->_op) )
     {
         return false;
     }
@@ -728,7 +728,7 @@ void WFixedBufferSession::OnWrite()
     if (_sendBuffer.Empty())
     {
         this->_op -= WNetWorkHandler::OP_OUT;
-        this->_handler->ModifySocket(this->_socket, this->_op);
+        this->_handler->ModifySocket(this, this->_socket, this->_op);
     }
 
     return;

@@ -42,16 +42,11 @@ public:
     virtual void Close() = 0;
     virtual void GetAndEmitEvents(int32_t timeout = 0) = 0;
 
-    virtual bool AddSocket(Listener* listener, base_socket_type socket, uint32_t events) = 0;
-    virtual bool ModifySocket(base_socket_type socket, uint32_t events) = 0;
+    virtual bool AddSocket(Listener* listener, base_socket_type socket, uint32_t op_event) = 0;
+    virtual bool ModifySocket(WNetWorkHandler::Listener* listener, base_socket_type socket, uint32_t op_event) = 0;
     virtual void RemoveSocket(base_socket_type socket) = 0;
 
 };
-
-
-
-
-
 
 
 

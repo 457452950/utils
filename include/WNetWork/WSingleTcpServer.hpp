@@ -60,7 +60,7 @@ protected:
 private:
     void Loop();
 
-    bool UpdateSesssionTemp();
+    bool UpdateSessionTemp();
 
     // bool CreateNewSession(base_socket_type socket, const WEndPointInfo& peerInfo);
     void RemoveSession(std::map<base_socket_type, WBaseSession *>::iterator it);

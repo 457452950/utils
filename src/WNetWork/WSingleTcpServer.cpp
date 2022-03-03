@@ -19,7 +19,7 @@ bool WSingleTcpServer::Init(const WSessionStyle& style)
         return false;
     }
 
-    if (!this->UpdateSesssionTemp())
+    if (!this->UpdateSessionTemp())
     {
         return false;
     }
@@ -185,7 +185,7 @@ bool WSingleTcpServer::OnConnected(base_socket_type socket, const WEndPointInfo&
         }
     }
     
-    if (this->_sessionTemp.empty() && !this->UpdateSesssionTemp())
+    if (this->_sessionTemp.empty() && !this->UpdateSessionTemp())
     {
         // cant new session
         exit(-1);
@@ -251,7 +251,7 @@ void WSingleTcpServer::RemoveSession(std::map<base_socket_type, WBaseSession *>:
 //     return true;
 // }
 
-bool WSingleTcpServer::UpdateSesssionTemp()
+bool WSingleTcpServer::UpdateSessionTemp()
 {
     for (size_t index = 0; index < this->sessionsIncrease; ++index)
     {
