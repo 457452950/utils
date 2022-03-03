@@ -70,7 +70,23 @@ private:
 // Seession
 ////////////////////////////////////////////////////////
 
-class WBaseSession 
+// 会话层抽象逻辑
+class WSession
+{
+public:
+    virtual bool Send(const std::string& message) = 0;
+    virtual void Close() = 0;   // close the connection 
+
+    virtual bool isConnected() = 0;
+    virtual const std::string& getErrorMessage() = 0;
+
+    virtual const std::string& getPeerIpAddress() = 0;
+    virtual const uint16_t getPeerPort() = 0;
+
+};
+
+// 网络层抽象逻辑
+class WBaseSession : public WSession
 {
 public:
     using SessionId = base_socket_type;
@@ -96,7 +112,7 @@ public:
     // session methods
     virtual bool Send(const std::string& message) = 0;
     virtual bool Receive() = 0;
-    virtual void Close() = 0;   // close socket and clear
+    virtual void Close() = 0;   // close the connection not socket
     virtual void HandleError(int erroe_code) = 0;
 
     // get session state
@@ -169,15 +185,15 @@ public:
     // class life time
     bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t headLen = 4) override;
     bool SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo) override;
-    void Clear() override;
+    void Clear() override;      // 重置类
     void Destroy() override;
 
     // class methods
     bool Send(const std::string& message) override;
     bool Receive() override;
-    // close and clear
-    void Close() override; 
-    void HandleError(int error_code) override;
+    // close
+    void Close() override;  // 关闭连接 close the connection not socket
+    void HandleError(int error_code) override;  // 错误处理
 
     // get session state
     inline bool isConnected() override { return this->_isConnected; };
@@ -227,7 +243,7 @@ public:
     virtual ~WFixedBufferSession();
 
     // class life time
-    bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t messageSize = 4) override;
+    bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t messageSize = 0) override;
     bool SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo) override;
     void Clear() override;
     void Destroy() override;
@@ -235,8 +251,8 @@ public:
     // class methods
     bool Send(const std::string& message) override;
     bool Receive() override;
-    // close and clear
-    void Close() override; 
+    // close 
+    void Close() override;  // close the connection not socket
     void HandleError(int error_code) override;
 
     // get session state

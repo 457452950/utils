@@ -155,7 +155,7 @@ public:
 
 protected:
     epoll_type _epoll{-1};
-
+    
 };
 
 
@@ -183,7 +183,6 @@ private:
     uint32_t GetEpollEventsFromOP(uint32_t op);
 
 protected:
-
     epoll_event * _events{nullptr};     // epoll_wait 获取事件数组
     int32_t _events_size{0};
 
@@ -191,7 +190,6 @@ protected:
 
 private:
     int32_t GetEvents(epoll_event* events, int32_t events_size, int32_t timeout = 0) override { return 0; };
-
 };
 
 
