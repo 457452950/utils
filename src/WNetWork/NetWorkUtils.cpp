@@ -13,6 +13,11 @@ using namespace wlb::debug;
 
 #elif OS_IS_LINUX
 
+base_socket_type MakeTcpv4Socket()
+{
+    return ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+}
+
 bool IpAddrToString(in_addr addr, std::string& buf)
 {
     try

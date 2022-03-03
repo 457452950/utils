@@ -44,6 +44,8 @@ struct WEndPointInfo;
 
 // in_addr  in6_addr
 
+base_socket_type MakeTcpv4Socket();
+
 bool IpAddrToString(in_addr addr, std::string& buf);
 bool IpAddrToString(in6_addr addr, std::string& buf);
 
@@ -55,7 +57,7 @@ bool NtoHS(const uint16_t net_num, uint16_t& host_num);
 
 
 bool MakeSockAddr_in(const std::string& ip_address, uint16_t port, sockaddr_in& addr);
-
+// bool MakeSockAddr_in6(const std::string& ip_address, uint16_t port, sockaddr_in6& addr);
 
 // server methods
 bool Bind(base_socket_type socket, const std::string& host, uint16_t port, bool isv4 = true);

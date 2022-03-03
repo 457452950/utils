@@ -43,10 +43,9 @@ bool WNetAccepter::Init(WNetWorkHandler* handler, const std::string& IpAddress, 
 {
     /////////////////////////////////
     // Initialize socket
-    this->_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);        // tcp v4
+    this->_socket = MakeTcpv4Socket();       // tcp v4
     if (this->_socket == -1)
     {
-        
         return false;
     }
     
