@@ -398,6 +398,8 @@ void WFloatBufferSession::OnWrite()
     uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
     ssize_t send_len = ::send(this->_socket, send_message.c_str(), msg_len, 0);
     
+    std::cout << "sned len :" << send_len << std::endl;
+
     this->_sendBuffer.UpdateReadOffset(send_len);
 
     if (send_len < 0)

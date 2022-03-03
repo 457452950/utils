@@ -31,7 +31,6 @@ target_link_libraries(wdebug wtimer)
 add_library(
     wlb
     src/WBuffer.cpp
-    src/WList.cpp
 )
 target_link_libraries(wlb logger wdebug)
 
