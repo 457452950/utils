@@ -55,14 +55,20 @@ public:
     inline WListNode* back() { return this->tail->last; }
 
     inline uint32_t size() { return this->_count; }
+    inline bool empty() { return this->_count == 0; }
 
     void push_back(WListNode* node);
     void push_front(WListNode* node);
+
+    void strong_push_back(WListNode* node);
+    void strong_push_front(WListNode* node);
 
     void pop_back();
     void pop_front();
 
     void erase(WListNode* node);
+
+    bool has_node(WListNode* node);
 
 private:
     void DestroyAllNodes();
@@ -147,6 +153,26 @@ void WList<T>::push_front(WListNode *node)
 }
 
 template <typename T>
+void WList<T>::strong_push_back(WListNode* node)
+{
+    if (node->_parent != nullptr)
+    {
+        node->_parent->erase(node);
+    }
+    this->push_back(node);
+}
+
+template <typename T>
+void WList<T>::strong_push_front(WListNode* node)
+{
+    if (node->_parent != nullptr)
+    {
+        node->_parent->erase(node);
+    }
+    this->push_front(node);
+}
+
+template <typename T>
 void WList<T>::pop_back()
 {
     if (this->_count == 0)
@@ -183,6 +209,12 @@ void WList<T>::erase(WListNode *node)
     node->last = nullptr;
 
     this->_count--;
+}
+
+template <typename T>
+bool WList<T>::has_node(WListNode* node)
+{
+    return node->_parent == this;
 }
 
 template <typename T>

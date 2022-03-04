@@ -7,8 +7,8 @@ namespace wlb::NetWork
 
 bool WSingleTcpServer::Init(const WSessionStyle& style)
 {
-    this->_sessionTemp.clear(); 
-    this->_sessionMap.clear();
+    this->_sessionTemp.Init(); 
+    this->_sessionList.Init();
     this->_accepterMap.clear();
 
     this->_sessionStyle = style;
@@ -32,10 +32,8 @@ void WSingleTcpServer::Close()
 {
     this->_running = false;
 
-    for (auto it : this->_sessionMap)
-    {
-        it.second->Close();
-    }
+    this->_sessionTemp.clear();
+    this->_sessionList.clear();
 
     this->_handler->Close();
 }
@@ -48,18 +46,8 @@ void WSingleTcpServer::Destroy()
         this->_workThread = nullptr;
     }
 
-    while (!this->_sessionTemp.empty())
-    {
-        auto it = this->_sessionTemp.front();
-        this->_sessionTemp.pop_front();
-        delete it;
-    }
-    for (auto it : this->_sessionMap)
-    {
-        it.second->Destroy();
-        delete it.second;
-    }
-    this->_sessionMap.clear();
+    this->_sessionTemp.clear();
+    this->_sessionList.clear();
 
     for (auto it : this->_accepterMap)
     {
@@ -110,64 +98,67 @@ bool WSingleTcpServer::AddAccepter(const std::string& IpAddress, uint16_t port)
     return true;
 }
 
-bool WSingleTcpServer::OnSessionError(WBaseSession::SessionId id, int error_code)
+bool WSingleTcpServer::OnSessionError(Node* node)
 {
-    auto it = this->_sessionMap.find(id);
-    if  (it == this->_sessionMap.end())
+    if  (!this->_sessionList.has_node(node))
     {
+        this->_sessionTemp.strong_push_back(node);
         return false;
     }
 
     if (this->_listener != nullptr)
     {
-        this->_listener->OnSessionError(id, error_code);
+        this->_listener->OnSessionError(node->val);
     }
     
+    // 回收内存池
+    this->_sessionList.erase(node);
+    this->_sessionTemp.push_back(node);
 
     return true;
 }
 
-bool WSingleTcpServer::OnSessionClosed(WBaseSession::SessionId id)
+bool WSingleTcpServer::OnSessionClosed(Node* node)
 {
-    auto it = this->_sessionMap.find(id);
-    if  (it == this->_sessionMap.end())
+    if (!this->_sessionList.has_node(node))
     {
-        // cant find the session
-        return true;
+        this->_sessionTemp.strong_push_back(node);
+        return false;
     }
-
+    
     if (this->_listener != nullptr)
     {
-        this->_listener->OnSessionClosed(id);
+        this->_listener->OnSessionClosed(node->val);
     }
 
     // 回收内存池
-    this->_sessionTemp.push_back(it->second);
-    this->_sessionMap.erase(it);
+    this->_sessionList.erase(node);
+    this->_sessionTemp.push_back(node);
     
     return true;
 }
-bool WSingleTcpServer::OnSessionShutdown(WBaseSession::SessionId id)
+bool WSingleTcpServer::OnSessionShutdown(Node* node)
 {
-    auto it = this->_sessionMap.find(id);
-    if  (it == this->_sessionMap.end())
+    if (!this->_sessionList.has_node(node))
     {
+        this->_sessionTemp.strong_push_back(node);
         return false;
     }
+    
 
     if (this->_listener != nullptr)
     {
-        this->_listener->OnSessionShutdown(id);
+        this->_listener->OnSessionShutdown(node->val);
     }
     
 
     return true;
 }
-bool WSingleTcpServer::OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message)
+bool WSingleTcpServer::OnSessionMessage(Node* node, const std::string& recieve_message)
 {
     
 
-    if ( !this->_listener->OnSessionMessage(id, recieve_message, send_message))
+    if ( !this->_listener->OnSessionMessage(node->val, recieve_message))
     {
         return false;
     }
@@ -176,25 +167,19 @@ bool WSingleTcpServer::OnSessionMessage(WBaseSession::SessionId id, const std::s
 }
 bool WSingleTcpServer::OnConnected(base_socket_type socket, const WEndPointInfo& peerInfo)
 {
-    if (this->_listener != nullptr)
-    {
-        if ( !this->_listener->OnConnected(socket, peerInfo))
-        {
-            // 拒绝服务
-            return false;
-        }
-    }
-    
     if (this->_sessionTemp.empty() && !this->UpdateSessionTemp())
     {
         // cant new session
+        std::cout << "cant new session" << std::endl;
         exit(-1);
         return true;
     }
     
-    WBaseSession* session = this->_sessionTemp.front();
+    auto node = this->_sessionTemp.front();
+    WBaseSession* session = node->val;
     if (session->isConnected())
     {
+        std::cout << "session is connected" << std::endl;
         exit(-2);
     }
     
@@ -203,9 +188,12 @@ bool WSingleTcpServer::OnConnected(base_socket_type socket, const WEndPointInfo&
         return false;
     }
     
+    if (this->_listener->OnConnected(session, peerInfo))
+    {
+        this->_sessionTemp.pop_front();
+        this->_sessionList.push_back(node);
+    }
 
-    this->_sessionMap.insert(std::make_pair(socket, session));
-    this->_sessionTemp.pop_front();
     return true;
 }
 
@@ -218,12 +206,9 @@ void WSingleTcpServer::Loop()
     }
 }
 
-void WSingleTcpServer::RemoveSession(std::map<base_socket_type, WBaseSession *>::iterator it)
+void WSingleTcpServer::RemoveSession(Node* node)
 {
-    it->second->Close();
-    it->second->Destroy();
-    delete it->second;
-    this->_sessionMap.erase(it);
+
 }
 
 // bool WSingleTcpServer::CreateNewSession(base_socket_type socket, const WEndPointInfo& peerInfo)
@@ -255,20 +240,21 @@ bool WSingleTcpServer::UpdateSessionTemp()
     for (size_t index = 0; index < this->sessionsIncrease; ++index)
     {
         WBaseSession* session = nullptr;
+        Node* node = new(std::nothrow) Node;
         if (this->_sessionStyle.type == WSessionType::WFloatSessions)
         {
-            session = new(std::nothrow) WFloatBufferSession(this);
+            session = new(std::nothrow) WFloatBufferSession(this, node);
         }
         else
         {
-            session = new(std::nothrow) WFixedBufferSession(this);
+            session = new(std::nothrow) WFixedBufferSession(this, node);
         }
         
-        if (session == nullptr)
+        if (node == nullptr || session == nullptr)
         {
             return false;
         }
-        
+        node->val = session;
         
         if ( !session->Init(this->_handler, this->_sessionStyle.maxBufferSize, this->_sessionStyle.flag) )
         {
@@ -276,7 +262,7 @@ bool WSingleTcpServer::UpdateSessionTemp()
         }
         
         
-        this->_sessionTemp.push_front(session);
+        this->_sessionTemp.push_front(node);
     }
     return true;
 }

@@ -1,10 +1,12 @@
 #include <vector>
+#include <set>
 #include <map>
-#include <list>
+// #include <list>
 #include <thread>
 #include "../WOS.h"
 #include "WSession.hpp"
 #include "WService.hpp"
+#include "WList.hpp"
 
 
 #if OS_IS_LINUX
@@ -17,15 +19,16 @@ class WSingleTcpServer :
                         public WBaseSession::Listener
 {
 public:
+
     class Listener 
     {
     public:
         virtual ~Listener() {}
-        virtual bool OnConnected(WBaseSession::SessionId id, const WEndPointInfo& peerInfo) = 0;
-        virtual bool OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message) = 0;
-        virtual bool OnSessionClosed(WBaseSession::SessionId id) = 0;
-        virtual bool OnSessionShutdown(WBaseSession::SessionId id) = 0;
-        virtual bool OnSessionError(WBaseSession::SessionId id, int error_code) = 0;
+        virtual bool OnConnected(WSession* session, const WEndPointInfo& peerInfo) = 0;
+        virtual bool OnSessionMessage(WSession* session, const std::string& recieve_message) = 0;
+        virtual bool OnSessionClosed(WSession* session) = 0;
+        virtual bool OnSessionShutdown(WSession* session) = 0;
+        virtual bool OnSessionError(WSession* session) = 0;
     };
 public:
     explicit WSingleTcpServer(Listener* listener) : _listener(listener){};
@@ -44,17 +47,17 @@ public:
     // class methods
     bool AddAccepter(const std::string & IpAddress, uint16_t port);
 
-    const uint16_t GetActiveSessionCount() { return this->_sessionMap.size(); };
+    const uint16_t GetActiveSessionCount() { return this->_sessionList.size(); };
     const uint16_t GetTempSessionCount() { return this->_sessionTemp.size(); };
 
 protected:
     // override listener methods
     bool OnConnected(base_socket_type socket, const WEndPointInfo& peerInfo) override;
 
-    bool OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message) override;
-    bool OnSessionClosed(WBaseSession::SessionId id) override;
-    bool OnSessionShutdown(WBaseSession::SessionId id) override;
-    bool OnSessionError(WBaseSession::SessionId id, int error_code) override;
+    bool OnSessionMessage(Node* node, const std::string& recieve_message) override;
+    bool OnSessionClosed(Node* node) override;
+    bool OnSessionShutdown(Node* node) override;
+    bool OnSessionError(Node* node) override;
 
 
 private:
@@ -63,7 +66,7 @@ private:
     bool UpdateSessionTemp();
 
     // bool CreateNewSession(base_socket_type socket, const WEndPointInfo& peerInfo);
-    void RemoveSession(std::map<base_socket_type, WBaseSession *>::iterator it);
+    void RemoveSession(Node* node);
 
 private:
     std::thread* _workThread{nullptr};
@@ -72,8 +75,8 @@ private:
     WNetWorkHandler* _handler;
     std::map<base_socket_type, WNetAccepter*> _accepterMap;
     // 内存池设计
-    std::map<WBaseSession::SessionId, WBaseSession*> _sessionMap;
-    std::list<WBaseSession*> _sessionTemp;
+    List _sessionList;
+    List _sessionTemp;
     const int sessionsIncrease = 50;    // 内存池增长
 
     // session style

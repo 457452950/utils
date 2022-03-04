@@ -143,7 +143,7 @@ public:
 
     virtual bool Init();
     virtual void Close();
-    virtual const std::string& GetErrorMessage() {
+    virtual const std::string GetErrorMessage() {
         std::string _t = this->_errorMessage;
         this->_errorMessage.clear();
         return _t;
@@ -178,6 +178,11 @@ public:
     bool Init(uint32_t events_size) override;
     void Close() override;
     void GetAndEmitEvents(int timeout = 0) override;
+    const std::string GetErrorMessage() override {
+        std::string _t = this->_errorMessage;
+        this->_errorMessage.clear();
+        return _t;
+    };
 
     // WBaseEpoll
     bool AddSocket(WNetWorkHandler::Listener* listener, base_socket_type socket, uint32_t op) override;

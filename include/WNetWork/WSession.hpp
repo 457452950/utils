@@ -5,6 +5,7 @@
 #include "WNetWorkHandler.hpp"
 #include "WService.hpp"
 #include "WDebugger.hpp"
+#include "WList.hpp"
 
 namespace wlb::NetWork
 {
@@ -87,22 +88,26 @@ public:
 
 };
 
+class WBaseSession;
+
+using List = wlb::WList<WBaseSession*>;
+using Node = List::WListNode;
+
 // 网络层抽象逻辑
 class WBaseSession : public WSession
 {
 public:
-    using SessionId = base_socket_type;
-
     class Listener
     {
     public:
         virtual ~Listener() {};
-        virtual bool OnSessionMessage(SessionId id, const std::string& recieve_message, std::string& send_message) = 0;
-        virtual bool OnSessionClosed(SessionId id) = 0;
-        virtual bool OnSessionShutdown(SessionId id) = 0;
-        virtual bool OnSessionError(SessionId id, int error_code) = 0;
+        virtual bool OnSessionMessage(Node* node, const std::string& recieve_message) = 0;
+        virtual bool OnSessionClosed(Node* node) = 0;
+        virtual bool OnSessionShutdown(Node* node) = 0;
+        virtual bool OnSessionError(Node* node) = 0;
     };
 public:
+    WBaseSession(Node* node) :_node(node) {};
     virtual ~WBaseSession() {};
 
     // class life control
@@ -130,6 +135,7 @@ public:
 //     WBaseSession& operator=(const WBaseSession& other) = delete;
 protected:
     std::string _errorMessage;
+    Node* _node;
 };
 
 
@@ -182,7 +188,7 @@ class WFloatBufferSession : public WBaseSession, public WNetWorkHandler::Listene
     //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     //  |4|3|2|1|  ... message body  ...|    
 public:
-    explicit WFloatBufferSession(WBaseSession::Listener* listener);
+    explicit WFloatBufferSession(WBaseSession::Listener* listener, Node* node);
     WFloatBufferSession(const WFloatBufferSession& other) = delete;
     WFloatBufferSession& operator=(const WFloatBufferSession& other) = delete;
     virtual ~WFloatBufferSession();
@@ -237,14 +243,12 @@ private:
     // from out side
     WNetWorkHandler* _handler{nullptr};
     WBaseSession::Listener* _listener;
-
-    WTimeDebugger* _tD{nullptr};
 };
 
 class WFixedBufferSession : public WBaseSession, public WNetWorkHandler::Listener
 {
 public:
-    explicit WFixedBufferSession(WBaseSession::Listener* listener);
+    explicit WFixedBufferSession(WBaseSession::Listener* listener, Node* node);
     WFixedBufferSession(const WFixedBufferSession& other) = delete;
     WFixedBufferSession& operator=(const WFixedBufferSession& other) = delete;
     virtual ~WFixedBufferSession();
@@ -299,8 +303,6 @@ private:
     // from out side
     WNetWorkHandler* _handler{nullptr};
     WBaseSession::Listener* _listener;
-
-    WTimeDebugger* _tD{nullptr};
 };
 
 

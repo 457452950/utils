@@ -125,50 +125,50 @@ bool WMultiTcpServer::AddAccepter(const std::string & IpAddress, uint16_t port)
 }
 
 
-bool WMultiTcpServer::OnConnected(WBaseSession::SessionId id, const WEndPointInfo& peerInfo)
+bool WMultiTcpServer::OnConnected(WSession* session, const WEndPointInfo& peerInfo)
 {
     if (this->_listener == nullptr)
     {
         return false;
     }
-    return this->_listener->OnConnected(id, peerInfo);
+    return this->_listener->OnConnected(session, peerInfo);
 }
-bool WMultiTcpServer::OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message)
+bool WMultiTcpServer::OnSessionMessage(WSession* session, const std::string& recieve_message)
 {
     if (this->_listener == nullptr)
     {
         return false;
     }
 
-    return this->_listener->OnSessionMessage(id, recieve_message, send_message);
+    return this->_listener->OnSessionMessage(session, recieve_message);
 }
-bool WMultiTcpServer::OnSessionClosed(WBaseSession::SessionId id)
+bool WMultiTcpServer::OnSessionClosed(WSession* session)
 {
     if (this->_listener == nullptr)
     {
         return false;
     }
     
-    return this->_listener->OnSessionClosed(id);
+    return this->_listener->OnSessionClosed(session);
 }
 
-bool WMultiTcpServer::OnSessionShutdown(WBaseSession::SessionId id) 
+bool WMultiTcpServer::OnSessionShutdown(WSession* session) 
 {
     if (this->_listener == nullptr)
     {
         return false;
     }
     
-    return this->_listener->OnSessionShutdown(id);
+    return this->_listener->OnSessionShutdown(session);
 }
-bool WMultiTcpServer::OnSessionError(WBaseSession::SessionId id, int error_code) 
+bool WMultiTcpServer::OnSessionError(WSession* session) 
 {
     if (this->_listener == nullptr)
     {
         return false;
     }
     
-    return this->_listener->OnSessionError(id, error_code);
+    return this->_listener->OnSessionError(session);
 }
 
 void WMultiTcpServer::Loop()

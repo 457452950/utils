@@ -264,7 +264,7 @@ void WEpoll::GetAndEmitEvents(int32_t timeout)
     }
     
     int32_t curr_events_size = WBaseEpoll::GetEvents(_events, this->_events_size, timeout);
-
+    
     if (curr_events_size == -1)
     {
         this->_errorMessage = strerror(errno);

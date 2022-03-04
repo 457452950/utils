@@ -14,7 +14,6 @@ public:
     {
     public:
         virtual ~Listener() {};
-        
     public:
         virtual void OnError(int error_code) = 0;
         virtual void OnClosed() = 0;
@@ -46,6 +45,7 @@ public:
     virtual bool ModifySocket(WNetWorkHandler::Listener* listener, base_socket_type socket, uint32_t op_event) = 0;
     virtual void RemoveSocket(base_socket_type socket) = 0;
 
+    virtual const std::string GetErrorMessage() = 0;
 };
 
 
