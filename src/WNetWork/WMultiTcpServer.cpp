@@ -49,7 +49,7 @@ bool WMultiTcpServer::Init(uint16_t threads, const WSessionStyle& style)
         return false;
     }
     
-    this->_timer->Start(1000, 1000);
+    // this->_timer->Start(1000, 1000);
 
     return true;
 }
@@ -148,6 +148,25 @@ bool WMultiTcpServer::OnSessionClosed(WBaseSession::SessionId id)
     }
     
     return this->_listener->OnSessionClosed(id);
+}
+
+bool WMultiTcpServer::OnSessionShutdown(WBaseSession::SessionId id) 
+{
+    if (this->_listener == nullptr)
+    {
+        return false;
+    }
+    
+    return this->_listener->OnSessionShutdown(id);
+}
+bool WMultiTcpServer::OnSessionError(WBaseSession::SessionId id, int error_code) 
+{
+    if (this->_listener == nullptr)
+    {
+        return false;
+    }
+    
+    return this->_listener->OnSessionError(id, error_code);
 }
 
 void WMultiTcpServer::Loop()

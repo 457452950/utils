@@ -376,6 +376,7 @@ bool WFloatBufferSession::Receive()
     }
     
     this->_recvBuffer.UpdateWriteOffset(recv_len);
+    std::cout << "recv_len: " << recv_len << std::endl;
 
     return true;
 }
@@ -433,6 +434,7 @@ void WFloatBufferSession::OnRead()
         if (len != this->_headLen)
         {
             // no enough message
+            std::cout << "no enough head " << len << std::endl;
             return;
         }
         
@@ -443,11 +445,13 @@ void WFloatBufferSession::OnRead()
             ::shutdown(this->_socket, SHUT_RDWR);
             return;
         }
+        std::cout << "get message " << len << std::endl;
 
         len = this->_recvBuffer.GetFrontMessage(receive_message, len);
         if (len == 0)
         {
             // no enough message
+            std::cout << "no enough message " << len << std::endl;
             break;
         }
 

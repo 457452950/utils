@@ -24,8 +24,8 @@ public:
         virtual bool OnConnected(WBaseSession::SessionId id, const WPeerInfo& peerInfo) = 0;
         virtual bool OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message) = 0;
         virtual bool OnSessionClosed(WBaseSession::SessionId id) = 0;
-        // virtual bool OnSessionShutdown(WBaseSession::SessionId id) = 0;
-        // virtual bool OnSessionError(WBaseSession::SessionId id, int error_code) = 0;
+        virtual bool OnSessionShutdown(WBaseSession::SessionId id) = 0;
+        virtual bool OnSessionError(WBaseSession::SessionId id, int error_code) = 0;
     };
 public:
     explicit WSingleTcpServer(Listener* listener) : _listener(listener){};

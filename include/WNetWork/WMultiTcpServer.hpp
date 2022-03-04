@@ -39,8 +39,8 @@ public:
         virtual bool OnConnected(WBaseSession::SessionId id, const WPeerInfo& peerInfo) = 0;
         virtual bool OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message) = 0;
         virtual bool OnSessionClosed(WBaseSession::SessionId id) = 0;
-        // virtual bool OnSessionShutdown(WBaseSession::SessionId id) = 0;
-        // virtual bool OnSessionError(WBaseSession::SessionId id, int error_code) = 0;
+        virtual bool OnSessionShutdown(WBaseSession::SessionId id) = 0;
+        virtual bool OnSessionError(WBaseSession::SessionId id, int error_code) = 0;
     };
 public:
     explicit WMultiTcpServer(Listener* listener) : _listener(listener) {};
@@ -68,8 +68,8 @@ protected:
     virtual bool OnConnected(WBaseSession::SessionId id, const WPeerInfo& peerInfo) override;
     virtual bool OnSessionMessage(WBaseSession::SessionId id, const std::string& recieve_message, std::string& send_message) override;
     virtual bool OnSessionClosed(WBaseSession::SessionId id) override;
-    // virtual bool OnSessionShutdown(WBaseSession::SessionId id) override;
-    // virtual bool OnSessionError(WBaseSession::SessionId id, int error_code) override;
+    virtual bool OnSessionShutdown(WBaseSession::SessionId id) override;
+    virtual bool OnSessionError(WBaseSession::SessionId id, int error_code) override;
     
     // timer override
     virtual void OnTime(timerfd id) override;
