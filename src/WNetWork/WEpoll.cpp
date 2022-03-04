@@ -264,7 +264,7 @@ void WEpoll::GetAndEmitEvents(int32_t timeout)
     }
     
     int32_t curr_events_size = WBaseEpoll::GetEvents(_events, this->_events_size, timeout);
-    
+
     if (curr_events_size == -1)
     {
         this->_errorMessage = strerror(errno);
@@ -274,7 +274,7 @@ void WEpoll::GetAndEmitEvents(int32_t timeout)
     {
         for (int32_t index = 0; index < curr_events_size; ++index)
         {
-            WEpollData* data = (WEpollData*)_events[index].data.ptr;
+            WHandlerData* data = (WHandlerData*)_events[index].data.ptr;
             WNetWorkHandler::Listener* listener = data->listener;
             base_socket_type sock = data->socket;
             
@@ -347,37 +347,24 @@ void WEpoll::Close()
     WBaseEpoll::Close();
 }
 
-bool WEpoll::AddSocket(WNetWorkHandler::Listener* listener, 
-                        base_socket_type socket, 
-                        uint32_t op)
+bool WEpoll::AddSocket(WHandlerData* data, uint32_t op)
 {
-    epoll_data_t data;
-    data.ptr = new(std::nothrow) WEpollData({listener, socket});
-    if (data.ptr == nullptr)
-    {
-        this->_errorMessage = "new epoll_event faile ";
-        return false;
-    }
-    
+    epoll_data_t _data;
+    _data.ptr = data;
 
     uint32_t _event = 0;
     _event = GetEpollEventsFromOP(op);
-    return WBaseEpoll::AddSocket(socket, _event, data);
+    return WBaseEpoll::AddSocket(data->socket, _event, _data);
 }
 
-bool WEpoll::ModifySocket(WNetWorkHandler::Listener* listener, base_socket_type socket, uint32_t op)
+bool WEpoll::ModifySocket(WHandlerData* data, uint32_t op)
 {
-    epoll_data_t data;
-    data.ptr = new(std::nothrow) WEpollData({listener, socket});
-    if (data.ptr == nullptr)
-    {
-        this->_errorMessage = "new epoll_event faile ";
-        return false;
-    }
+    epoll_data_t _data;
+    _data.ptr = data;
 
     uint32_t _event = 0;
     _event = GetEpollEventsFromOP(op);
-    return WBaseEpoll::ModifySocket(socket, _event, data);
+    return WBaseEpoll::ModifySocket(data->socket, _event, _data);
 }
 
 void WEpoll::RemoveSocket(base_socket_type socket)

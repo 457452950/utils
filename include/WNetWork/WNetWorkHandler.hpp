@@ -7,6 +7,8 @@
 namespace wlb::NetWork
 {
 
+struct WHandlerData;
+
 class WNetWorkHandler
 {
 public:
@@ -41,8 +43,8 @@ public:
     virtual void Close() = 0;
     virtual void GetAndEmitEvents(int32_t timeout = 0) = 0;
 
-    virtual bool AddSocket(Listener* listener, base_socket_type socket, uint32_t op_event) = 0;
-    virtual bool ModifySocket(WNetWorkHandler::Listener* listener, base_socket_type socket, uint32_t op_event) = 0;
+    virtual bool AddSocket(WHandlerData* data, uint32_t op_event) = 0;
+    virtual bool ModifySocket(WHandlerData* data, uint32_t op_event) = 0;
     virtual void RemoveSocket(base_socket_type socket) = 0;
 
     virtual const std::string GetErrorMessage() = 0;
@@ -50,6 +52,13 @@ public:
 
 
 
+struct WHandlerData
+{
+    WNetWorkHandler::Listener *listener;
+    base_socket_type& socket;
+    WHandlerData(base_socket_type& socket, WNetWorkHandler::Listener *listener)
+        : socket(socket), listener(listener) {}
+};
 
 
 }

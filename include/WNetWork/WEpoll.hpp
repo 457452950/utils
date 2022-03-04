@@ -166,10 +166,6 @@ protected:
 
 class WEpoll : public WBaseEpoll, public WNetWorkHandler
 {
-    struct WEpollData{
-        WNetWorkHandler::Listener* listener;
-        base_socket_type socket;
-    };
 public: 
     explicit WEpoll() {};
     virtual ~WEpoll() = default;
@@ -185,8 +181,8 @@ public:
     };
 
     // WBaseEpoll
-    bool AddSocket(WNetWorkHandler::Listener* listener, base_socket_type socket, uint32_t op) override;
-    bool ModifySocket(WNetWorkHandler::Listener* listener, base_socket_type socket, uint32_t op) override;
+    bool AddSocket(WHandlerData* data, uint32_t op) override;
+    bool ModifySocket(WHandlerData* data, uint32_t op) override;
     void RemoveSocket(base_socket_type socket) override;
 
 private:

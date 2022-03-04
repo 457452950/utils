@@ -60,8 +60,10 @@ private:
     std::string _address;
     uint16_t _port;
 
-    WNetWorkHandler* _handler;
-    Listener* _listener;
+    WNetWorkHandler* _handler{nullptr};
+    Listener* _listener{nullptr};
+
+    WHandlerData* _handlerData{nullptr};
 };
 
 
@@ -242,7 +244,9 @@ private:
 
     // from out side
     WNetWorkHandler* _handler{nullptr};
-    WBaseSession::Listener* _listener;
+    WBaseSession::Listener* _listener{nullptr};
+
+    WHandlerData* _handlerData{nullptr};
 };
 
 class WFixedBufferSession : public WBaseSession, public WNetWorkHandler::Listener
@@ -302,7 +306,9 @@ private:
 
     // from out side
     WNetWorkHandler* _handler{nullptr};
-    WBaseSession::Listener* _listener;
+    WBaseSession::Listener* _listener{nullptr};
+
+    WHandlerData* _handlerData{nullptr};
 };
 
 

@@ -93,6 +93,11 @@ bool WNetAccepter::Init(WNetWorkHandler* handler, const std::string& IpAddress, 
         return false;
     }
     
+    this->_handlerData = new(std::nothrow) WHandlerData(this->_socket, this);
+    if (this->_handlerData == nullptr)
+    {
+        return false;
+    }
     
     // //////////////////////////////
     // add socket in handler
@@ -100,11 +105,12 @@ bool WNetAccepter::Init(WNetWorkHandler* handler, const std::string& IpAddress, 
     op |= WNetWorkHandler::OP_IN;
     op |= WNetWorkHandler::OP_ERR;
     
-    if ( !this->_handler->AddSocket(this, this->_socket, op) )
+    if ( !this->_handler->AddSocket(this->_handlerData, op) )
     {
         
         return false;
     }
+    
     
     return true;
 }
@@ -135,6 +141,11 @@ void WNetAccepter::Close()
     ::close(this->_socket);
     this->_handler = nullptr;
     this->_listener = nullptr;
+
+    if (this->_handlerData != nullptr)
+    {
+        delete this->_handlerData;
+    }
 }
 
 void WNetAccepter::OnRead()
@@ -206,6 +217,12 @@ bool WFloatBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize,
     this->_op |= WNetWorkHandler::OP_SHUT;
     this->_op |= WNetWorkHandler::OP_CLOS;
 
+    this->_handlerData = new(std::nothrow) WHandlerData(this->_socket, this);
+    if (this->_handlerData == nullptr)
+    {
+        return false;
+    }
+
     return true;
 }
 
@@ -223,7 +240,7 @@ bool WFloatBufferSession::SetConnectedSocket(base_socket_type socket, const WEnd
     {
         this->_errorMessage = strerror(errno);
     }
-    if ( !_handler->AddSocket(this, this->_socket, this->_op))
+    if ( !_handler->AddSocket(this->_handlerData, this->_op))
     {
         this->_errorMessage = this->_handler->GetErrorMessage();
         return false;
@@ -259,6 +276,11 @@ void WFloatBufferSession::Destroy()
     _recvBuffer.Destroy();
     _sendBuffer.Destroy();
     this->_listener = nullptr;
+    if (this->_handlerData != nullptr)
+    {
+        delete this->_handlerData;
+    }
+    
 }
 
 bool WFloatBufferSession::Send(const std::string& message)
@@ -286,7 +308,7 @@ bool WFloatBufferSession::Send(const std::string& message)
 
     // 添加进 send events
     this->_op |= WNetWorkHandler::OP_OUT;
-    if ( !_handler->ModifySocket(this, this->_socket, this->_op) )
+    if ( !_handler->ModifySocket(this->_handlerData, this->_op) )
     {
         this->_errorMessage = this->_handler->GetErrorMessage();
         return false;
@@ -411,7 +433,7 @@ void WFloatBufferSession::OnWrite()
     if (_sendBuffer.Empty())
     {
         this->_op -= WNetWorkHandler::OP_OUT;
-        this->_handler->ModifySocket(this, this->_socket, this->_op);
+        this->_handler->ModifySocket(this->_handlerData, this->_op);
     }
 
     return;
@@ -542,6 +564,14 @@ bool WFixedBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize,
     this->_op |= WNetWorkHandler::OP_SHUT;
     this->_op |= WNetWorkHandler::OP_CLOS;
 
+
+    this->_handlerData = new(std::nothrow) WHandlerData(this->_socket, this);
+    if (this->_handlerData == nullptr)
+    {
+        return false;
+    }
+    
+
     return true;
 }
 
@@ -559,7 +589,7 @@ bool WFixedBufferSession::SetConnectedSocket(base_socket_type socket, const WEnd
     {
         // error set noblock failed
     }
-    if ( !_handler->AddSocket(this, this->_socket, this->_op))
+    if ( !_handler->AddSocket(this->_handlerData, this->_op))
     {
         return false;
     }
@@ -592,6 +622,10 @@ void WFixedBufferSession::Destroy()
     _recvBuffer.Destroy();
     _sendBuffer.Destroy();
     this->_listener = nullptr;
+    if (this->_handlerData != nullptr)
+    {
+        delete this->_handlerData;
+    }
 }
 
 bool WFixedBufferSession::Send(const std::string& message)
@@ -613,7 +647,7 @@ bool WFixedBufferSession::Send(const std::string& message)
 
     // 添加进 send events
     this->_op |= WNetWorkHandler::OP_OUT;
-    if ( !_handler->ModifySocket(this, this->_socket, this->_op) )
+    if ( !_handler->ModifySocket(this->_handlerData, this->_op) )
     {
         return false;
     }
@@ -723,7 +757,7 @@ void WFixedBufferSession::OnWrite()
     if (_sendBuffer.Empty())
     {
         this->_op -= WNetWorkHandler::OP_OUT;
-        this->_handler->ModifySocket(this, this->_socket, this->_op);
+        this->_handler->ModifySocket(this->_handlerData, this->_op);
     }
 
     return;
