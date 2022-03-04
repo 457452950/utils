@@ -2,10 +2,20 @@
 
 #include <new>
 #include <stdint.h>
+#include "WDebugger.hpp"
+
 
 namespace wlb
 {
+using namespace debug;
+#define WLISTHEADADD\
+    DEBUGADD("WListHead")
+#define WLISTTAILADD\
+    DEBUGADD("WListTail")
+#define WLISTNODEADD\
+    DEBUGADD("WListNode")
 
+    
 // not thread safe
 template<typename T>
 class WList
@@ -14,7 +24,7 @@ public:
     class WListNode {
         friend class WList;
     public:
-        WListNode() {}
+        WListNode() {WLISTNODEADD;}
         WListNode(T value) : val(value) {};
         ~WListNode() {Destroy();};
         T val;
@@ -84,7 +94,11 @@ template <typename T>
 bool WList<T>::Init()
 {
     this->head = new (std::nothrow) WListHead();
+    NEWADD;
+    WLISTHEADADD;
     this->tail = new (std::nothrow) WListTail();
+    NEWADD;
+    WLISTTAILADD;
     if (this->head == nullptr || this->tail == nullptr)
     {
         return false;
