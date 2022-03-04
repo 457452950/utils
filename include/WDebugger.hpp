@@ -3,6 +3,7 @@
 #include <atomic>
 #include <unordered_map>
 #include <thread>
+#include <iostream>
 #include "WOS.h"
 #include "WTimer.hpp"
 #include "WNetWork/WEpoll.hpp"
@@ -61,6 +62,31 @@ extern Debugger* debugger;
 #define DELARRAYADD \
     DEBUGADD("delete[]")\
     DEBUGRM("new[]")
+
+
+class WTimeDebugger
+{
+public:
+    WTimeDebugger(){ this->_stamp = this->GetTime(); }
+
+    void tick() { 
+        int64_t now = this->GetTime();
+        std::cout << now - this->_stamp << std::endl;
+        this->_stamp = now;
+    }
+
+private:
+    int64_t GetTime(){
+        std::chrono::microseconds ms = std::chrono::duration_cast< std::chrono::microseconds >(
+            std::chrono::system_clock::now().time_since_epoch());
+        return ms.count();
+    };
+
+private:
+    int64_t _stamp;
+};
+
+extern WTimeDebugger timedebug;
 
 }   // namespace wlb::debug
 

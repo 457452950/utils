@@ -4,10 +4,12 @@
 #include "../WBuffer.hpp"
 #include "WNetWorkHandler.hpp"
 #include "WService.hpp"
+#include "WDebugger.hpp"
 
 namespace wlb::NetWork
 {
 
+using namespace wlb::debug;
 
 
 /////////////////////////////////////////////////////////
@@ -117,6 +119,7 @@ public:
 
     // get session state
     virtual bool isConnected() = 0;
+    // virtual int GetErrorCode() = 0;
     virtual const std::string& getErrorMessage() = 0;
 
     virtual const std::string& getPeerIpAddress() = 0;
@@ -125,6 +128,8 @@ public:
 // protected:  // unablecopy
 //     WBaseSession(const WBaseSession& other) = delete;
 //     WBaseSession& operator=(const WBaseSession& other) = delete;
+protected:
+    std::string _errorMessage;
 };
 
 
@@ -232,6 +237,8 @@ private:
     // from out side
     WNetWorkHandler* _handler{nullptr};
     WBaseSession::Listener* _listener;
+
+    WTimeDebugger* _tD{nullptr};
 };
 
 class WFixedBufferSession : public WBaseSession, public WNetWorkHandler::Listener
@@ -292,6 +299,8 @@ private:
     // from out side
     WNetWorkHandler* _handler{nullptr};
     WBaseSession::Listener* _listener;
+
+    WTimeDebugger* _tD{nullptr};
 };
 
 

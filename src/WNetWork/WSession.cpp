@@ -183,6 +183,7 @@ bool WFloatBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize,
 
     if ( !_recvBuffer.Init(maxBufferSize) )
     {
+        this->_errorMessage = this->_recvBuffer.GetErrorMessage();
         return false;
     }
     if ( !_sendBuffer.Init(maxBufferSize) )
@@ -209,7 +210,6 @@ bool WFloatBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize,
 
 bool WFloatBufferSession::SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo)
 {
-    
     this->_socket = socket;
 
     if (    !SetTcpSocketNoDelay(this->_socket) || 
@@ -329,7 +329,7 @@ void WFloatBufferSession::OnError(int error_no)
 }
 
 void WFloatBufferSession::OnClosed()
-{
+{   
     if (this->_listener != nullptr)
     {
         this->_listener->OnSessionClosed(this->_socket);
@@ -541,6 +541,7 @@ bool WFixedBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize,
 
 bool WFixedBufferSession::SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo)
 {
+    this->_tD = new WTimeDebugger();
     
     this->_socket = socket;
 
@@ -591,6 +592,9 @@ void WFixedBufferSession::Destroy()
 
 bool WFixedBufferSession::Send(const std::string& message)
 {
+    std::cout << "Send:";
+    this->_tD->tick();
+
     uint32_t msgSize = message.size();
     uint32_t insert_len = 0;
 
@@ -618,6 +622,9 @@ bool WFixedBufferSession::Send(const std::string& message)
 
 bool WFixedBufferSession::Receive()
 {
+    std::cout << "Receive:";
+    this->_tD->tick();
+
     int32_t recv_len = ::recv(this->_socket, 
                                 this->_recvBuffer.GetRestBuffer(), 
                                 this->_recvBuffer.GetTopRestBufferSize(),
@@ -661,6 +668,8 @@ void WFixedBufferSession::OnError(int error_no)
 
 void WFixedBufferSession::OnClosed()
 {
+    std::cout << "OnClosed:";
+    this->_tD->tick();
     if (this->_listener != nullptr)
     {
         this->_listener->OnSessionClosed(this->_socket);
@@ -671,6 +680,8 @@ void WFixedBufferSession::OnClosed()
 
 void WFixedBufferSession::OnRead()
 {
+    std::cout << "OnRead:";
+    this->_tD->tick();
     if (!this->Receive())
     {
         ::shutdown(this->_socket, SHUT_RD);
@@ -707,6 +718,8 @@ void WFixedBufferSession::OnRead()
 
 void WFixedBufferSession::OnWrite()
 {
+    std::cout << "OnWrite:";
+    this->_tD->tick();
     std::string send_message;
     uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
     ssize_t send_len = ::send(this->_socket, send_message.c_str(), msg_len, 0);

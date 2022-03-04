@@ -33,6 +33,11 @@ public:
     const uint32_t GetFrontMessage(std::string& message, uint32_t len);
     const uint32_t GetAllMessage(std::string& message);
     
+    const std::string GetErrorMessage() {
+        std::string _t = this->_errorMessage;
+        this->_errorMessage.clear();
+        return _t;
+    };
 
 protected:
     char* _buffer{nullptr};
@@ -43,6 +48,9 @@ protected:
 
     bool _isFull{false};
     bool _isEmpty{true};
+
+    // error
+    std::string _errorMessage;
 
     // unablecopy
 protected:

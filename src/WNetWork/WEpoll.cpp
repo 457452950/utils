@@ -100,6 +100,7 @@ bool WBaseEpoll::Init()
     this->_epoll = CreateNeWBaseEpoll();
     if (this->_epoll == -1)
     {
+        this->_errorMessage = strerror(errno);
         return false;
     }
     return true;
@@ -118,79 +119,119 @@ bool WBaseEpoll::AddSocket(base_socket_type socket, uint32_t events)
 {
     if (this->_epoll == -1)
     {
+        this->_errorMessage = "epollfd cant be -1";
         return false;
     }
     
     if (socket == -1)
     {
+        this->_errorMessage = "socket cant be -1";
         return false;
     }
     
-    return EpollAddSocket(this->_epoll, socket, events);
+    if (!EpollAddSocket(this->_epoll, socket, events))
+    {
+        this->_errorMessage = strerror(errno);
+        return false;
+    }
+    return true;
 }
 
 bool WBaseEpoll::ModifySocket(base_socket_type socket, uint32_t events)
 {
     if (this->_epoll == -1)
     {
+        this->_errorMessage = "epollfd cant be -1";
         return false;
     }
     
     if (socket == -1)
     {
+        this->_errorMessage = "socket cant be -1";
         return false;
     }
     
-    return EpollModifySocket(this->_epoll, socket, events);
+    if (!EpollModifySocket(this->_epoll, socket, events))
+    {
+        this->_errorMessage = strerror(errno);
+        return false;
+    }
+    return true;
 }
 bool WBaseEpoll::AddSocket(base_socket_type socket, uint32_t events, epoll_data_t data)
 {
     if (this->_epoll == -1)
     {
+        this->_errorMessage = "epollfd cant be -1";
         return false;
     }
     
     if (socket == -1)
     {
+        this->_errorMessage = "socket cant be -1";
         return false;
     }
     
-    return EpollAddSocket(this->_epoll, socket, events, data);
+    if (!EpollAddSocket(this->_epoll, socket, events, data))
+    {
+        this->_errorMessage = strerror(errno);
+        return false;
+    }
+    return true;
 }
 
 bool WBaseEpoll::ModifySocket(base_socket_type socket, uint32_t events, epoll_data_t data)
 {
     if (this->_epoll == -1)
     {
+        this->_errorMessage = "epollfd cant be -1";
         return false;
     }
     
     if (socket == -1)
     {
+        this->_errorMessage = "socket cant be -1";
         return false;
     }
     
-    return EpollModifySocket(this->_epoll, socket, events, data);
+    if (!EpollModifySocket(this->_epoll, socket, events, data))
+    {
+        this->_errorMessage = strerror(errno);
+        return false;
+    }
+    return true;
 }
 
 void WBaseEpoll::RemoveSocket(base_socket_type socket)
 {
     if (this->_epoll == -1)
     {
+        this->_errorMessage = "epollfd cant be -1";
         return;
     }
     
     if (socket == -1)
     {
+        this->_errorMessage = "socket cant be -1";
         return;
     }
     
-    EpollRemoveSocket(this->_epoll, socket);
+    if (!EpollRemoveSocket(this->_epoll, socket))
+    {
+        this->_errorMessage = strerror(errno);
+    }
+    return;
 }
 
 int32_t WBaseEpoll::GetEvents(epoll_event * events, int32_t events_size, int32_t timeout)
 {
-    return EpollGetEvents(this->_epoll, events, events_size, timeout);
+    auto res = EpollGetEvents(this->_epoll, events, events_size, timeout);
+    if ( res == -1)
+    {
+        this->_errorMessage = strerror(errno);
+        return -1;
+    }
+    return res;
 }
 
 
@@ -218,7 +259,7 @@ void WEpoll::GetAndEmitEvents(int32_t timeout)
     NEWADD;
     if (_events == nullptr)
     {
-        
+        this->_errorMessage = "new epoll_event faile ";
         return;
     }
     
@@ -226,7 +267,8 @@ void WEpoll::GetAndEmitEvents(int32_t timeout)
 
     if (curr_events_size == -1)
     {
-        // error
+        this->_errorMessage = strerror(errno);
+        return;
     }
     else
     {
@@ -236,26 +278,26 @@ void WEpoll::GetAndEmitEvents(int32_t timeout)
             WNetWorkHandler::Listener* listener = data->listener;
             base_socket_type sock = data->socket;
             
-            if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
-            {
+            // if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
+            // {
                 
-            }
-            if (_events[index].events & EPOLLERR)
-            {
+            // }
+            // if (_events[index].events & EPOLLERR)
+            // {
                 
-            }
-            if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
-            {
+            // }
+            // if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
+            // {
                 
-            }
-            if (_events[index].events & EPOLLIN)
-            {
+            // }
+            // if (_events[index].events & EPOLLIN)
+            // {
                 
-            }
-            if (_events[index].events & EPOLLOUT)
-            {
+            // }
+            // if (_events[index].events & EPOLLOUT)
+            // {
                 
-            }
+            // }
 
             if (_events[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
             {
@@ -267,7 +309,7 @@ void WEpoll::GetAndEmitEvents(int32_t timeout)
                 listener->OnError(errno);
                 RemoveSocket(sock);
             }
-            else if (_events[index].events & EPOLLRDHUP)    // 对端关闭写，
+            else if (_events[index].events & EPOLLRDHUP)    // 对端关闭写
             {
                 // peer shutdown write
                 listener->OnShutdown();
@@ -313,6 +355,7 @@ bool WEpoll::AddSocket(WNetWorkHandler::Listener* listener,
     data.ptr = new(std::nothrow) WEpollData({listener, socket});
     if (data.ptr == nullptr)
     {
+        this->_errorMessage = "new epoll_event faile ";
         return false;
     }
     
@@ -328,6 +371,7 @@ bool WEpoll::ModifySocket(WNetWorkHandler::Listener* listener, base_socket_type 
     data.ptr = new(std::nothrow) WEpollData({listener, socket});
     if (data.ptr == nullptr)
     {
+        this->_errorMessage = "new epoll_event faile ";
         return false;
     }
 

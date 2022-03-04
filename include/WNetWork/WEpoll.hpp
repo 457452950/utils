@@ -143,6 +143,11 @@ public:
 
     virtual bool Init();
     virtual void Close();
+    virtual const std::string& GetErrorMessage() {
+        std::string _t = this->_errorMessage;
+        this->_errorMessage.clear();
+        return _t;
+    };
 
     virtual bool AddSocket(base_socket_type socket, uint32_t events);
     virtual bool ModifySocket(base_socket_type socket, uint32_t events);
@@ -155,7 +160,7 @@ public:
 
 protected:
     epoll_type _epoll{-1};
-    
+    std::string _errorMessage;
 };
 
 

@@ -6,6 +6,7 @@ namespace wlb::debug
 
 WTimerHandler* debuggerHandler = new wlb::NetWork::WTimerEpoll;
 Debugger* debugger = new Debugger();
+WTimeDebugger timedebug;
 
 bool Debugger::Init(long timeout)
 {

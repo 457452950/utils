@@ -33,6 +33,7 @@ bool RingBuffer::Init(uint32_t maxBufferSize)
 
     if ( this->_buffer == nullptr)
     {
+        this->_errorMessage = "new char[] failed";
         return false;
     }
     return true;
