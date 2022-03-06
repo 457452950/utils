@@ -5,21 +5,19 @@
 namespace wlb::NetWork
 {
 
-bool WSingleTcpServer::Init(const WSessionStyle& style)
+bool WSingleTcpServer::Init()
 {
-    this->_sessionTemp.Init(); 
-    this->_sessionList.Init();
+    this->_connectionTemp.Init(); 
+    this->_connectionList.Init();
     this->_accepterMap.clear();
 
-    this->_sessionStyle = style;
-
-    this->_handler = new(std::nothrow) WEpoll();
-    if ( this->_handler != nullptr && !this->_handler->Init(100))
+    this->_handler = CreateNetworkHandlerAndInit(128);
+    if ( this->_handler == nullptr)
     {
         return false;
     }
 
-    if (!this->UpdateSessionTemp())
+    if (!this->UpdateConnectionTemp())
     {
         return false;
     }
@@ -32,8 +30,8 @@ void WSingleTcpServer::Close()
 {
     this->_running = false;
 
-    this->_sessionTemp.clear();
-    this->_sessionList.clear();
+    this->_connectionTemp.clear();
+    this->_connectionList.clear();
 
     this->_handler->Close();
 }
@@ -46,8 +44,8 @@ void WSingleTcpServer::Destroy()
         this->_workThread = nullptr;
     }
 
-    this->_sessionTemp.clear();
-    this->_sessionList.clear();
+    this->_connectionTemp.clear();
+    this->_connectionList.clear();
 
     for (auto it : this->_accepterMap)
     {
@@ -98,103 +96,42 @@ bool WSingleTcpServer::AddAccepter(const std::string& IpAddress, uint16_t port)
     return true;
 }
 
-bool WSingleTcpServer::OnSessionError(Node* node)
+bool WSingleTcpServer::OnNewConnection(base_socket_type socket, const WEndPointInfo& peerInfo)
 {
-    if  (!this->_sessionList.has_node(node))
+    if (this->_connectionTemp.empty() && !this->UpdateConnectionTemp())
     {
-        this->_sessionTemp.strong_push_back(node);
-        return false;
-    }
-
-    if (this->_listener != nullptr)
-    {
-        this->_listener->OnSessionError(node->val);
-    }
-    
-    // 回收内存池
-    this->_sessionList.erase(node);
-    this->_sessionTemp.push_back(node);
-
-    return true;
-}
-
-bool WSingleTcpServer::OnSessionClosed(Node* node)
-{
-    if (!this->_sessionList.has_node(node))
-    {
-        this->_sessionTemp.strong_push_back(node);
-        return false;
-    }
-    
-    if (this->_listener != nullptr)
-    {
-        this->_listener->OnSessionClosed(node->val);
-    }
-
-    // 回收内存池
-    this->_sessionList.erase(node);
-    this->_sessionTemp.push_back(node);
-    
-    return true;
-}
-bool WSingleTcpServer::OnSessionShutdown(Node* node)
-{
-    if (!this->_sessionList.has_node(node))
-    {
-        this->_sessionTemp.strong_push_back(node);
-        return false;
-    }
-    
-
-    if (this->_listener != nullptr)
-    {
-        this->_listener->OnSessionShutdown(node->val);
-    }
-    
-
-    return true;
-}
-bool WSingleTcpServer::OnSessionMessage(Node* node, const std::string& recieve_message)
-{
-    
-
-    if ( !this->_listener->OnSessionMessage(node->val, recieve_message))
-    {
-        return false;
-    }
-
-    return true;
-}
-bool WSingleTcpServer::OnConnected(base_socket_type socket, const WEndPointInfo& peerInfo)
-{
-    if (this->_sessionTemp.empty() && !this->UpdateSessionTemp())
-    {
-        // cant new session
-        std::cout << "cant new session" << std::endl;
+        // cant new connection
+        std::cout << "cant new connection" << std::endl;
         exit(-1);
         return true;
     }
     
-    auto node = this->_sessionTemp.front();
+    auto node = this->_connectionTemp.front();
     WBaseSession* session = node->val;
-    if (session->isConnected())
+    if (session->IsConnected())
     {
-        std::cout << "session is connected" << std::endl;
+        std::cout << "connection is connected" << std::endl;
         exit(-2);
     }
     
     if ( !session->SetConnectedSocket(socket, peerInfo) )
     {
+        session->Clear();
         return false;
     }
     
-    if (this->_listener->OnConnected(session, peerInfo))
-    {
-        this->_sessionTemp.pop_front();
-        this->_sessionList.push_back(node);
-    }
-
     return true;
+}
+
+
+void WSingleTcpServer::OnNewSession(SessionNode* node)
+{
+    this->_connectionTemp.erase(node);
+    this->_connectionList.push_back(node);
+}
+void WSingleTcpServer::OnSessionClosed(SessionNode* node)
+{
+    this->_connectionTemp.strong_push_back(node);
 }
 
 void WSingleTcpServer::Loop()
@@ -202,67 +139,21 @@ void WSingleTcpServer::Loop()
     while (_running)
     {
         this->_handler->GetAndEmitEvents(-1);
-        // std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }
 
-void WSingleTcpServer::RemoveSession(Node* node)
+bool WSingleTcpServer::UpdateConnectionTemp()
 {
-
-}
-
-// bool WSingleTcpServer::CreateNewSession(base_socket_type socket, const WEndPointInfo& peerInfo)
-// {
-//     WBaseSession* session = new(std::nothrow) WFloatBufferSession(this);
-//     if (session == nullptr)
-//     {
-//         return false;
-//     }
-    
-//     if ( !session->Init(this->_handler, 102400, 4) )
-//     {
-//         session->Destroy();
-//         delete session;
-//         return false;
-//     }
-//     if ( !session->SetSocket(socket, peerInfo) )
-//     {
-//         session->Destroy();
-//         delete session;
-//         return false;
-//     }
-//     this->_sessionMap.insert(std::make_pair(socket, session));
-//     return true;
-// }
-
-bool WSingleTcpServer::UpdateSessionTemp()
-{
-    for (size_t index = 0; index < this->sessionsIncrease; ++index)
+    for (size_t index = 0; index < this->connectionsIncrease; ++index)
     {
-        WBaseSession* session = nullptr;
-        Node* node = new(std::nothrow) Node;
-        if (this->_sessionStyle.type == WSessionType::WFloatSessions)
-        {
-            session = new(std::nothrow) WFloatBufferSession(this, node);
-        }
-        else
-        {
-            session = new(std::nothrow) WFixedBufferSession(this, node);
-        }
-        
-        if (node == nullptr || session == nullptr)
-        {
-            return false;
-        }
-        node->val = session;
-        
-        if ( !session->Init(this->_handler, this->_sessionStyle.maxBufferSize, this->_sessionStyle.flag) )
+        auto* session = CreateNewSessionNodeAndInit(this, this->_handler);
+
+        if (session == nullptr)
         {
             return false;
         }
         
-        
-        this->_sessionTemp.push_front(node);
+        this->_connectionTemp.push_front(session);
     }
     return true;
 }

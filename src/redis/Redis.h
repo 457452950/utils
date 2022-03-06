@@ -70,6 +70,7 @@ private:
 
     static std::thread*         s_pThread;
 
+
 };
 
 

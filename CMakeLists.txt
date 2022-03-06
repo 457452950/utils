@@ -40,13 +40,14 @@ add_library(
 )
 target_link_libraries(wtimer)
 
-add_library(   
+add_library(
     wnetwork 
     src/WNetWork/NetWorkUtils.cpp 
     src/WNetWork/WEpoll.cpp 
-    src/WNetWork/WSession.cpp 
+    src/WNetWork/WConnection.cpp 
     src/WNetWork/WSingleTcpServer.cpp
     src/WNetWork/WMultiTcpServer.cpp
+    src/WNetWork/WBaseSession.cpp   
     src/WBuffer.cpp 
 )
 target_link_libraries(wnetwork pthread wtimer wdebug)

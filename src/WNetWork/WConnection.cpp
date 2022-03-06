@@ -1,4 +1,4 @@
-#include "WNetWork/WSession.hpp"
+#include "WNetWork/WConnection.hpp"
 #include <iostream>
 #include "../WDebugger.hpp"
 
@@ -10,14 +10,14 @@ DEBUGADD("WNetAccepter")
 DEBUGRM("WNetAccepter")
 
 #define FLOATSESSADD \
-DEBUGADD("WFloatBufferSession")
+DEBUGADD("WFloatBufferConnection")
 #define FLOATSESSRM \
-DEBUGRM("WFloatBufferSession")
+DEBUGRM("WFloatBufferConnection")
 
 #define FIXEDSESSADD \
-DEBUGADD("WFixedBufferSession")
+DEBUGADD("WFixedBufferConnection")
 #define FIXEDSESSRM \
-DEBUGRM("WFixedBufferSession")
+DEBUGRM("WFixedBufferConnection")
 
 namespace wlb::NetWork
 {
@@ -155,7 +155,11 @@ void WNetAccepter::OnRead()
 
     if (this->_listener != nullptr)
     {
-        this->_listener->OnConnected(cli_sock, info);
+        if (!this->_listener->OnNewConnection(cli_sock, info))
+        {
+            ::close(cli_sock);
+            std::cout << "close client" << info.ip_address << " " << info.port << std::endl;
+        }
     }
     
     return;
@@ -177,19 +181,18 @@ void WNetAccepter::OnError(int error_code)
 // Seession
 ////////////////////////////////////////////////////////
 
-WFloatBufferSession::WFloatBufferSession(WBaseSession::Listener* listener, Node* node):
-    WBaseSession(node),
+WFloatBufferConnection::WFloatBufferConnection(WBaseConnection::Listener* listener):
     _listener(listener) 
 {
     FLOATSESSADD;
 }
-WFloatBufferSession::~WFloatBufferSession()
+WFloatBufferConnection::~WFloatBufferConnection()
 {
     FLOATSESSRM;
     this->Destroy();
 }
 
-bool WFloatBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t headLen)
+bool WFloatBufferConnection::Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t headLen)
 {
     this->_maxBufferSize = maxBufferSize;
     this->_headLen = headLen;
@@ -226,7 +229,7 @@ bool WFloatBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize,
     return true;
 }
 
-bool WFloatBufferSession::SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo)
+bool WFloatBufferConnection::SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo)
 {
     this->_socket = socket;
 
@@ -253,7 +256,7 @@ bool WFloatBufferSession::SetConnectedSocket(base_socket_type socket, const WEnd
     return true;
 }
 
-void WFloatBufferSession::Close()
+void WFloatBufferConnection::Close()
 {
     if (::shutdown(this->_socket, SHUT_RDWR) == -1)
     {
@@ -261,7 +264,7 @@ void WFloatBufferSession::Close()
     }
 }
 
-void WFloatBufferSession::Clear()
+void WFloatBufferConnection::Clear()
 {
     this->_handler->RemoveSocket(this->_socket);
     this->_isConnected = false;
@@ -271,7 +274,7 @@ void WFloatBufferSession::Clear()
     _sendBuffer.Clear();
 }
 
-void WFloatBufferSession::Destroy()
+void WFloatBufferConnection::Destroy()
 {
     _recvBuffer.Destroy();
     _sendBuffer.Destroy();
@@ -283,7 +286,7 @@ void WFloatBufferSession::Destroy()
     
 }
 
-bool WFloatBufferSession::Send(const std::string& message)
+bool WFloatBufferConnection::Send(const std::string& message)
 {
     uint32_t msgSize = message.size();
     uint32_t insert_len = 0;
@@ -317,7 +320,7 @@ bool WFloatBufferSession::Send(const std::string& message)
     return true;
 }
 
-bool WFloatBufferSession::Receive()
+bool WFloatBufferConnection::Receive()
 {
     int32_t recv_len = ::recv(this->_socket, 
                                 this->_recvBuffer.GetRestBuffer(), 
@@ -325,7 +328,8 @@ bool WFloatBufferSession::Receive()
                                 0);
     if (recv_len <= -1)
     {
-        this->_errorMessage = "recv failed";
+        this->HandleError(errno);
+        this->_listener->OnConnectionError();
         return false;
     }
     if (recv_len == 0 && _recvBuffer.GetTopRestBufferSize() != 0)
@@ -339,36 +343,34 @@ bool WFloatBufferSession::Receive()
     return true;
 }
 
-void WFloatBufferSession::HandleError(int error_code)
+void WFloatBufferConnection::HandleError(int error_code)
 {
     this->_errorMessage.clear();
     this->_errorMessage.assign(::strerror(error_code));
 }
 
-void WFloatBufferSession::OnError(int error_no)
+void WFloatBufferConnection::OnError(int error_no)
 {
     HandleError(error_no);
 
     if (this->_listener != nullptr)
     {
-        this->_listener->OnSessionError(this->_node);
+        this->_listener->OnConnectionError();
     }
     
-    this->Clear();
     return;
 }
 
-void WFloatBufferSession::OnClosed()
+void WFloatBufferConnection::OnClosed()
 {   
     if (this->_listener != nullptr)
     {
-        this->_listener->OnSessionClosed(this->_node);
+        this->_listener->OnConnectionClosed();
     }
-    this->Clear();
     return;
 }
 
-void WFloatBufferSession::OnRead()
+void WFloatBufferConnection::OnRead()
 {
     if (!this->Receive())
     {
@@ -387,14 +389,15 @@ void WFloatBufferSession::OnRead()
         if (len != this->_headLen)
         {
             // no enough message
-            return;
+            break;
         }
         
         len = GetLengthFromWlbHead(head.c_str(), this->_headLen);
         
         if (len == 0)
         {
-            this->Close();
+            this->_errorMessage = "Invalid message head len = 0";
+            this->_listener->OnConnectionError();
             return;
         }
 
@@ -405,15 +408,11 @@ void WFloatBufferSession::OnRead()
             break;
         }
 
-        if (!this->_listener->OnSessionMessage(this->_node, receive_message))
-        {
-            this->Close();
-            return;
-        }
+        this->_listener->OnConnectionMessage(receive_message);
     }
 }
 
-void WFloatBufferSession::OnWrite()
+void WFloatBufferConnection::OnWrite()
 {
     std::string send_message;
     uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
@@ -425,8 +424,8 @@ void WFloatBufferSession::OnWrite()
 
     if (send_len < 0)
     {
-        this->_errorMessage = "send 0";
-        this->Close();
+        this->HandleError(errno);
+        this->_listener->OnConnectionError();
         return;
     }
 
@@ -439,18 +438,13 @@ void WFloatBufferSession::OnWrite()
     return;
 }
 
-void WFloatBufferSession::OnShutdown()
+void WFloatBufferConnection::OnShutdown()
 {
     if (this->_listener != nullptr)
     {
-        this->_listener->OnSessionShutdown(this->_node);
+        this->_listener->OnConnectionShutdown();
     }
     
-    if ( ::shutdown(this->_socket, SHUT_RDWR) == -1 )
-    {
-        this->_errorMessage = "shutdown failed";
-        return;
-    }
     return;
 }
 
@@ -522,21 +516,20 @@ uint32_t GetLengthFromWlbHead(const char* wlbHead, uint32_t head_length)
 
 
 /////////////////////////////////
-// WFixedBufferSession
+// WFixedBufferConnection
 
 
-WFixedBufferSession::WFixedBufferSession(WBaseSession::Listener* listener, Node* node):
-    WBaseSession(node),
+WFixedBufferConnection::WFixedBufferConnection(WBaseConnection::Listener* listener):
     _listener(listener) 
 {
     FIXEDSESSADD;
 }
-WFixedBufferSession::~WFixedBufferSession()
+WFixedBufferConnection::~WFixedBufferConnection()
 {
     FIXEDSESSRM;
 }
 
-bool WFixedBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t messageSize)
+bool WFixedBufferConnection::Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t messageSize)
 {
     this->_maxBufferSize = maxBufferSize;
     this->_messageSize = messageSize;
@@ -575,7 +568,7 @@ bool WFixedBufferSession::Init(WNetWorkHandler* handler, uint32_t maxBufferSize,
     return true;
 }
 
-bool WFixedBufferSession::SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo)
+bool WFixedBufferConnection::SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo)
 {
     this->_socket = socket;
 
@@ -601,12 +594,12 @@ bool WFixedBufferSession::SetConnectedSocket(base_socket_type socket, const WEnd
     return true;
 }
 
-void WFixedBufferSession::Close()
+void WFixedBufferConnection::Close()
 {
     shutdown(this->_socket, SHUT_RDWR);
 }
 
-void WFixedBufferSession::Clear()
+void WFixedBufferConnection::Clear()
 {
     this->_handler->RemoveSocket(this->_socket);
     this->_isConnected = false;
@@ -617,7 +610,7 @@ void WFixedBufferSession::Clear()
     _sendBuffer.Clear();
 }
 
-void WFixedBufferSession::Destroy()
+void WFixedBufferConnection::Destroy()
 {
     _recvBuffer.Destroy();
     _sendBuffer.Destroy();
@@ -628,7 +621,7 @@ void WFixedBufferSession::Destroy()
     }
 }
 
-bool WFixedBufferSession::Send(const std::string& message)
+bool WFixedBufferConnection::Send(const std::string& message)
 {
     uint32_t msgSize = message.size();
     uint32_t insert_len = 0;
@@ -655,7 +648,7 @@ bool WFixedBufferSession::Send(const std::string& message)
     return true;
 }
 
-bool WFixedBufferSession::Receive()
+bool WFixedBufferConnection::Receive()
 {
     int32_t recv_len = ::recv(this->_socket, 
                                 this->_recvBuffer.GetRestBuffer(), 
@@ -677,38 +670,35 @@ bool WFixedBufferSession::Receive()
     return true;
 }
 
-void WFixedBufferSession::HandleError(int error_code)
+void WFixedBufferConnection::HandleError(int error_code)
 {
     this->_errorMessage.clear();
     this->_errorMessage.assign(::strerror(error_code));
 
 }
 
-void WFixedBufferSession::OnError(int error_no)
+void WFixedBufferConnection::OnError(int error_no)
 {
     HandleError(error_no);
     
     if (this->_listener != nullptr)
     {
-        bool ok = this->_listener->OnSessionError(this->_node);
-        
+        this->_listener->OnConnectionError();
     }
     
-    this->Clear();
     return;
 }
 
-void WFixedBufferSession::OnClosed()
+void WFixedBufferConnection::OnClosed()
 {
     if (this->_listener != nullptr)
     {
-        this->_listener->OnSessionClosed(this->_node);
+        this->_listener->OnConnectionClosed();
     }
-    this->Clear();
     return;
 }
 
-void WFixedBufferSession::OnRead()
+void WFixedBufferConnection::OnRead()
 {
     if (!this->Receive())
     {
@@ -731,15 +721,11 @@ void WFixedBufferSession::OnRead()
         }
         
 
-        if (!this->_listener->OnSessionMessage(this->_node, receive_message))
-        {
-            ::shutdown(this->_socket, SHUT_RDWR);
-            return;
-        }
+        this->_listener->OnConnectionMessage(receive_message);
     }
 }
 
-void WFixedBufferSession::OnWrite()
+void WFixedBufferConnection::OnWrite()
 {
     std::string send_message;
     uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
@@ -750,7 +736,8 @@ void WFixedBufferSession::OnWrite()
 
     if (send_len < 0)
     {
-        this->Clear();
+        this->HandleError(errno);
+        this->_listener->OnConnectionError();
         return;
     }
 
@@ -763,11 +750,11 @@ void WFixedBufferSession::OnWrite()
     return;
 }
 
-void WFixedBufferSession::OnShutdown()
+void WFixedBufferConnection::OnShutdown()
 {
     if (this->_listener != nullptr)
     {
-        this->_listener->OnSessionShutdown(this->_node);
+        this->_listener->OnConnectionShutdown();
     }
     
     if ( ::shutdown(this->_socket, SHUT_RDWR) == -1 )

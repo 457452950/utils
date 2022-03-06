@@ -60,6 +60,7 @@ struct WHandlerData
         : socket(socket), listener(listener) {}
 };
 
+WNetWorkHandler* CreateNetworkHandlerAndInit(uint32_t events_size);
 
 }
 
