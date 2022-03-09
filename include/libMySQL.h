@@ -57,6 +57,12 @@ public:
         return true;
     }
 
+    uint64_t GetRowCount()
+    {
+        return mysql_num_rows(this->_res);
+    }
+
+
 private:
     MYSQL_RES* _res;
 };
