@@ -54,7 +54,7 @@ private:
 protected:
     
     // timer override
-    virtual void OnTime(timerfd id) override;
+    virtual void OnTime(WTimer* timer) override;
 private:
 
     // threads

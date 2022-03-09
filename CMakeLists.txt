@@ -48,6 +48,7 @@ add_library(
     src/WNetWork/WSingleTcpServer.cpp
     src/WNetWork/WMultiTcpServer.cpp
     src/WNetWork/WBaseSession.cpp   
+    src/WNetWork/WTcpClient.cpp
     src/WBuffer.cpp 
 )
 target_link_libraries(wnetwork pthread wtimer wdebug)

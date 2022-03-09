@@ -20,6 +20,7 @@ void connectCallback(const redisAsyncContext *c, int status) {
         LOG(L_ERROR) << "errstr : " << c->errstr;
         return;
     }
+    CRedisClient::getInstance()->SetActive(true);
 
     LOG(L_INFO) << "Redis connected...";
 }
@@ -29,8 +30,10 @@ void disconnectCallback(const redisAsyncContext *c, int status) {
         LOG(L_ERROR) << "errstr : " << c->errstr;
         return;
     }
-
+    CRedisClient::getInstance()->SetActive(false);
+    // ::exit(-1);
     LOG(L_INFO) << "Redis disconnected...";
+    std::cout << "Redis disconnected..." << std::endl;
 }
 
 void pushCallback(redisAsyncContext *c, void *r, void *privdata) 
@@ -64,6 +67,7 @@ CRedisClient* CRedisClient::CreateClient(const char* ip, uint port)
         if (s_Instance == nullptr)
         {
             LOG(L_INFO) << "Create asynccontext and cpntext";
+            s_Instance = new CRedisClient();
 
             s_eventBase = event_base_new();
 
@@ -98,7 +102,6 @@ CRedisClient* CRedisClient::CreateClient(const char* ip, uint port)
             timeval t{1, 0};      // set 1s
             s_pRedisContext = redisConnectWithTimeout(ip, port, t);
 
-            s_Instance = new CRedisClient();
         }
 
         _mutex.unlock();   
@@ -158,7 +161,6 @@ void* CRedisClient::Command(const char* format)
 
 void CRedisClient::Set(const char* key, const char* value, int time_out_s)
 {
-
     if (time_out_s <= 0)
     {
         std::string cmd("SET ");
@@ -175,6 +177,7 @@ void CRedisClient::Set(const char* key, const char* value, int time_out_s)
 
         std::string cmd("SETEX ");
         cmd = cmd + key + " " + _time + " " + value;
+        std::cout << cmd << std::endl;
         int res = this->AsyncCommand(cmd.c_str());
         std::cout << "res" << res << std::endl;
         return;

@@ -21,7 +21,7 @@ public:
     const uint32_t GetRestBufferSize();
     const uint32_t GetTopRestBufferSize();
     char* GetBuffer();
-    char* GetRestBuffer();
+    char* GetRestBuffer();  // 返回写指针指向的位置
     void UpdateWriteOffset(uint32_t len);
     void UpdateReadOffset(uint32_t len);
     inline bool Empty() { return this->_isEmpty; };
@@ -29,6 +29,7 @@ public:
     // return 0 when false, otherwise return the number of success bytes
     uint32_t InsertMessage(const std::string& message);
 
+    const uint32_t GetFrontMessageLength();
     // you can get messages from buf or return value
     const uint32_t GetFrontMessage(std::string& message, uint32_t len);
     const uint32_t GetAllMessage(std::string& message);

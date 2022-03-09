@@ -30,7 +30,7 @@ public:
 
 private:
     // override methods OnTime from WTimerHandler::Listener
-    void OnTime(timerfd id) override;
+    void OnTime(WTimer* timer) override;
     void Loop();
 
 private:

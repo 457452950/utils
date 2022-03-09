@@ -46,15 +46,6 @@ bool SetTimerTime(timerfd fd,
 ////////////////////////////////////////////////////////////////
 // timer 
 
-bool WTimer::operator==(const timerfd& rhs)
-{
-    return (this->_fd == rhs);
-}
-bool WTimer::operator!=(const timerfd& rhs)
-{
-    return (this->_fd != rhs);
-}
-
 bool WTimer::Start(long time_value, long interval)
 {
     if (this->_active)
@@ -62,10 +53,13 @@ bool WTimer::Start(long time_value, long interval)
         return false;
     }
 
-    this->_fd = CreateNewTimerfd();
     if (this->_fd == -1)
     {
-        return false;
+        this->_fd = CreateNewTimerfd();
+        if (this->_fd == -1)
+        {
+            return false;
+        }
     }
     
     struct itimerspec next_time{0};
@@ -79,12 +73,30 @@ bool WTimer::Start(long time_value, long interval)
         return false;
     }
     
+    if (this->_handlerData == nullptr)
+    {
+        this->_handlerData = new(std::nothrow) WTimerHandlerData(this, this->_listener, this->_fd);
+        if (this->_handlerData == nullptr)
+        {
+            return false;
+        }
+    }
+    
 
-    this->_handler->AddTimer(this->_listener, this->_fd);
+    this->_handler->AddTimer(this->_handlerData);
+
+    this->_active = true;
 
     return true;
 }
-
+void WTimer::Stop()
+{
+    if (!this->_active)
+        return;
+        
+    this->_handler->RemoveTimer(this->_handlerData);
+    this->_active = false;
+}
 
 
 }   // namespace wlb

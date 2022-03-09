@@ -52,6 +52,9 @@ public:
     static CRedisClient*    CreateClient(const char* ip, uint port);
     static CRedisClient*    getInstance();
 
+    void SetActive(bool active) {this->_isActive = active; };
+    bool IsActive(){ return this->_isActive; };
+
 private:
     CRedisClient() {}
     ~CRedisClient() ;
@@ -70,7 +73,7 @@ private:
 
     static std::thread*         s_pThread;
 
-
+    bool _isActive{false};
 };
 
 

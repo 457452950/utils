@@ -34,6 +34,10 @@ bool SetTimerTime(timerfd fd, SetTimeFlag flag, const struct itimerspec* next_ti
 ////////////////////////////////////////////////////////////////
 
 // class WTimer  使用精度ms
+
+struct WTimerHandlerData;
+class WTimerHandler;
+
 class WTimer
 {
 public:
@@ -41,18 +45,22 @@ public:
         : _listener(listener), _handler(handler) {};
     WTimer(const WTimer& other) = delete;
     WTimer& operator=(const WTimer& other) = delete;
-    virtual ~WTimer() {::close(this->_fd);};
-
-    bool operator==(const timerfd& rhs);
-    bool operator!=(const timerfd& rhs);
+    virtual ~WTimer() {
+        if (this->_fd != -1) ::close(this->_fd);
+        if (this->_handlerData != nullptr) delete this->_handlerData;
+    };
 
     bool Start(long time_value, long interval = 0);
-    inline const timerfd GetId() const { return this->_fd; };
+    void Stop();
+
+    inline bool IsActive() { return this->_active; }
 protected:
     timerfd _fd{-1};
     bool _active{false};
     WTimerHandler* _handler{nullptr};
     WTimerHandler::Listener* _listener{nullptr};
+
+    WTimerHandlerData* _handlerData{nullptr};
 };
 
 } // namespace wlb

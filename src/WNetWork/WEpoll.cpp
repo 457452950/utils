@@ -416,7 +416,6 @@ bool WTimerEpoll::Init()
 void WTimerEpoll::Close()
 {
     WBaseEpoll::Close();
-    this->_listeners.clear();
 }
 
 void WTimerEpoll::Destroy()
@@ -444,28 +443,25 @@ void WTimerEpoll::GetAndEmitTimer(int32_t timeout)
     {
         // error
         std::cout << "error no:" << errno << " " << strerror(errno) << std::endl;
+        this->_errorMessage;
     }
     else
     {
         Listener* listener;
+        WTimer* timer;
+        timerfd fd;
         for (int32_t index = 0; index < curr_events_size; ++index)
         {
-            timerfd timer = _events[index].data.fd;
-            auto it = this->_listeners.find(timer);
-            if (it == this->_listeners.end())
-            {
-                // cant find listener
-                continue;
-            }
-            listener = it->second;
-
+            WTimerHandlerData* data = (WTimerHandlerData*)_events[index].data.ptr;
+            listener = data->listener;
+            timer = data->_timer;
+            fd = data->_timerfd;
             
-
             if (_events[index].events & EPOLLIN)
             {
                 listener->OnTime(timer);
                 uint64_t exp = 0;
-                read(timer, &exp, sizeof(uint64_t));
+                read(fd, &exp, sizeof(uint64_t));
             }
         }
 
@@ -480,19 +476,20 @@ void WTimerEpoll::GetAndEmitTimer(int32_t timeout)
     DELADD;
 }
 
-void WTimerEpoll::AddTimer(Listener* listener, timerfd timer)
+void WTimerEpoll::AddTimer(WTimerHandlerData* data)
 {
-    this->_listeners.insert(std::make_pair(timer, listener));
+    epoll_data_t _data;
+    _data.ptr = data;
+
     uint32_t event = 0;
     event |= EPOLLET;
     event |= EPOLLIN;
-    WBaseEpoll::AddSocket(timer, event);
+    WBaseEpoll::AddSocket(data->_timerfd, event, _data);
 }
 
-void WTimerEpoll::RemoveTimer(timerfd timer)
+void WTimerEpoll::RemoveTimer(WTimerHandlerData* data)
 {
-    WBaseEpoll::RemoveSocket(timer);
-    this->_listeners.erase(timer);
+    WBaseEpoll::RemoveSocket(data->_timerfd);
 }
 
 

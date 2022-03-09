@@ -131,9 +131,9 @@ void WMultiTcpServer::Loop()
     }
 }
 
-void WMultiTcpServer::OnTime(timerfd id)
+void WMultiTcpServer::OnTime(WTimer* timer)
 {
-    if (this->_timer->GetId() == id)
+    if (this->_timer == timer)
     {
         int index = 0;
         for (auto it : this->_servers)

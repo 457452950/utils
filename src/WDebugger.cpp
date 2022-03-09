@@ -67,7 +67,7 @@ void Debugger::MemberRemove(const std::string& name)
     this->_memberMap[name] --;
 }
 
-void Debugger::OnTime(timerfd id)
+void Debugger::OnTime(WTimer* timer)
 {
     for (auto& it : this->_memberMap)
     {

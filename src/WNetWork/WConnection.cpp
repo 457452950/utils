@@ -309,19 +309,27 @@ bool WFloatBufferConnection::Send(const std::string& message)
         return false;
     }
 
-    // 添加进 send events
-    this->_op |= WNetWorkHandler::OP_OUT;
-    if ( !_handler->ModifySocket(this->_handlerData, this->_op) )
+    std::cout << "send message start set epoll out" << std::endl;
+    if (!(this->_op & WNetWorkHandler::OP_OUT))
     {
-        this->_errorMessage = this->_handler->GetErrorMessage();
-        return false;
-    }
-    
+        std::cout << "send message set epoll out" << std::endl;
+        // 添加进 send events
+        this->_op |= WNetWorkHandler::OP_OUT;
+        if ( !_handler->ModifySocket(this->_handlerData, this->_op) )
+        {
+            std::cout << "send message set epoll out failed" << std::endl;
+            this->_errorMessage = this->_handler->GetErrorMessage();
+            std::cout << "send message set epoll out failed" << this->_errorMessage << std::endl;
+            return false;
+        }
+    }    
+    std::cout << "WFloatBufferConnection::Send end" << std::endl;
     return true;
 }
 
 bool WFloatBufferConnection::Receive()
 {
+    std::cout << "WFloatBufferConnection::Receive" << std::endl;
     int32_t recv_len = ::recv(this->_socket, 
                                 this->_recvBuffer.GetRestBuffer(), 
                                 this->_recvBuffer.GetTopRestBufferSize(),
@@ -329,12 +337,14 @@ bool WFloatBufferConnection::Receive()
     if (recv_len <= -1)
     {
         this->HandleError(errno);
+        std::cout << this->_errorMessage << std::endl;
         this->_listener->OnConnectionError();
         return false;
     }
     if (recv_len == 0 && _recvBuffer.GetTopRestBufferSize() != 0)
     {
         this->_errorMessage = "recv 0";
+        std::cout << this->_errorMessage << std::endl;
         return false;
     }
     
@@ -377,6 +387,7 @@ void WFloatBufferConnection::OnRead()
         ::shutdown(this->_socket, SHUT_RD);
         return;
     }
+    std::cout << "WFloatBufferConnection::OnRead" << std::endl;
     
     std::string head;
     std::string receive_message;
@@ -388,32 +399,47 @@ void WFloatBufferConnection::OnRead()
         
         if (len != this->_headLen)
         {
-            // no enough message
+            std::cout << "WFloatBufferConnection::OnRead no enough message len:" << len << std::endl;
             break;
         }
         
         len = GetLengthFromWlbHead(head.c_str(), this->_headLen);
+        std::cout << "WFloatBufferConnection::OnRead head body length:" << len << std::endl;
         
         if (len == 0)
         {
             this->_errorMessage = "Invalid message head len = 0";
             this->_listener->OnConnectionError();
+            std::cout << this->_errorMessage << std::endl;
             return;
         }
+
+        if (len > this->_recvBuffer.GetFrontMessageLength())
+        {
+            std::cout << "WFloatBufferConnection::OnRead no enough message len" << len << std::endl;
+            return;
+        }
+        
+        this->_recvBuffer.UpdateReadOffset(this->_headLen);
 
         len = this->_recvBuffer.GetFrontMessage(receive_message, len);
         if (len == 0)
         {
             // no enough message
+            std::cout << "WFloatBufferConnection::OnRead error no enough message len" << len << std::endl;
             break;
         }
 
+        (len > 0) ? this->_recvBuffer.UpdateReadOffset(len)
+                    : this->_recvBuffer.UpdateReadOffset(0);
+        
         this->_listener->OnConnectionMessage(receive_message);
     }
 }
 
 void WFloatBufferConnection::OnWrite()
 {
+    std::cout << "WFloatBufferConnection::OnWrite()" << std::endl;
     std::string send_message;
     uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
     ssize_t send_len = ::send(this->_socket, send_message.c_str(), msg_len, 0);

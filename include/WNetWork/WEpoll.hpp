@@ -220,11 +220,10 @@ public:
     void GetAndEmitTimer(int32_t timeout = 0) override;
 
     // override WBaseEpoll
-    void AddTimer(Listener* listener, timerfd timer) override;
-    void RemoveTimer(timerfd timer) override;
+    void AddTimer(WTimerHandlerData* data) override;
+    void RemoveTimer(WTimerHandlerData* data) override;
 
 private:
-    std::map<timerfd, WTimerHandler::Listener*> _listeners;
 
     epoll_event * _events{nullptr};
     int32_t _events_size{30};
