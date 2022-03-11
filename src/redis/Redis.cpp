@@ -42,7 +42,7 @@ void pushCallback(redisAsyncContext *c, void *r, void *privdata)
     if (reply == NULL) 
         return;
     LOG(L_ERROR) << "reply : " << reply->str << " , cmd : " << (char*)privdata;
-    std::cout << "reply : " << reply->str << " , cmd : " << (char*)privdata << std::endl;
+    // std::cout << "reply : " << reply->str << " , cmd : " << (char*)privdata << std::endl;
 }
 
 std::mutex    CRedisClient::_mutex;
@@ -183,6 +183,30 @@ void CRedisClient::Set(const char* key, const char* value, int time_out_s)
         return;
     }
 }
+void CRedisClient::SAdd(const Key& key, const Value& value)
+{
+    std::string cmd("SADD ");
+    cmd = cmd + key + " " + value;
+    std::cout << cmd << std::endl;
+    int res = this->AsyncCommand(cmd.c_str());
+    std::cout << "res" << res << std::endl;
+    return;
+}
+void CRedisClient::SAdd(const Key& key, const ValueList& list) 
+{
+    std::string cmd("SADD ");
+    cmd = cmd + key;
+
+    for (auto& value : list)
+    {
+        cmd += ( " " + value);
+    }
+    
+    std::cout << cmd << std::endl;
+    int res = this->AsyncCommand(cmd.c_str());
+    std::cout << "res" << res << std::endl;
+    return;
+}
 
 void CRedisClient::Get(const std::string& key, std::string& value)
 {
@@ -196,6 +220,21 @@ void CRedisClient::Get(const std::string& key, std::string& value)
     }
     value = std::string(reply->str);
     freeReplyObject(reply);
+}
+
+bool CRedisClient::SIsMember(const Key& key, const Value& value)
+{
+    std::string cmd("SISMEMBER ");
+    cmd = cmd + key + " " + value;
+    redisReply* reply = (redisReply*)this->Command(cmd.c_str());
+    if (reply == nullptr) {
+        std::cout << "CRedisClient::SIsMember error" << std::endl;
+        return false;
+    }
+    std::cout << "CRedisClient::SIsMember " << reply->type << " " << reply->integer << std::endl;
+    bool ok = reply->integer;
+    freeReplyObject(reply);
+    return ok;
 }
 
 }

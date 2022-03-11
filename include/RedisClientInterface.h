@@ -16,6 +16,10 @@ namespace wlb
 
 class CRedisClient;
 
+using Key = std::string;
+using Value = std::string;
+using ValueList = std::vector<std::string>;
+
 class IRedisClient
 {
 public:
@@ -27,6 +31,8 @@ public:
     // List
 
     // Set
+    virtual void SAdd(const Key& key, const Value& value) = 0;
+    virtual void SAdd(const Key& key, const ValueList& list) = 0;
 
     // 
 
@@ -37,6 +43,7 @@ public:
     // List
 
     // Set
+    virtual bool SIsMember(const Key& key, const Value& value) = 0;
 
     // 
 

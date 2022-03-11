@@ -5,7 +5,14 @@
 namespace wlb
 {
 
-
+/*
+REDIS_REPLY_STRING      1       reply->str
+REDIS_REPLY_ARRAY       2       redis->elements
+REDIS_REPLY_INTERGER    3       reply->interger
+REDIS_REPLY_NIL         4
+REDIS_REPLY_STATUS      5       reply->str
+REDIS_REPLY_ERROR       6       reply->str
+*/
 
 class CRedisClient:public IRedisClient
 {
@@ -18,6 +25,8 @@ public:
     // List
 
     // Set
+    virtual void SAdd(const Key& key, const Value& value) override;
+    virtual void SAdd(const Key& key, const ValueList& list) override;
 
     // 
 
@@ -28,6 +37,7 @@ public:
     // List
 
     // Set
+    virtual bool SIsMember(const Key& key, const Value& value) override;
 
     // 
 
