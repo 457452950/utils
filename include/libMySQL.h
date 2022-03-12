@@ -62,7 +62,6 @@ public:
         return mysql_num_rows(this->_res);
     }
 
-
 private:
     MYSQL_RES* _res;
 };
@@ -79,6 +78,7 @@ public:
     void Release();
 
     sqlRes_ptr Query(const std::string& sql);
+    int64_t EQuery(const std::string& sql);
     inline const std::string& GetErrorString() { return this->_errorMessage; }
 
 private:

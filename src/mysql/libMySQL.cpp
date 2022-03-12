@@ -61,5 +61,15 @@ namespace wlb
         
     }
 
+    int64_t libMySQL::EQuery(const std::string& sql)
+    {
+        if (mysql_query(&this->_connect, sql.c_str()))
+        {
+            this->_errorMessage = std::string(mysql_error(&this->_connect));
+            return -1;
+        }
+        return mysql_affected_rows(&this->_connect);
+    }
+
 } // namespace wlb
 

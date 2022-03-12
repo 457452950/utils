@@ -216,7 +216,7 @@ void CRedisClient::Get(const std::string& key, std::string& value)
     cmd = cmd + key;
     redisReply* reply = (redisReply*)this->Command(cmd.c_str());
     if (reply == nullptr || reply->len == 0) {
-        return;
+        return; 
     }
     value = std::string(reply->str);
     freeReplyObject(reply);
