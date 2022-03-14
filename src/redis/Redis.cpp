@@ -17,22 +17,19 @@ IRedisClient* GetRedisClient()
 
 void connectCallback(const redisAsyncContext *c, int status) {
     if (status != REDIS_OK) {
-        LOG(L_ERROR) << "errstr : " << c->errstr;
         return;
     }
     CRedisClient::getInstance()->SetActive(true);
 
-    LOG(L_INFO) << "Redis connected...";
 }
 
 void disconnectCallback(const redisAsyncContext *c, int status) {
     if (status != REDIS_OK) {
-        LOG(L_ERROR) << "errstr : " << c->errstr;
+        std::cout << "errstr : " << c->errstr << std::endl;
         return;
     }
     CRedisClient::getInstance()->SetActive(false);
     // ::exit(-1);
-    LOG(L_INFO) << "Redis disconnected...";
     std::cout << "Redis disconnected..." << std::endl;
 }
 
@@ -41,7 +38,6 @@ void pushCallback(redisAsyncContext *c, void *r, void *privdata)
     redisReply* reply = (redisReply*)r;
     if (reply == NULL) 
         return;
-    LOG(L_ERROR) << "reply : " << reply->str << " , cmd : " << (char*)privdata;
     // std::cout << "reply : " << reply->str << " , cmd : " << (char*)privdata << std::endl;
 }
 
@@ -56,7 +52,6 @@ CRedisClient* CRedisClient::CreateClient(const char* ip, uint port)
 {
     if (s_Instance != nullptr)
     {
-        LOG(L_ERROR) << "you had created";
         return nullptr;
     }
 
@@ -66,7 +61,6 @@ CRedisClient* CRedisClient::CreateClient(const char* ip, uint port)
 
         if (s_Instance == nullptr)
         {
-            LOG(L_INFO) << "Create asynccontext and cpntext";
             s_Instance = new CRedisClient();
 
             s_eventBase = event_base_new();
@@ -87,11 +81,10 @@ CRedisClient* CRedisClient::CreateClient(const char* ip, uint port)
                                             disconnectCallback);
             
             if (s_pRedisAsyncContext == nullptr){
-                LOG(L_ERROR) << "redisAsyncConnect error : nullptr";
             }
             if (s_pRedisAsyncContext->err){
-                LOG(L_ERROR) << "s_pRedisAsyncContext error " << s_pRedisAsyncContext->err 
-                            << " str : " << s_pRedisAsyncContext->errstr;
+                std::cout << "s_pRedisAsyncContext error " << s_pRedisAsyncContext->err 
+                            << " str : " << s_pRedisAsyncContext->errstr << std::endl;
             } 
 
             s_pThread = new std::thread(
@@ -117,7 +110,6 @@ CRedisClient* CRedisClient::getInstance()
 
 CRedisClient::~CRedisClient() 
 {
-    LOG(L_INFO) << "close redis";
     redisAsyncDisconnect(s_pRedisAsyncContext);
 
     if (s_pThread != nullptr)
@@ -146,7 +138,6 @@ CRedisClient::~CRedisClient()
 
 int CRedisClient::AsyncCommand(const char* format)
 {
-    LOG(L_INFO) << "async cmd : " << format;
     return ::redisAsyncCommand(s_pRedisAsyncContext, 
                                 pushCallback,
                                 (void*)format,
@@ -166,7 +157,6 @@ void CRedisClient::Set(const char* key, const char* value, int time_out_s)
         std::string cmd("SET ");
         cmd = cmd + key + " " + value;
         int res = this->AsyncCommand(cmd.c_str());
-        LOG(L_INFO) << res;
         return;
     }
     else

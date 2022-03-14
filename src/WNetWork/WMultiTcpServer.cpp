@@ -138,7 +138,6 @@ void WMultiTcpServer::OnTime(WTimer* timer)
         int index = 0;
         for (auto it : this->_servers)
         {
-            LOG(L_INFO) << index++ << " " << it->GetActiveConnectionCount() << " " << it->GetTempConnectionCount();
             std::cout << index++ << " " << it->GetActiveConnectionCount() << " " << it->GetTempConnectionCount() << std::endl;
         }
         

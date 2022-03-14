@@ -14,31 +14,23 @@ add_library(logger      src/logger/Logger.cpp src/logger/LoggerBase.cpp)
 add_library(asynclogger      src/logger/AsyncLogger.cpp src/logger/LoggerBase.cpp)
 
 add_library(jsonreader  src/json_file_reader/JsonFileReader.cpp)
-target_link_libraries(jsonreader logger)
+target_link_libraries(jsonreader )
 
 add_library(redis       src/redis/Redis.cpp)
-target_link_libraries(redis logger hiredis event)
+target_link_libraries(redis hiredis event)
 
 add_library(tinymysql   src/mysql/libMySQL.cpp)
-target_link_libraries(tinymysql logger mysqlclient)
+target_link_libraries(tinymysql mysqlclient)
+
 
 add_library(
-    wdebug
-    src/WDebugger.cpp
-)
-target_link_libraries(wdebug wtimer)
-
-add_library(
-    wlb
+    wutils
     src/WBuffer.cpp
-)
-target_link_libraries(wlb logger wdebug)
-
-add_library(   
-    wtimer 
+    src/WDebugger.cpp
     src/WTimer.cpp 
+    src/thread_pool/WThreadPool.cpp
 )
-target_link_libraries(wtimer)
+target_link_libraries(wutils pthread)
 
 add_library(
     wnetwork 
@@ -51,6 +43,6 @@ add_library(
     src/WNetWork/WTcpClient.cpp
     src/WBuffer.cpp 
 )
-target_link_libraries(wnetwork pthread wtimer wdebug)
+target_link_libraries(wnetwork pthread wutils)
 
 
