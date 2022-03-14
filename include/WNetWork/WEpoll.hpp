@@ -163,20 +163,20 @@ protected:
     std::string _errorMessage;
 };
 
-
+// not thread safe
 class WEpoll : public WBaseEpoll, public WNetWorkHandler
 {
 public: 
     explicit WEpoll() {};
-    virtual ~WEpoll() = default;
+    virtual ~WEpoll() { this->Close(); };
 
     // WNetWorkHandler
     bool Init(uint32_t events_size) override;
     void Close() override;
     void GetAndEmitEvents(int timeout = 0) override;
     const std::string GetErrorMessage() override {
-        std::string _t = this->_errorMessage;
-        this->_errorMessage.clear();
+        std::string _t;
+        std::swap(_t, this->_errorMessage);
         return _t;
     };
 
@@ -189,7 +189,7 @@ private:
     uint32_t GetEpollEventsFromOP(uint32_t op);
 
 protected:
-    epoll_event * _events{nullptr};     // epoll_wait 获取事件数组
+    epoll_event* _events{nullptr};     // epoll_wait 获取事件数组
     int32_t _events_size{0};
 
     const int32_t default_events_size{128};
@@ -210,7 +210,7 @@ class WTimerEpoll : public WBaseEpoll, public WTimerHandler
 {
 public:
     WTimerEpoll() = default;
-    virtual ~WTimerEpoll() {};
+    virtual ~WTimerEpoll() { this->Destroy(); };
     
     // override WTimerHandler
     bool Init() override;

@@ -6,6 +6,7 @@
 #include <functional>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 
 namespace wlb
 {
@@ -47,7 +48,7 @@ private:
     void ConsumerThread();
 
 private:
-    bool _isActive{false};
+    std::atomic_bool _isActive{false};
 
     uint16_t _threadsCount{1};
 

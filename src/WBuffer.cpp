@@ -94,7 +94,7 @@ char* RingBuffer::GetRestBuffer()
 
 void RingBuffer::UpdateWriteOffset(uint32_t len)
 {
-    if (len <= 0)
+    if (len == 0)
     {
         return;
     }
@@ -112,7 +112,7 @@ void RingBuffer::UpdateWriteOffset(uint32_t len)
 
 void RingBuffer::UpdateReadOffset(uint32_t len)
 {
-    if (len <= 0)
+    if (len == 0)
     {
         return;
     }
@@ -154,7 +154,7 @@ uint32_t RingBuffer::InsertMessage(const std::string& message)
         }
         catch(const std::exception& e)
         {
-            std::cerr << e.what() << '\n';
+            this->_errorMessage = e.what();
             return 0;
         }
     }

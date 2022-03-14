@@ -6,6 +6,7 @@
 namespace wlb
 {
 
+// not thread safe
 class RingBuffer
 {
 public:

@@ -1,5 +1,6 @@
 #include "WNetWork/WEpoll.hpp"
 #include <iostream>
+#include <cassert>
 #include "WDebugger.hpp"
 
 #if defined(OS_IS_LINUX)
@@ -329,6 +330,7 @@ void WEpoll::GetAndEmitEvents(int32_t timeout)
                 this->_events_size = 10 + (curr_events_size / 10 + this->_events_size * 9 / 10):
                 this->_events_size = curr_events_size * 1.5;
         
+        assert(this->_events_size > 0);
         // 
     }
     
@@ -415,6 +417,11 @@ bool WTimerEpoll::Init()
 
 void WTimerEpoll::Close()
 {
+    if (this->_events != nullptr)
+    {
+        delete [] this->_events;
+        this->_events = nullptr;
+    }
     WBaseEpoll::Close();
 }
 
@@ -425,7 +432,6 @@ void WTimerEpoll::Destroy()
         delete [] this->_events;
         this->_events = nullptr;
     }
-    
 }
 
 void WTimerEpoll::GetAndEmitTimer(int32_t timeout)

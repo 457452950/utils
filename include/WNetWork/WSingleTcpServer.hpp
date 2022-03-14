@@ -62,7 +62,7 @@ private:
     // 内存池设计
     SessionList _connectionList;
     SessionList _connectionTemp;
-    const int connectionsIncrease = 100;    // 内存池增长
+    const uint16_t connectionsIncrease = 100;    // 内存池增长
 
 };
 
