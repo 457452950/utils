@@ -32,7 +32,6 @@ public:
 
     // class life time
     virtual bool Init(SessionNode* node, WNetWorkHandler* handler) = 0;
-    virtual void Destroy() = 0;
     virtual void Clear() = 0;
 
     virtual bool SetConnectedSocket(base_socket_type socket,const WEndPointInfo& peerInfo) = 0;
