@@ -5,15 +5,15 @@ namespace wlb
 
 bool WThreadPool::Start(uint16_t threads_count)
 {
-    if (this->_isActive)
+    if (this->is_active_)
         return false;
     
-    this->_threadsCount = threads_count;
+    this->threads_count_ = threads_count;
 
-    this->_isActive = true;
+    this->is_active_ = true;
     for (size_t index = 0; index < threads_count; ++index)
     {
-        this->_threads.push_back(new std::thread(&WThreadPool::ConsumerThread, this));
+        this->threads_.push_back(new std::thread(&WThreadPool::ConsumerThread, this));
     }
     
     return true;
@@ -21,64 +21,63 @@ bool WThreadPool::Start(uint16_t threads_count)
 
 void WThreadPool::WaitToStop()
 {
-    for (std::size_t index = 0; index < this->_threads.size(); ++index)
+    for (auto & thread : this->threads_)
     {
-        if (this->_threads[index]->joinable())
+        if (thread->joinable())
         {
-            this->_threads[index]->join();
+            thread->join();
         }
-        
     }
 }
 
 void WThreadPool::Destroy()
 {
-    for (size_t index = 0; index < this->_threads.size(); ++index)
+    for (auto & thread : this->threads_)
     {
-        delete this->_threads[index];
+        delete thread;
     }
-    this->_threads.clear();
+    this->threads_.clear();
     
-    while (!this->_tasks.empty())
+    while (!this->tasks_.empty())
     {
-        this->_tasks.pop();
+        this->tasks_.pop();
     }
 }
 
-void WThreadPool::AddTask(task_function_t function, user_data_t user_data)
+void WThreadPool::AddTask(const user_function_t& function, user_data_t user_data)
 {
-    std::unique_lock<std::mutex> _unique_lock(this->_mutex);
-    this->_tasks.emplace(function, user_data);
-    this->_condition.notify_all();
+    std::unique_lock<std::mutex> _unique_lock(this->mutex_);
+    this->tasks_.emplace(function, user_data);
+    this->condition_.notify_all();
 }
 
 void WThreadPool::ConsumerThread()
 {
-    while (this->_isActive)
+    while (this->is_active_)
     {
-        std::unique_lock<std::mutex> _unique_lock(this->_mutex);
+        std::unique_lock<std::mutex> _unique_lock(this->mutex_);
 
-        if (!this->_isActive)
+        if (!this->is_active_)
         {
             break;
         }
 
-        while (this->_tasks.empty())
+        while (this->tasks_.empty())
         {
-            if (!this->_isActive)
+            if (!this->is_active_)
             {
                 return;
             }
-            this->_condition.wait(_unique_lock);
+            this->condition_.wait(_unique_lock);
         }
 
-        if (!this->_isActive)
+        if (!this->is_active_)
         {
             break;
         }
 
-        task _task = std::move(this->_tasks.front());
-        this->_tasks.pop();
+        task _task = std::move(this->tasks_.front());
+        this->tasks_.pop();
 
         _unique_lock.unlock();
 
