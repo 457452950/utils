@@ -1,6 +1,7 @@
 #include "WNetWork/WSingleTcpServer.hpp"
 
 #include <iostream>
+#include <cassert>
 
 namespace wlb::NetWork
 {
@@ -103,7 +104,6 @@ bool WSingleTcpServer::OnNewConnection(base_socket_type socket, const WEndPointI
         // cant new connection
         std::cout << "cant new connection" << std::endl;
         exit(-1);
-        return true;
     }
     
     auto node = this->_connectionTemp.front();
@@ -111,7 +111,7 @@ bool WSingleTcpServer::OnNewConnection(base_socket_type socket, const WEndPointI
     if (session->IsConnected())
     {
         std::cout << "connection is connected" << std::endl;
-        exit(-2);
+        assert(session->IsConnected());
     }
     
     if ( !session->SetConnectedSocket(socket, peerInfo) )
