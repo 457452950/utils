@@ -36,6 +36,9 @@ public:
 
     // 
 
+    // other
+    virtual void Del(const Key& key) = 0;
+
 // Sync
     // String
     virtual void Get(const std::string& key, std::string& value) = 0;
@@ -43,6 +46,7 @@ public:
     // List
 
     // Set
+    virtual bool SyncSAdd(const Key& key, int32_t value) = 0;
     virtual bool SIsMember(const Key& key, const Value& value) = 0;
 
     // 

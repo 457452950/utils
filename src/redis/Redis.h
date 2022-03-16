@@ -28,7 +28,10 @@ public:
     virtual void SAdd(const Key& key, const Value& value) override;
     virtual void SAdd(const Key& key, const ValueList& list) override;
 
-    // 
+    //
+
+    // other
+    void Del(const Key& key) override;
 
 // Sync
     // String
@@ -37,7 +40,8 @@ public:
     // List
 
     // Set
-    virtual bool SIsMember(const Key& key, const Value& value) override;
+    bool SyncSAdd(const Key& key, int32_t value) override;
+    bool SIsMember(const Key& key, const Value& value) override;
 
     // 
 

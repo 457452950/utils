@@ -35,10 +35,20 @@ void disconnectCallback(const redisAsyncContext *c, int status) {
 
 void pushCallback(redisAsyncContext *c, void *r, void *privdata) 
 {
+    std::cout << "pushCallback " << std::endl;
     redisReply* reply = (redisReply*)r;
     if (reply == NULL) 
         return;
-    // std::cout << "reply : " << reply->str << " , cmd : " << (char*)privdata << std::endl;
+    if (reply->type == 3)
+    {
+        std::cout << "reply integer " << reply->integer << std::endl;
+    }
+    else if (reply->type == 4)
+    {
+        std::cout << "reply nil " << reply->integer << std::endl;
+    }
+    else
+        std::cout << "reply str" << reply->str << std::endl;
 }
 
 std::mutex    CRedisClient::_mutex;
@@ -140,7 +150,7 @@ int CRedisClient::AsyncCommand(const char* format)
 {
     return ::redisAsyncCommand(s_pRedisAsyncContext, 
                                 pushCallback,
-                                (void*)format,
+                                nullptr,
                                 format);
 }
 
@@ -225,6 +235,32 @@ bool CRedisClient::SIsMember(const Key& key, const Value& value)
     bool ok = reply->integer;
     freeReplyObject(reply);
     return ok;
+}
+
+bool CRedisClient::SyncSAdd(const Key& key, int32_t value)
+{
+    char cmd[150];
+    sprintf(cmd, "SADD %s %d", key.c_str(), value);
+
+    redisReply* reply = (redisReply*)this->Command(cmd);
+    if (reply == nullptr) {
+        std::cout << "CRedisClient::SyncSAdd error" << std::endl;
+        return false;
+    }
+    std::cout << "CRedisClient::SyncSAdd " << reply->type << " " << reply->integer << std::endl;
+    bool ok = reply->integer;
+    freeReplyObject(reply);
+    return ok;
+}
+
+void CRedisClient::Del(const Key& key)
+{
+    std::string cmd("DEL ");
+    cmd = cmd + key;
+
+    std::cout << cmd << std::endl;
+    int res = this->AsyncCommand(cmd.c_str());
+    std::cout << "res" << res << std::endl;
 }
 
 }
