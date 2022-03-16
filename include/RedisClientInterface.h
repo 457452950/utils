@@ -26,31 +26,31 @@ public:
 
 // Async
     // String
+
+    // List
+
+    // Set
+
+    // 
+
+// Sync
+    // String
     virtual void Set(const char* key, const char* value, int time_out_s = -1) = 0;
+    virtual void Get(const std::string& key, std::string& value) = 0;
 
     // List
 
     // Set
     virtual void SAdd(const Key& key, const Value& value) = 0;
     virtual void SAdd(const Key& key, const ValueList& list) = 0;
-
-    // 
-
-    // other
-    virtual void Del(const Key& key) = 0;
-
-// Sync
-    // String
-    virtual void Get(const std::string& key, std::string& value) = 0;
-
-    // List
-
-    // Set
     virtual bool SyncSAdd(const Key& key, int32_t value) = 0;
     virtual bool SIsMember(const Key& key, const Value& value) = 0;
 
     // 
 
+
+    // other
+    virtual void Del(const Key& key) = 0;
 
 
     virtual ~IRedisClient() = default;
