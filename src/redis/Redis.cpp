@@ -268,16 +268,37 @@ bool CRedisClient::HSetNX(const Key& key, int field, const Value& value)
 
 void CRedisClient::HGetAll(const Key& key, std::vector<std::tuple<Value, Value>>& values)
 {
-    std::string cmd = "HGETALL " + key;
-
-    redisReply* reply = (redisReply*)this->Command(cmd.c_str());
-    if (reply == nullptr || reply->type != REDIS_REPLY_ARRAY) {
-        return; 
+    std::cout << "HGetAll " << key << std::endl;
+    redisReply *reply = static_cast<redisReply *>(::redisCommand(s_pRedisContext, 
+                "HGetAll %s ", key.c_str()));
+    if (reply == nullptr)
+    {
+        std::cout << "reply nullptr" << std::endl;
+        return;
+    }
+    else if (reply->type == REDIS_REPLY_NIL)
+    {
+        std::cout << "reply nil" << std::endl;
+    }
+    else if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        std::cout << "reply : " << reply->integer << std::endl;
+    }
+    else if (reply->type != REDIS_REPLY_ARRAY)
+    {
+        std::cout << "reply : " << reply->str << std::endl;
     }
     
+    if (reply->type == REDIS_REPLY_ARRAY)
+    {
+        for (size_t i = 0; i < reply->elements; i+=2)
+        {
+        //     std::cout << reply->element[i]->str << " " << reply->element[i+1]->str << std::endl;
+            values.push_back(std::make_tuple(reply->element[i]->str, reply->element[i+1]->str));
+        }
+    }
 
-
-
+    // std::cout << values.size() << std::endl;
     freeReplyObject(reply);
 }
 
