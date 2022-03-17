@@ -17,6 +17,7 @@ namespace wlb
 class CRedisClient;
 
 using Key = std::string;
+using Field = std::string;
 using Value = std::string;
 using ValueList = std::vector<std::string>;
 
@@ -37,6 +38,12 @@ public:
     // String
     virtual void Set(const char* key, const char* value, int time_out_s = -1) = 0;
     virtual void Get(const std::string& key, std::string& value) = 0;
+
+    // Hash
+    virtual bool HSetNX(const Key& key, const Field& field, const Value& value) = 0;
+    virtual bool HSetNX(const Key& key, int field, const Value& value) = 0;
+
+    virtual void HGetAll(const Key& key, std::vector<std::tuple<Value, Value>>& values) = 0;
 
     // List
 

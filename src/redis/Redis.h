@@ -33,6 +33,12 @@ public:
     void Set(const char* key, const char* value, int time_out_s = -1) override;
     void Get(const std::string& key, std::string& value) override;
 
+    // Hash
+    bool HSetNX(const Key& key, const Field& field, const Value& value) override;
+    bool HSetNX(const Key& key, int field, const Value& value) override;
+
+    void HGetAll(const Key& key, std::vector<std::tuple<Value, Value>>& values) override;
+
     // List
 
     // Set

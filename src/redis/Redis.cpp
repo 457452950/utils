@@ -105,7 +105,7 @@ void CRedisClient::Set(const char* key, const char* value, int time_out_s)
     if (time_out_s <= 0)
     {
         std::string cmd("SET ");
-        cmd = cmd + key + " " + value;
+        cmd = cmd + key + " " + value ;
         redisReply* reply = this->Command(cmd.c_str());
         freeReplyObject(reply);
         return;
@@ -127,7 +127,7 @@ void CRedisClient::Set(const char* key, const char* value, int time_out_s)
 void CRedisClient::SAdd(const Key& key, const Value& value)
 {
     std::string cmd("SADD ");
-    cmd = cmd + key + " " + value;
+    cmd = cmd + key + " " + value + "";
     std::cout << cmd << std::endl;
     redisReply* reply = this->Command(cmd.c_str());
     freeReplyObject(reply);
@@ -136,13 +136,14 @@ void CRedisClient::SAdd(const Key& key, const Value& value)
 void CRedisClient::SAdd(const Key& key, const ValueList& list) 
 {
     std::string cmd("SADD ");
-    cmd = cmd + key;
+    cmd = cmd + key ;
 
     for (auto& value : list)
     {
         cmd += ( " " + value);
     }
-    
+    cmd += " ";
+
     std::cout << cmd << std::endl;
     redisReply* reply = this->Command(cmd.c_str());
     freeReplyObject(reply);
@@ -163,6 +164,53 @@ void CRedisClient::Get(const std::string& key, std::string& value)
     freeReplyObject(reply);
 }
 
+
+// Hash 
+bool CRedisClient::HSetNX(const Key& key, const Field& field, const Value& value)
+{
+    std::string cmd = "HSETNX " + key + " " + field + " " + value;
+
+    redisReply* reply = (redisReply*)this->Command(cmd.c_str());
+    if (reply == nullptr || reply->type != 3) {
+        return false; 
+    }
+    bool ok = reply->integer;
+    freeReplyObject(reply);
+    return ok;
+}
+bool CRedisClient::HSetNX(const Key& key, int field, const Value& value)
+{
+    std::string _cmd = "HSETNX " + key + " %d " + value;
+    char cmd[150];
+    sprintf(cmd,_cmd.c_str(),field);
+
+    redisReply* reply = (redisReply*)this->Command(cmd);
+    if (reply == nullptr || reply->type != 3) {
+        return false; 
+    }
+    bool ok = reply->integer;
+    freeReplyObject(reply);
+    return ok;
+}
+
+void CRedisClient::HGetAll(const Key& key, std::vector<std::tuple<Value, Value>>& values)
+{
+    std::string cmd = "HGETALL " + key;
+
+    redisReply* reply = (redisReply*)this->Command(cmd.c_str());
+    if (reply == nullptr || reply->type != REDIS_REPLY_ARRAY) {
+        return; 
+    }
+    
+
+
+
+    freeReplyObject(reply);
+}
+
+
+
+// Set
 bool CRedisClient::SIsMember(const Key& key, const Value& value)
 {
     std::string cmd("SISMEMBER ");
@@ -181,7 +229,7 @@ bool CRedisClient::SIsMember(const Key& key, const Value& value)
 bool CRedisClient::SyncSAdd(const Key& key, int32_t value)
 {
     char cmd[150];
-    sprintf(cmd, "SADD %s %d", key.c_str(), value);
+    sprintf(cmd, "SADD %s %d ", key.c_str(), value);
 
     redisReply* reply = (redisReply*)this->Command(cmd);
     if (reply == nullptr) {
