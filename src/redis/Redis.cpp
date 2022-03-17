@@ -94,58 +94,85 @@ CRedisClient::~CRedisClient()
     }
 }
 
-redisReply* CRedisClient::Command(const char* format)
+redisReply* CRedisClient::Command(const char* format, ...)
 {
-    std::cout << " cmd : " << format << std::endl;
-    return static_cast<redisReply*>(::redisCommand(s_pRedisContext, format));
+    va_list ap;
+    va_start(ap, format);
+    vprintf(format, ap);
+    auto* reply = static_cast<redisReply*>(::redisvCommand(s_pRedisContext, format, ap));
+    va_end(ap);
+    return reply;
 }
 
 void CRedisClient::Set(const char* key, const char* value, int time_out_s)
 {
     if (time_out_s <= 0)
     {
-        std::string cmd("SET ");
-        cmd = cmd + key + " " + value ;
-        redisReply* reply = this->Command(cmd.c_str());
+        redisReply* reply = static_cast<redisReply*>
+                        (::redisCommand(s_pRedisContext, "SET %s %s ", key, value));
+        if (reply == nullptr)
+        {
+            std::cout << "reply nullptr" << std::endl;
+            return;
+        } 
+        else if (reply->type == REDIS_REPLY_ERROR || reply->type == REDIS_REPLY_STRING)
+        {
+            std::cout << "reply : " << reply->str << std::endl;
+        }
+        else if (reply->type == REDIS_REPLY_INTEGER)
+        {
+            std::cout << "reply : " << reply->integer << std::endl;
+        }
         freeReplyObject(reply);
         return;
     }
     else
     {
-        std::string _time = std::to_string(time_out_s);
-        if (_time.empty())
+        redisReply* reply = static_cast<redisReply*>
+                        (::redisCommand(s_pRedisContext, "SETEX %s %d %s ", key, time_out_s, value));
+        if (reply == nullptr)
+        {
+            std::cout << "reply nullptr" << std::endl;
             return;
-
-        std::string cmd("SETEX ");
-        cmd = cmd + key + " " + _time + " " + value;
-        std::cout << cmd << std::endl;
-        redisReply* reply = this->Command(cmd.c_str());
+        } 
+        else if (reply->type == REDIS_REPLY_NIL)
+        {
+            std::cout << "reply nil" << std::endl;
+        }
+        else if (reply->type == REDIS_REPLY_INTEGER)
+        {
+            std::cout << "reply : " << reply->integer << std::endl;
+        }
+        else 
+        {
+            std::cout << "reply : " << reply->str << std::endl;
+        }
         freeReplyObject(reply);
         return;
     }
 }
 void CRedisClient::SAdd(const Key& key, const Value& value)
 {
-    std::string cmd("SADD ");
-    cmd = cmd + key + " " + value + "";
-    std::cout << cmd << std::endl;
-    redisReply* reply = this->Command(cmd.c_str());
-    freeReplyObject(reply);
-    return;
-}
-void CRedisClient::SAdd(const Key& key, const ValueList& list) 
-{
-    std::string cmd("SADD ");
-    cmd = cmd + key ;
-
-    for (auto& value : list)
+    std::cout << "key : " << key << " value : " << value << std::endl;
+    redisReply *reply = static_cast<redisReply *>
+            (::redisCommand(s_pRedisContext, "SADD %s %s ", key.c_str(), value.c_str()));
+    if (reply == nullptr)
     {
-        cmd += ( " " + value);
+        std::cout << "reply nullptr" << std::endl;
+        return;
     }
-    cmd += " ";
-
-    std::cout << cmd << std::endl;
-    redisReply* reply = this->Command(cmd.c_str());
+    else if (reply->type == REDIS_REPLY_NIL)
+    {
+        std::cout << "reply nil" << std::endl;
+    }
+    else if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        std::cout << "reply : " << reply->integer << std::endl;
+    }
+    else
+    {
+        std::cout << "reply : " << reply->str << std::endl;
+    }
     freeReplyObject(reply);
     return;
 }
@@ -154,13 +181,29 @@ void CRedisClient::Get(const std::string& key, std::string& value)
 {
     value.clear();
     
-    std::string cmd("GET ");
-    cmd = cmd + key;
-    redisReply* reply = (redisReply*)this->Command(cmd.c_str());
-    if (reply == nullptr || reply->len == 0) {
-        return; 
+    std::cout << "key : " << key << std::endl;
+    redisReply *reply = static_cast<redisReply *>
+            (::redisCommand(s_pRedisContext, "GET %s ", key.c_str()));
+    if (reply == nullptr)
+    {
+        std::cout << "reply nullptr" << std::endl;
+        return;
     }
-    value = std::string(reply->str);
+    else if (reply->type == REDIS_REPLY_NIL)
+    {
+        std::cout << "reply nil" << std::endl;
+    }
+    else if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        std::cout << "reply : " << reply->integer << std::endl;
+    }
+    else
+    {
+        std::cout << "reply : " << reply->str << std::endl;
+    }
+
+    if (reply->type == REDIS_REPLY_STRING)
+        value = std::string(reply->str);
     freeReplyObject(reply);
 }
 
@@ -168,27 +211,57 @@ void CRedisClient::Get(const std::string& key, std::string& value)
 // Hash 
 bool CRedisClient::HSetNX(const Key& key, const Field& field, const Value& value)
 {
-    std::string cmd = "HSETNX " + key + " " + field + " " + value;
-
-    redisReply* reply = (redisReply*)this->Command(cmd.c_str());
-    if (reply == nullptr || reply->type != 3) {
-        return false; 
+    redisReply *reply = static_cast<redisReply *>(::redisCommand(s_pRedisContext, 
+                "HSETNX %s %s %s ", key.c_str(), field.c_str(), value.c_str()));
+    if (reply == nullptr)
+    {
+        std::cout << "reply nullptr" << std::endl;
+        return false;
     }
-    bool ok = reply->integer;
+    else if (reply->type == REDIS_REPLY_NIL)
+    {
+        std::cout << "reply nil" << std::endl;
+    }
+    else if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        std::cout << "reply : " << reply->integer << std::endl;
+    }
+    else
+    {
+        std::cout << "reply : " << reply->str << std::endl;
+    }
+
+    bool ok = false;
+    if (reply->type == REDIS_REPLY_INTEGER)
+        ok = reply->integer;
     freeReplyObject(reply);
     return ok;
 }
 bool CRedisClient::HSetNX(const Key& key, int field, const Value& value)
 {
-    std::string _cmd = "HSETNX " + key + " %d " + value;
-    char cmd[150];
-    sprintf(cmd,_cmd.c_str(),field);
-
-    redisReply* reply = (redisReply*)this->Command(cmd);
-    if (reply == nullptr || reply->type != 3) {
-        return false; 
+    redisReply *reply = static_cast<redisReply *>(::redisCommand(s_pRedisContext, 
+                "HSETNX %s %d %s ", key.c_str(), field, value.c_str()));
+    if (reply == nullptr)
+    {
+        std::cout << "reply nullptr" << std::endl;
+        return false;
     }
-    bool ok = reply->integer;
+    else if (reply->type == REDIS_REPLY_NIL)
+    {
+        std::cout << "reply nil" << std::endl;
+    }
+    else if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        std::cout << "reply : " << reply->integer << std::endl;
+    }
+    else
+    {
+        std::cout << "reply : " << reply->str << std::endl;
+    }
+
+    bool ok = false;
+    if (reply->type == REDIS_REPLY_INTEGER)
+        ok = reply->integer;
     freeReplyObject(reply);
     return ok;
 }
@@ -213,43 +286,85 @@ void CRedisClient::HGetAll(const Key& key, std::vector<std::tuple<Value, Value>>
 // Set
 bool CRedisClient::SIsMember(const Key& key, const Value& value)
 {
-    std::string cmd("SISMEMBER ");
-    cmd = cmd + key + " " + value;
-    redisReply* reply = (redisReply*)this->Command(cmd.c_str());
-    if (reply == nullptr) {
-        std::cout << "CRedisClient::SIsMember error" << std::endl;
+    redisReply *reply = static_cast<redisReply *>(::redisCommand(s_pRedisContext, 
+                "SISMEMBER %s %s ", key.c_str(), value.c_str()));
+    if (reply == nullptr)
+    {
+        std::cout << "reply nullptr" << std::endl;
         return false;
     }
-    std::cout << "CRedisClient::SIsMember " << reply->type << " " << reply->integer << std::endl;
-    bool ok = reply->integer;
+    else if (reply->type == REDIS_REPLY_NIL)
+    {
+        std::cout << "reply nil" << std::endl;
+    }
+    else if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        std::cout << "reply : " << reply->integer << std::endl;
+    }
+    else
+    {
+        std::cout << "reply : " << reply->str << std::endl;
+    }
+    bool ok = false;
+    if (reply->type == REDIS_REPLY_INTEGER)
+        ok = reply->integer;
     freeReplyObject(reply);
     return ok;
 }
 
-bool CRedisClient::SyncSAdd(const Key& key, int32_t value)
+bool CRedisClient::SAdd(const Key& key, int32_t value)
 {
-    char cmd[150];
-    sprintf(cmd, "SADD %s %d ", key.c_str(), value);
-
-    redisReply* reply = (redisReply*)this->Command(cmd);
-    if (reply == nullptr) {
-        std::cout << "CRedisClient::SyncSAdd error" << std::endl;
+    std::cout << "key : " << key << " value : " << value << std::endl;
+    redisReply *reply = static_cast<redisReply *>
+            (::redisCommand(s_pRedisContext, "SADD %s %s ", key.c_str(), value));
+    if (reply == nullptr)
+    {
+        std::cout << "reply nullptr" << std::endl;
         return false;
     }
-    std::cout << "CRedisClient::SyncSAdd " << reply->type << " " << reply->integer << std::endl;
-    bool ok = reply->integer;
+    else if (reply->type == REDIS_REPLY_NIL)
+    {
+        std::cout << "reply nil" << std::endl;
+    }
+    else if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        std::cout << "reply : " << reply->integer << std::endl;
+    }
+    else
+    {
+        std::cout << "reply : " << reply->str << std::endl;
+    }
+    bool ok = false;
+    if (reply->type == REDIS_REPLY_INTEGER)
+        ok = reply->integer;
     freeReplyObject(reply);
     return ok;
 }
 
 void CRedisClient::Del(const Key& key)
 {
-    std::string cmd("DEL ");
-    cmd = cmd + key;
-
-    std::cout << cmd << std::endl;
-    redisReply* reply = this->Command(cmd.c_str());
+    std::cout << "key : " << key << std::endl;
+    redisReply *reply = static_cast<redisReply *>
+            (::redisCommand(s_pRedisContext, "DEL %s ", key.c_str()));
+    if (reply == nullptr)
+    {
+        std::cout << "reply nullptr" << std::endl;
+        return;
+    }
+    else if (reply->type == REDIS_REPLY_NIL)
+    {
+        std::cout << "reply nil" << std::endl;
+    }
+    else if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        std::cout << "reply : " << reply->integer << std::endl;
+    }
+    else
+    {
+        std::cout << "reply : " << reply->str << std::endl;
+    }
     freeReplyObject(reply);
+    return;
 }
 
 }

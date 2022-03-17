@@ -43,8 +43,7 @@ public:
 
     // Set
     void SAdd(const Key& key, const Value& value) override;
-    void SAdd(const Key& key, const ValueList& list) override;
-    bool SyncSAdd(const Key& key, int32_t value) override;
+    bool SAdd(const Key& key, int32_t value) override;
     bool SIsMember(const Key& key, const Value& value) override;
 
     // 
@@ -79,7 +78,7 @@ private:
     CRedisClient() {}
     ~CRedisClient() ;
     
-    redisReply*                   Command(const char* format);
+    redisReply*                   Command(const char* format, ...);
 
 private:
     static std::mutex           _mutex;

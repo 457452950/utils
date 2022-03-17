@@ -49,8 +49,7 @@ public:
 
     // Set
     virtual void SAdd(const Key& key, const Value& value) = 0;
-    virtual void SAdd(const Key& key, const ValueList& list) = 0;
-    virtual bool SyncSAdd(const Key& key, int32_t value) = 0;
+    virtual bool SAdd(const Key& key, int32_t value) = 0;
     virtual bool SIsMember(const Key& key, const Value& value) = 0;
 
     // 
