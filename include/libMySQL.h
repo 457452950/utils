@@ -56,6 +56,41 @@ public:
         }
         return true;
     }
+    bool GetTableData(std::vector<std::vector<std::string>>& data, uint32_t start, uint32_t count){
+        data.clear();
+
+        if (this->_res == nullptr)
+        {
+            return false;
+        }
+
+        // 起始点非法
+        if (start > this->GetRowCount())
+        {
+            return false;
+        }
+
+        mysql_data_seek(this->_res, start);
+        uint32_t has_count = 0; // 收录行数
+
+        auto fields_num = mysql_num_fields(this->_res);
+        while (MYSQL_ROW row = mysql_fetch_row(this->_res))
+        {
+            if (has_count >= count)
+            {
+                break;
+            }
+
+            std::vector<std::string> _v1;
+            for (size_t index = 0; index < fields_num; index++)
+            {
+                _v1.push_back(row[index]);
+            }
+            data.push_back(_v1);
+            has_count++;
+        }
+        return true;
+    }
 
     uint64_t GetRowCount()
     {
