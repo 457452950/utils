@@ -51,6 +51,10 @@ public:
 
     // other
     void Del(const Key& key) override;
+    void INCR(const Key& key) override; // 自增
+    void DECR(const Key& key) override; // 自减
+    void INCRBY(const Key& key, int32_t value) override;
+    void DECRBY(const Key& key, int32_t value) override;
 
 
 

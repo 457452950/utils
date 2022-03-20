@@ -388,6 +388,110 @@ void CRedisClient::Del(const Key& key)
     return;
 }
 
+
+void CRedisClient::INCR(const Key& key)
+{
+    std::cout << "key : " << key << std::endl;
+    redisReply *reply = static_cast<redisReply *>
+            (::redisCommand(s_pRedisContext, "INCR %s ", key.c_str()));
+    if (reply == nullptr)
+    {
+        std::cout << "reply nullptr" << std::endl;
+        return;
+    }
+    else if (reply->type == REDIS_REPLY_NIL)
+    {
+        std::cout << "reply nil" << std::endl;
+    }
+    else if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        std::cout << "reply : " << reply->integer << std::endl;
+    }
+    else
+    {
+        std::cout << "reply : " << reply->str << std::endl;
+    }
+    freeReplyObject(reply);
+    return;
+
+}
+void CRedisClient::DECR(const Key& key)
+{
+    std::cout << "key : " << key << std::endl;
+    redisReply *reply = static_cast<redisReply *>
+            (::redisCommand(s_pRedisContext, "DECR %s ", key.c_str()));
+    if (reply == nullptr)
+    {
+        std::cout << "reply nullptr" << std::endl;
+        return;
+    }
+    else if (reply->type == REDIS_REPLY_NIL)
+    {
+        std::cout << "reply nil" << std::endl;
+    }
+    else if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        std::cout << "reply : " << reply->integer << std::endl;
+    }
+    else
+    {
+        std::cout << "reply : " << reply->str << std::endl;
+    }
+    freeReplyObject(reply);
+    return;
+}
+
+void CRedisClient::INCRBY(const Key& key, int32_t value)
+{
+    std::cout << "key : " << key << std::endl;
+    redisReply *reply = static_cast<redisReply *>
+            (::redisCommand(s_pRedisContext, "INCRBY %s %d ", key.c_str(), value));
+    if (reply == nullptr)
+    {
+        std::cout << "reply nullptr" << std::endl;
+        return;
+    }
+    else if (reply->type == REDIS_REPLY_NIL)
+    {
+        std::cout << "reply nil" << std::endl;
+    }
+    else if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        std::cout << "reply : " << reply->integer << std::endl;
+    }
+    else
+    {
+        std::cout << "reply : " << reply->str << std::endl;
+    }
+    freeReplyObject(reply);
+    return;
+}
+void CRedisClient::DECRBY(const Key& key, int32_t value)
+{
+    std::cout << "key : " << key << std::endl;
+    redisReply *reply = static_cast<redisReply *>
+            (::redisCommand(s_pRedisContext, "DECRBY %s %d ", key.c_str(), value));
+    if (reply == nullptr)
+    {
+        std::cout << "reply nullptr" << std::endl;
+        return;
+    }
+    else if (reply->type == REDIS_REPLY_NIL)
+    {
+        std::cout << "reply nil" << std::endl;
+    }
+    else if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        std::cout << "reply : " << reply->integer << std::endl;
+    }
+    else
+    {
+        std::cout << "reply : " << reply->str << std::endl;
+    }
+    freeReplyObject(reply);
+    return;
+}
+
 }
 
 

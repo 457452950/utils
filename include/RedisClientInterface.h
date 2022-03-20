@@ -57,7 +57,10 @@ public:
 
     // other
     virtual void Del(const Key& key) = 0;
-
+    virtual void INCR(const Key& key) = 0;
+    virtual void DECR(const Key& key) = 0;
+    virtual void INCRBY(const Key& key, int32_t value) = 0;
+    virtual void DECRBY(const Key& key, int32_t value) = 0;
 
     virtual ~IRedisClient() = default;
 private:
