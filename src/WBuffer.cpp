@@ -107,7 +107,7 @@ void RingBuffer::UpdateWriteOffset(uint32_t len)
     {
         this->_isFull == true;
     }
-    std::cout << "RingBuffer::UpdateWriteOffset " << this->_WriteOffset << "/" << this->_ReadOffset << std::endl;
+    // std::cout << "RingBuffer::UpdateWriteOffset " << this->_WriteOffset << "/" << this->_ReadOffset << std::endl;
 }
 
 void RingBuffer::UpdateReadOffset(uint32_t len)
@@ -125,7 +125,7 @@ void RingBuffer::UpdateReadOffset(uint32_t len)
     {
         this->_isEmpty = true;
     }
-    std::cout << "Write offset: " << this->_WriteOffset << " Read offset: " << this->_ReadOffset << std::endl;
+    // std::cout << "Write offset: " << this->_WriteOffset << " Read offset: " << this->_ReadOffset << std::endl;
 }
 
 uint32_t RingBuffer::InsertMessage(const std::string& message)

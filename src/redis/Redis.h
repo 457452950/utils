@@ -37,6 +37,8 @@ public:
     bool HSetNX(const Key& key, const Field& field, const Value& value) override;
     bool HSetNX(const Key& key, int field, const Value& value) override;
 
+    void HDEL(const Key& key, int field) override;
+    
     void HGetAll(const Key& key, std::vector<std::tuple<Value, Value>>& values) override;
 
     // List

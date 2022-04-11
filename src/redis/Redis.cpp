@@ -266,6 +266,36 @@ bool CRedisClient::HSetNX(const Key& key, int field, const Value& value)
     return ok;
 }
 
+void CRedisClient::HDEL(const Key& key, int field)
+{
+    redisReply *reply = static_cast<redisReply *>(::redisCommand(s_pRedisContext, 
+                "HDEL %s %d ", key.c_str(), field));
+    printf("HDEL %s %d \n", key.c_str(), field);
+    if (reply == nullptr)
+    {
+        std::cout << "reply nullptr" << std::endl;
+        return ;
+    }
+    else if (reply->type == REDIS_REPLY_NIL)
+    {
+        std::cout << "reply nil" << std::endl;
+    }
+    else if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        std::cout << "reply : " << reply->integer << std::endl;
+    }
+    else
+    {
+        std::cout << "reply : " << reply->str << std::endl;
+    }
+
+    bool ok = false;
+    if (reply->type == REDIS_REPLY_INTEGER)
+        ok = reply->integer;
+    freeReplyObject(reply);
+    return ;
+}
+
 void CRedisClient::HGetAll(const Key& key, std::vector<std::tuple<Value, Value>>& values)
 {
     std::cout << "HGetAll " << key << std::endl;

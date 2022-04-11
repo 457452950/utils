@@ -43,6 +43,8 @@ public:
     virtual bool HSetNX(const Key& key, const Field& field, const Value& value) = 0;
     virtual bool HSetNX(const Key& key, int field, const Value& value) = 0;
 
+    virtual void HDEL(const Key& key, int field) = 0;
+
     virtual void HGetAll(const Key& key, std::vector<std::tuple<Value, Value>>& values) = 0;
 
     // List
