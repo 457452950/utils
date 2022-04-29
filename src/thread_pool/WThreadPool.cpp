@@ -5,6 +5,7 @@ namespace wlb
 
 bool WThreadPool::Start(uint16_t threads_count)
 {
+    // 检查,不可重复启动
     if (this->is_active_)
         return false;
     
@@ -55,6 +56,7 @@ void WThreadPool::ConsumerThread()
 {
     while (this->is_active_)
     {
+        // 持锁
         std::unique_lock<std::mutex> _unique_lock(this->mutex_);
 
         if (!this->is_active_)

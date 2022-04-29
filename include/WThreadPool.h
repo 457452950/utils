@@ -39,10 +39,14 @@ public:
     WThreadPool(const WThreadPool&) = delete;
     WThreadPool& operator=(const WThreadPool&) = delete;
 
+    // lifetime
+    // return true if the pool start success
     bool Start(uint16_t threads_count);
     inline void Stop() {this->is_active_ = false;}
-    void WaitToStop();
+    void WaitToStop();  // Wait the pool return (block)
     void Destroy();
+
+    // methods
     void AddTask(const user_function_t& function, user_data_t data);
 
 private:
@@ -57,7 +61,7 @@ private:
     task_list tasks_;
 
     std::mutex mutex_;
-    std::condition_variable condition_;
+    std::condition_variable condition_;         // 条件变量
 };
 
 

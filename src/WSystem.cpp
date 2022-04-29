@@ -1,4 +1,4 @@
-#include "../../include/WSystem.h"
+#include "WSystem.h"
 
 namespace wlb
 {

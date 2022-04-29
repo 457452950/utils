@@ -16,6 +16,13 @@ using namespace debug;
     DEBUGADD("WListNode")
 
     
+// 
+// 链表
+// 这是一个比较“神奇”的链表，用户需要手动创建节点，
+// 用户销毁节点，节点将自动从母链表删除，
+// 节点仅有一个母链表
+// 用户将节点加入到另一个链表时，默认将失败，也提供了强制加入的方法
+// 
 // not thread safe
 template<typename T>
 class WList

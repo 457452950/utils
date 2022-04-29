@@ -11,17 +11,9 @@ namespace wlb
 
 timerfd CreateNewTimerfd()
 {
-    try
-    {
-        // return ::timerfd_create(CLOCK_REALTIME_ALARM, TFD_NONBLOCK | TFD_CLOEXEC);
-        return ::timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);
-        // return ::timerfd_create(CLOCK_REALTIME, 0);
-    }
-    catch(const std::exception& e)
-    {
-        // std::cerr << e.what() << '\n';
-    }
-    return 0;
+    // return ::timerfd_create(CLOCK_REALTIME_ALARM, TFD_NONBLOCK | TFD_CLOEXEC);
+    return ::timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);
+    // return ::timerfd_create(CLOCK_REALTIME, 0);
 }
 
 bool SetTimerTime(timerfd fd, 
@@ -29,17 +21,11 @@ bool SetTimerTime(timerfd fd,
                     const struct itimerspec* next_time, 
                     struct itimerspec* prev_time)
 {
-    try
+    if ( ::timerfd_settime(fd, (int)flag, next_time, prev_time) == 0)
     {
-        if ( ::timerfd_settime(fd, (int)flag, next_time, prev_time) == 0)
-        {
-            return true;
-        }
+        return true;
     }
-    catch(const std::exception& e)
-    {
-        // std::cerr << e.what() << '\n';
-    }
+
     return false;
 }
 
@@ -69,7 +55,6 @@ bool WTimer::Start(long time_value, long interval)
     next_time.it_interval.tv_nsec = (interval % 1000L) * 1000'000L;
     if (!SetTimerTime(this->_fd, SetTimeFlag::REL, &next_time))
     {
-        
         return false;
     }
     
@@ -82,7 +67,6 @@ bool WTimer::Start(long time_value, long interval)
         }
     }
     
-
     this->_handler->AddTimer(this->_handlerData);
 
     this->_active = true;

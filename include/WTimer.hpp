@@ -19,7 +19,7 @@ namespace wlb
 // };
 
 timerfd CreateNewTimerfd();
-
+// 设置时间差的意义
 enum class SetTimeFlag
 {
     REL = 0,    // 相对时间
@@ -38,6 +38,7 @@ bool SetTimerTime(timerfd fd, SetTimeFlag flag, const struct itimerspec* next_ti
 struct WTimerHandlerData;
 class WTimerHandler;
 
+// 监听者模式，listener监听者,handler计时器驱动句柄
 class WTimer
 {
 public:
@@ -46,21 +47,28 @@ public:
     WTimer(const WTimer& other) = delete;
     WTimer& operator=(const WTimer& other) = delete;
     virtual ~WTimer() {
-        if (this->_fd != -1) ::close(this->_fd);
-        if (this->_handlerData != nullptr) delete this->_handlerData;
+        if (this->_fd != -1) 
+            ::close(this->_fd);
+        this->_fd = -1;
+
+        if (this->_handlerData != nullptr) 
+            delete this->_handlerData;
+        this->_handlerData = nullptr;
     };
 
+    // time_value 初次启动的计时时长，单位为ms, interval循环定时器定时时长，单次定时器设置为0,默认采用相对时间
     bool Start(long time_value, long interval = 0);
     void Stop();
-
+    // 定时器是否活跃，即是否已完成定时任务
     inline bool IsActive() { return this->_active; }
+
 protected:
     timerfd _fd{-1};
     bool _active{false};
     WTimerHandler* _handler{nullptr};
-    WTimerHandler::Listener* _listener{nullptr};
+    WTimerHandler::Listener* _listener{nullptr};    // 唯一监听者
 
-    WTimerHandlerData* _handlerData{nullptr};
+    WTimerHandlerData* _handlerData{nullptr};       // 向定时器驱动句柄的注册信息
 };
 
 } // namespace wlb
