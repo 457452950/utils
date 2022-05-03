@@ -160,8 +160,9 @@ uint32_t GetLengthFromWlbHead(const char* wlbHead, uint32_t head_length);
 
 class WFloatBufferConnection : public WBaseConnection, public WNetWorkHandler::Listener
 {
-    //  wlb Head = 4  message length = 1234
-    //   0 1 2 3 4 5 6 7 8 9
+    //  Head = 4  message length = 0x1234
+    //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //  |0|1|2|3|4|5|6|7|8|9|...
     //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     //  |4|3|2|1|  ... message body  ...|    
 public:
