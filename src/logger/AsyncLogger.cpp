@@ -4,6 +4,7 @@
 
 #include "../../include/AsyncLogger.h"
 #include <sys/types.h>
+#include <sys/time.h>
 
 //检查文件(所有类型,包括目录和文件)是否存在
 //返回1:存在 0:不存在
@@ -66,7 +67,7 @@ namespace Log
 #ifdef WIN32
             mkdir("log");
 #else
-            mkdir("log", 477);
+            ::mkdir("log", 477);
 #endif // WIN32
 
         }

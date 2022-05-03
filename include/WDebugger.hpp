@@ -8,45 +8,43 @@
 #include "WTimer.hpp"
 #include "WNetWork/WEpoll.hpp"
 
-namespace wlb::debug
-{
+namespace wlb::debug {
 
-extern WTimerHandler* debuggerHandler;
+extern WTimerHandler *debuggerHandler;
 
-class Debugger : public WTimerHandler::Listener
-{
+class Debugger final : public WTimerHandler::Listener {
 public:
-    explicit Debugger() {};
-    ~Debugger() {this->Destroy();};
+    explicit Debugger() = default;
+    ~Debugger() override { this->Destroy(); };
 
     // class lifetime
     // init
-    bool Init(long timeout); 
-    inline bool IsActive() const {return this->_isActive;}
+    bool Init(long timeout);
+    inline bool IsActive() const { return this->_isActive; }
     void Destroy();
 
-    void MemberAdd(const std::string& name);
-    void MemberRemove(const std::string& name);
+    void MemberAdd(const std::string &name);
+    void MemberRemove(const std::string &name);
 
 private:
     // override methods OnTime from WTimerHandler::Listener
-    void OnTime(WTimer* timer) override;
-    void Loop();
+    void OnTime(WTimer *timer) override;
+    void Loop() const;
 
 private:
-    WTimer* _timer{nullptr};
-    bool _isActive{false};
-    std::thread* _thread{nullptr};
+    WTimer      *_timer{nullptr};
+    bool        _isActive{false};
+    std::thread *_thread{nullptr};
 
     std::unordered_map<std::string, std::atomic<int64_t>> _memberMap;
 };
 
-extern Debugger* debugger;
+extern Debugger *debugger;
 
 #define DEBUGADD(name) \
     if (debugger != nullptr && debugger->IsActive()) \
         debugger->MemberAdd(name);
-        
+
 #define DEBUGRM(name) \
     if (debugger != nullptr && debugger->IsActive()) \
         debugger->MemberRemove(name);
@@ -63,22 +61,20 @@ extern Debugger* debugger;
     DEBUGADD("delete[]")\
     DEBUGRM("new[]")
 
-
-class WTimeDebugger
-{
+class WTimeDebugger {
 public:
-    WTimeDebugger(){ this->_stamp = this->GetTime(); }
+    WTimeDebugger() { this->_stamp = this->GetTime(); }
 
-    void tick() { 
+    void tick() {
         int64_t now = this->GetTime();
         std::cout << now - this->_stamp << std::endl;
         this->_stamp = now;
     }
 
 private:
-    int64_t GetTime(){
-        std::chrono::microseconds ms = std::chrono::duration_cast< std::chrono::microseconds >(
-            std::chrono::system_clock::now().time_since_epoch());
+    int64_t GetTime() {
+        std::chrono::microseconds ms = std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::system_clock::now().time_since_epoch());
         return ms.count();
     };
 
@@ -86,7 +82,7 @@ private:
     int64_t _stamp;
 };
 
-extern WTimeDebugger timedebug;
+[[maybe_unused]] extern WTimeDebugger time_debug;
 
 }   // namespace wlb::debug
 

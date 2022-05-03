@@ -460,8 +460,8 @@ void WTimerEpoll::GetAndEmitTimer(int32_t timeout)
         {
             WTimerHandlerData* data = (WTimerHandlerData*)_events[index].data.ptr;
             listener = data->listener;
-            timer = data->_timer;
-            fd = data->_timerfd;
+            timer = data->timer_;
+            fd = data->timer_fd_;
             
             if (_events[index].events & EPOLLIN)
             {
@@ -490,12 +490,12 @@ void WTimerEpoll::AddTimer(WTimerHandlerData* data)
     uint32_t event = 0;
     event |= EPOLLET;
     event |= EPOLLIN;
-    WBaseEpoll::AddSocket(data->_timerfd, event, _data);
+    WBaseEpoll::AddSocket(data->timer_fd_, event, _data);
 }
 
 void WTimerEpoll::RemoveTimer(WTimerHandlerData* data)
 {
-    WBaseEpoll::RemoveSocket(data->_timerfd);
+    WBaseEpoll::RemoveSocket(data->timer_fd_);
 }
 
 

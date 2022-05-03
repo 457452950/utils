@@ -26,6 +26,7 @@ target_link_libraries(tinymysql mysqlclient)
 
 add_library(
     wutils
+    src/WSystem.cpp
     src/WBuffer.cpp
     src/WDebugger.cpp
     src/WTimer.cpp 

@@ -1,17 +1,19 @@
 #include "WOS.h"
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <cstring>
 
-namespace wlb
-{
+namespace wlb {
 
+// 环形内存
 // not thread safe
-class RingBuffer
-{
+class RingBuffer {
 public:
     explicit RingBuffer();
     ~RingBuffer();
+    // unablecopy
+    RingBuffer(const RingBuffer &) = delete;
+    RingBuffer &operator=(const RingBuffer &) = delete;
 
     // class life time
     bool Init(uint32_t maxBufferSize);
@@ -19,45 +21,41 @@ public:
     void Destroy();
 
     // class methods
-    const uint32_t GetRestBufferSize();
-    const uint32_t GetTopRestBufferSize();
-    char* GetBuffer();
-    char* GetRestBuffer();  // 返回写指针指向的位置
+    uint32_t GetRestBufferSize() const;
+    uint32_t GetTopRestBufferSize() const;
+    char *GetBuffer();
+    char *GetRestBuffer();  // 返回写指针指向的位置
     void UpdateWriteOffset(uint32_t len);
     void UpdateReadOffset(uint32_t len);
-    inline bool Empty() { return this->_isEmpty; };
+    inline bool Empty() const { return this->isEmpty_; };
 
     // return 0 when false, otherwise return the number of success bytes
-    uint32_t InsertMessage(const std::string& message);
+    uint32_t InsertMessage(const std::string &message);
 
-    const uint32_t GetFrontMessageLength();
+    uint32_t GetFrontMessageLength() const;
     // you can get messages from buf or return value
-    const uint32_t GetFrontMessage(std::string& message, uint32_t len);
-    const uint32_t GetAllMessage(std::string& message);
-    
-    const std::string GetErrorMessage() {
-        std::string _t = this->_errorMessage;
-        this->_errorMessage.clear();
+    uint32_t GetFrontMessage(std::string *message, uint32_t len);
+    uint32_t GetAllMessage(std::string *message);
+
+    std::string GetErrorMessage() {
+        std::string _t = this->errorMessage_;
+        this->errorMessage_.clear();
         return _t;
     };
 
 protected:
-    char* _buffer{nullptr};
-    uint32_t _maxBufferSize{0};
+    // buffer
+    char        *buffer_{nullptr};
+    uint32_t    maxBufferSize_{0};
+    // offset
+    uint32_t    readOffset_{0};
+    uint32_t    writeOffset_{0};
+    // state
+    bool        isFull_{false};
+    bool        isEmpty_{true};
+    // error message
+    std::string errorMessage_;
 
-    uint32_t _ReadOffset{0};
-    uint32_t _WriteOffset{0};
-
-    bool _isFull{false};
-    bool _isEmpty{true};
-
-    // error
-    std::string _errorMessage;
-
-    // unablecopy
-protected:
-    RingBuffer(const RingBuffer&) = delete;
-    RingBuffer& operator=(const RingBuffer&) = delete;
 };
 
 } // namespace wlb

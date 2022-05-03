@@ -395,7 +395,7 @@ void WFloatBufferConnection::OnRead()
     while (1)
     {
         receive_message.clear();
-        uint32_t len = this->_recvBuffer.GetFrontMessage(head, this->_headLen);
+        uint32_t len = this->_recvBuffer.GetFrontMessage(&head, this->_headLen);
         
         if (len != this->_headLen)
         {
@@ -422,7 +422,7 @@ void WFloatBufferConnection::OnRead()
         
         this->_recvBuffer.UpdateReadOffset(this->_headLen);
 
-        len = this->_recvBuffer.GetFrontMessage(receive_message, len);
+        len = this->_recvBuffer.GetFrontMessage(&receive_message, len);
         if (len == 0)
         {
             // no enough message
@@ -441,7 +441,7 @@ void WFloatBufferConnection::OnWrite()
 {
     std::cout << "WFloatBufferConnection::OnWrite()" << std::endl;
     std::string send_message;
-    uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
+    uint32_t msg_len = _sendBuffer.GetAllMessage(&send_message);
     ssize_t send_len = ::send(this->_socket, send_message.c_str(), msg_len, 0);
     
     std::cout << "sned len :" << send_len << std::endl;
@@ -574,7 +574,7 @@ bool WFixedBufferConnection::Init(WNetWorkHandler* handler, uint32_t maxBufferSi
     this->_handler = handler;
     if (this->_handler == nullptr)
     {
-        this->_errorMessage = "Invalid _handler nullptr";
+        this->_errorMessage = "Invalid timerHandler_ nullptr";
         return false;
     }
     
@@ -738,7 +738,7 @@ void WFixedBufferConnection::OnRead()
     {
         receive_message.clear();
 
-        uint32_t len = this->_recvBuffer.GetFrontMessage(receive_message, this->_messageSize);
+        uint32_t len = this->_recvBuffer.GetFrontMessage(&receive_message, this->_messageSize);
         
         if (len != this->_messageSize)
         {
@@ -754,7 +754,7 @@ void WFixedBufferConnection::OnRead()
 void WFixedBufferConnection::OnWrite()
 {
     std::string send_message;
-    uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
+    uint32_t msg_len = _sendBuffer.GetAllMessage(&send_message);
     ssize_t send_len = ::send(this->_socket, send_message.c_str(), msg_len, 0);
     // std::cout << "send:" << send_len << std::endl;
     
