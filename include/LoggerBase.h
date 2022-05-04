@@ -41,6 +41,11 @@ void MakeMessageHead(const char *file_name,
 
 namespace Log {
 
+namespace LOG_TYPE {
+    const int8_t L_STDOUT = 1 << 0;
+    const int8_t L_FILE   = 1 << 1;
+}
+
 enum LOG_LEVEL : uint8_t {
     L_DEBUG = 1 << 0,
     L_INFO  = 1 << 1,

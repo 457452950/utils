@@ -1,11 +1,9 @@
 #include "WNetWork/WMultiTcpServer.hpp"
 #include <iostream>
-#include "Logger.h"
 
 namespace wlb::NetWork
 {
 
-using namespace wlb::Log;
 
 /////////////////////////////////
 // timer

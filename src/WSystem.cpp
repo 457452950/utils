@@ -37,7 +37,7 @@ void GetCurrentTime(char *buff, int max_len) {
     time_t _t    = ::time(nullptr);
     auto   _time = ::localtime(&_t);
 
-    ::snprintf(buff, max_len, "[%d-%d-%d %02d:%02d:%02d.%03ld-%03ld]",
+    ::snprintf(buff, max_len, "[%d-%d-%d %02d:%02d:%02d.%03ld.%03ld]",
                _time->tm_year + 1900,
                _time->tm_mon + 1,
                _time->tm_mday,

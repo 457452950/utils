@@ -1,10 +1,8 @@
 #include "libMySQL.h"
-#include "Logger.h"
 #include <iostream>
 
 namespace wlb
 {
-    using namespace Log;
 
     libMySQL::libMySQL(/* args */)
     {

@@ -18,18 +18,18 @@ namespace wlb
 class JsonFileReader
 {
 public:
-	JsonFileReader(const std::string fileName);
+	explicit JsonFileReader(const std::string& fileName);
 	~JsonFileReader();
 
 	
-    rapidjson::Value& operator[](std::string key){
+    rapidjson::Value& operator[](const std::string& key){
         return  m_docData[key.c_str()];
     }
     rapidjson::Value& operator[](int key){
         return  m_docData[key];
     }
     
-    bool HasMember(std::string key){
+    bool HasMember(const std::string& key){
         return m_docData.HasMember(key.c_str());
     }
 

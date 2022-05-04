@@ -18,15 +18,11 @@
 #include "LoggerBase.h"
 
 #ifdef WIN32
-
-#include <windows.h>    // GetLocalTime
-#include <direct.h>     // mkdir
-#include <io.h>         // access
+  #include <windows.h>    // GetLocalTime
+  #include <direct.h>     // mkdir
+  #include <io.h>         // access
 #else   // linux
-
-#include <unistd.h>     // access()
-#include <ctime>
-
+  #include <unistd.h>     // access()
 #endif
 
 
@@ -36,81 +32,70 @@
 // #define DEBUG "DEBUG"
 
 
-bool IsFileExist(const char *path);
-
 namespace wlb::Log {
 
 class LogHelper;
-
 using LogHelper_ptr = std::shared_ptr<LogHelper>;
 
+// 生产者-消费者模型
 class Logger {
+private:
     // Singleton
+    Logger();
 public:
-    static void Init(LOG_LEVEL level, char *fileName) {
-        s_strFileName = new char[strlen(fileName) + 1];
-        memcpy(s_strFileName, fileName, strlen(fileName));
-        s_strFileName[strlen(fileName)] = '\0';
-        s_Instance = new Logger();
-        s_LogLevel = level;
-        s_Instance->m_bIsRunning = true;
-        s_Instance->m_pThread    = new(std::nothrow) std::thread(&Logger::Loop, s_Instance);
-        Logger::s_bIsActive = true;
-    }
-    static void Stop() {
-        s_Instance->m_bIsRunning = false;
-    }
-    static void Wait2Exit() {
-        if (s_Instance->m_pThread != nullptr && s_Instance->m_pThread->joinable()) {
-            s_Instance->m_pThread->join();
-        }
-    }
-    static Logger *getInstance();
-    static bool s_bIsActive;
+    ~Logger();
+    // no copyable
     void operator=(Logger *) = delete;
     Logger(const Logger &) = delete;
 
-    static LOG_LEVEL s_LogLevel;
+    // 初始化
+    static void Init(int8_t type, LOG_LEVEL level, char *fileName);
+    static void Stop();
+    static void Wait2Exit();
+
+    static Logger *getInstance();
+    static bool IsActive();
+    static LOG_LEVEL GetLogLevel();
+    void Loop();
 private:
-    Logger();
-    ~Logger();
-    static Logger *s_Instance;
-    static char   *s_strFileName;
+    static Logger           *instance_;
+    bool                    active_{false};
+    LOG_LEVEL               log_level_{L_ERROR};
+    int8_t                  log_type_{LOG_TYPE::L_STDOUT};
+    // file log
+    char                    *base_file_name_{nullptr};
+    // Check file size
+    const int64_t           max_file_size_  = 100 * 1024 * 1024;  // 10MB
+    const int8_t            max_check_times = 10;
+    int8_t                  check_times_{0};
+    // async
+    std::ofstream           file_stream_;
+    bool                    running_{false};
+    std::thread             *thread_{nullptr};
+    std::mutex              mutex_;
+    std::condition_variable con_variable_;
 
     // Logger
 public:
     LogHelper_ptr Write(const char *level,
                         const char *file,
                         int lineNo,
-                        const char *date,
-                        const char *_time,
                         const char *_func);
-    std::stringstream &GetStream() { return m_sstream; }
+    std::stringstream &GetStream() { return string_stream_; }
     void commit();
 
 private:
     void initFilePath();
-    int getFileSize() { return m_oStream.tellp(); }
-    void Loop();
+    int64_t getFileSize() { return file_stream_.tellp(); }
 
 private:
-    const int m_maxFileSize = 100 * 1024 * 1024;  // 10MB
-    const int m_iCheckTimes = 10;
-    int       m_iTimes{0};
-
-    std::ofstream           m_oStream;
-    std::mutex              m_mMutex;
-    std::condition_variable m_condition;
-    std::thread             *m_pThread{nullptr};
-    std::stringstream       m_sstream;
-    std::list<std::string>
-                            m_LogList;
-    bool                    m_bIsRunning{false};
+    std::list<std::string> log_string_list_;
+    std::stringstream      string_stream_;
 };
 
 class LogHelper {
 public:
-    explicit LogHelper(Logger *log) { _log = log; }
+    explicit LogHelper(Logger *log) : _log(log) {}
     ~LogHelper() { _log->commit(); }
     std::stringstream &Get() { return _log->GetStream(); };
 private:
@@ -118,9 +103,9 @@ private:
 };
 
 #define LOG(level)                    \
-    if (Logger::s_LogLevel <= level && Logger::s_bIsActive)           \
-        Logger::getInstance()->Write(#level, __FILE__, __LINE__,     \
-                            __DATE__, __TIME__, __FUNCTION__)->Get()
+    if (Logger::GetLogLevel() <= (level) && Logger::IsActive())           \
+        Logger::getInstance()->Write(#level, __FILENAME__, __LINE__,     \
+                            __FUNCTION__)->Get()
 
 }
 
