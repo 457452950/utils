@@ -57,6 +57,7 @@ bool MakeSockAddr_in(const std::string &ip_address, uint16_t port, sockaddr_in *
 bool Bind(base_socket_type socket, const std::string &host, uint16_t port, bool isv4 = true);
 bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo);
 
+// return -1 if fail
 base_socket_type Accept(base_socket_type socket, WEndPointInfo *info, bool isv4 = true);
 base_socket_type AcceptV4(base_socket_type socket, WEndPointInfo *info);
 

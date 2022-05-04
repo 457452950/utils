@@ -27,7 +27,7 @@ public:
     char *GetRestBuffer();  // 返回写指针指向的位置
     void UpdateWriteOffset(uint32_t len);
     void UpdateReadOffset(uint32_t len);
-    inline bool Empty() const { return this->isEmpty_; };
+    inline bool Empty() const { return this->is_empty_; };
 
     // return 0 when false, otherwise return the number of success bytes
     uint32_t InsertMessage(const std::string &message);
@@ -37,25 +37,16 @@ public:
     uint32_t GetFrontMessage(std::string *message, uint32_t len);
     uint32_t GetAllMessage(std::string *message);
 
-    std::string GetErrorMessage() {
-        std::string _t = this->errorMessage_;
-        this->errorMessage_.clear();
-        return _t;
-    };
-
 protected:
     // buffer
     char        *buffer_{nullptr};
-    uint32_t    maxBufferSize_{0};
+    uint32_t    max_buffer_size_{0};
     // offset
-    uint32_t    readOffset_{0};
-    uint32_t    writeOffset_{0};
+    uint32_t    read_offset_{0};
+    uint32_t    write_offset_{0};
     // state
-    bool        isFull_{false};
-    bool        isEmpty_{true};
-    // error message
-    std::string errorMessage_;
-
+    bool        is_full_{false};
+    bool        is_empty_{true};
 };
 
 } // namespace wlb

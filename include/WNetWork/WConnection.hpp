@@ -4,12 +4,9 @@
 #include "../WBuffer.hpp"
 #include "WNetWorkHandler.hpp"
 #include "WService.hpp"
-#include "../WDebugger.hpp"
 
-namespace wlb::NetWork
-{
+namespace wlb::NetWork {
 
-using namespace wlb::debug;
 
 
 /////////////////////////////////////////////////////////
@@ -17,52 +14,58 @@ using namespace wlb::debug;
 // Accepter
 ////////////////////////////////////////////////////////
 
-class WNetAccepter : public WNetWorkHandler::Listener
-{
+// tcp v4 only
+class WNetAccepter final : public WNetWorkHandler::Listener {
 public:
-    class Listener
-    {
+    class Listener {
     public:
-        virtual ~Listener() {};
-        virtual bool OnNewConnection(base_socket_type socket, const WEndPointInfo& peerInfo) = 0;
+        virtual ~Listener() = default;
+        virtual bool OnNewConnection(base_socket_type socket, const WEndPointInfo &peerInfo) = 0;
     };
 public:
-    explicit WNetAccepter(Listener* listener);
-    WNetAccepter(const WNetAccepter& other) = delete;
-    WNetAccepter& operator=(const WNetAccepter& other) = delete;
-    ~WNetAccepter();
+    explicit WNetAccepter(Listener *listener);
+    ~WNetAccepter() override;
+    // no copyable
+    WNetAccepter(const WNetAccepter &other) = delete;
+    WNetAccepter &operator=(const WNetAccepter &other) = delete;
 
-    bool Init(WNetWorkHandler* handler, const std::string& IpAddress, uint16_t port);
+    // 初始化
+    bool Init(WNetWorkHandler *handler, const std::string &IpAddress, uint16_t port);
+    bool Init(WNetWorkHandler *handler, const WEndPointInfo &end_point_info);
     void Close();
-    base_socket_type GetListenSocket();
-    
-protected:
-    base_socket_type Accept(WEndPointInfo& info);
+
+    const WEndPointInfo &GetLocalInfo() const;
+    base_socket_type GetListenSocket() noexcept;
+    int16_t GetErrorNo() noexcept;
 
 protected:
-    void OnError(int error_code) override;
+    base_socket_type Accept(WEndPointInfo *info);
+
+protected:
+    // override
+    void OnError(int16_t error_code) override;
     void OnRead() override;
 
-    // not uese
+    // not use
     void OnClosed() override {};
     void OnShutdown() override {};
     void OnWrite() override {};
-    // virtual bool OnConnected() override{};
-
 
 private:
     bool Listen();
 
 private:
-    base_socket_type _socket;
-    // bind address ip and port
-    std::string _address;
-    uint16_t _port;
-
-    WNetWorkHandler* _handler{nullptr};
-    Listener* _listener{nullptr};
-
-    WHandlerData* _handlerData{nullptr};
+    base_socket_type socket_{-1};
+    // bind local address ip and port
+    WEndPointInfo    local_info_;
+private:
+    //
+    WNetWorkHandler *handler_{nullptr};
+    Listener        *listener_{nullptr};
+    //
+    WHandlerData    *handler_data_{nullptr};
+    // error
+    int16_t         errno_{-1};
 };
 
 
@@ -74,223 +77,186 @@ private:
 // Seession
 ////////////////////////////////////////////////////////
 
-
 // 网络层抽象逻辑
-class WBaseConnection
-{
+class WBaseConnection {
 public:
-    class Listener
-    {
+    class Listener {
     public:
-        virtual ~Listener() {};
-        virtual void OnConnectionMessage(const std::string& recieve_message) = 0;
+        // 当链接已关闭时，才调用OnConnectionClosed、OnConnectionError、OnConnectionShutdown
+        virtual ~Listener() = default;
+        virtual void OnConnectionMessage(const std::string &receive_message) = 0;
         virtual void OnConnectionClosed() = 0;
         virtual void OnConnectionShutdown() = 0;
         virtual void OnConnectionError() = 0;
     };
 public:
-    WBaseConnection() {};
-    virtual ~WBaseConnection() {};
+    WBaseConnection() = default;
+    virtual ~WBaseConnection() = default;
 
     // class life control
-    virtual bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t flags = 0) = 0;
-    virtual bool SetConnectedSocket(base_socket_type socket,const WEndPointInfo& peerInfo) = 0;
+    virtual bool Init(WNetWorkHandler *handler, uint32_t maxBufferSize, uint32_t flags) = 0;
     virtual void Clear() = 0;
-    virtual void Destroy() = 0;
 
     // connection methods
-    virtual bool Send(const std::string& message) = 0;
-    virtual bool Receive() = 0;
-    virtual void Close() = 0;   // close the connection not class
+    virtual bool SetConnectedSocket(base_socket_type socket, const WEndPointInfo &peerInfo) = 0;
+    virtual bool Send(const std::string &message) = 0;
+    virtual void CloseConnection() = 0;   // close the connection not class
 
     // get connection state
     virtual bool isConnected() = 0;
-    // virtual int GetErrorCode() = 0;
-    virtual const std::string& getErrorMessage() = 0;
-
-    virtual const std::string& getPeerIpAddress() = 0;
-    virtual const uint16_t getPeerPort() = 0;
-    
+    virtual int GetErrorCode() = 0;
+    virtual const WEndPointInfo &GetPeerInfo() = 0;
 protected:
-    std::string _errorMessage;
+    virtual bool Receive() = 0;
 };
 
 
 //////////////////////////////////
-// there are two classes of WBaseConnection 
+// there are two classes of WBaseConnection
 
+//enum class WConnectionType {
+//    WFloatConnections = 0,
+//    WFixedConnections = 1,
+//};
+//
+//struct WConnectionStyle {
+//    WConnectionType type;
+//    uint32_t        maxBufferSize;
+//    uint32_t        flag;
+//    WConnectionStyle(WConnectionType type = WConnectionType::WFixedConnections,
+//                     uint32_t maxBufferSize = 0,
+//                     uint32_t flag = 0)
+//            : type(type), maxBufferSize(maxBufferSize), flag(flag) {};
+//};
 
-enum class WConnectionType {
-    WFloatConnections = 0,
-    WFixedConnections = 1,
+template <uint8_t LEN>
+union wlbHead {
+    uint64_t data_int;
+    uint8_t  data_uchar[LEN];
 };
 
-struct WConnectionStyle {
-    WConnectionType type;
-    uint32_t maxBufferSize;
-    uint32_t flag;
-    WConnectionStyle(WConnectionType type = WConnectionType::WFixedConnections, uint32_t maxBufferSize = 0, uint32_t flag = 0)
-        : type(type), maxBufferSize(maxBufferSize), flag(flag) { };
-};
+uint64_t GetLengthFromWlbHead(const char *str_data, uint8_t head_length);
 
-
-struct wlbHead2
-{
-    union _head
-    {
-        uint16_t length;
-        uint8_t data[2];
-    }data;
-    wlbHead2(uint16_t len = 0) {data.length = len;};
-};
-struct wlbHead4
-{
-    union _head
-    {
-        uint32_t length;
-        uint8_t data[4];
-    }data;
-    wlbHead4(uint32_t len = 0) {data.length = len;};
-};
-const std::string MakeWlbHead(const wlbHead2& length);
-const std::string MakeWlbHead(const wlbHead4& length); 
-uint32_t GetLengthFromWlbHead(const char* wlbHead, uint32_t head_length);
-
-
-
-class WFloatBufferConnection : public WBaseConnection, public WNetWorkHandler::Listener
-{
+class WFloatBufferConnection : public WBaseConnection, public WNetWorkHandler::Listener {
     //  Head = 4  message length = 0x1234
     //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     //  |0|1|2|3|4|5|6|7|8|9|...
     //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     //  |4|3|2|1|  ... message body  ...|    
 public:
-    explicit WFloatBufferConnection(WBaseConnection::Listener* listener);
-    WFloatBufferConnection(const WFloatBufferConnection& other) = delete;
-    WFloatBufferConnection& operator=(const WFloatBufferConnection& other) = delete;
-    virtual ~WFloatBufferConnection();
+    explicit WFloatBufferConnection(WBaseConnection::Listener *listener);
+    ~WFloatBufferConnection() override;
+    // no copyable
+    WFloatBufferConnection(const WFloatBufferConnection &other) = delete;
+    WFloatBufferConnection &operator=(const WFloatBufferConnection &other) = delete;
 
     // class life time
-    bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t headLen = 4) override;
-    bool SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo) override;
-    void Clear() override;      // 重置类
-    void Destroy() override;
+    bool Init(WNetWorkHandler *handler, uint32_t maxBufferSize, uint32_t headLen) override;
+    // 清理，准备服用
+    void Clear() override;
+    // 销毁，不再使用
+    void Destroy();
 
     // class methods
-    bool Send(const std::string& message) override;
+    bool SetConnectedSocket(base_socket_type socket, const WEndPointInfo &peerInfo) override;
+    bool Send(const std::string &message) override;
     bool Receive() override;
-    
-    void Close() override;  // 关闭连接 close the connection not socket
+    void CloseConnection() override;  // 关闭连接 close the connection not socket
 
     // get connection state
-    inline bool isConnected() override { return this->_isConnected; };
-    inline const std::string& getErrorMessage() override { return this->_errorMessage; };
-
-    const std::string& getPeerIpAddress() override { return this->_peerInfo.ip_address; };
-    const uint16_t getPeerPort() override { return this->_peerInfo.port; };
+    inline bool isConnected() override { return this->is_connected_; };
+    int GetErrorCode() override;
+    const WEndPointInfo &GetPeerInfo() override;
 
 private:
-    void HandleError(int error_code);  // 错误处理
+    void HandleError(int16_t error_code);  // 错误处理
 
 protected:
-    // return false if need to close
-    void OnError(int error_code) override;
+    // return false if connection need to close
+    void OnError(int16_t error_code) override;
     void OnClosed() override;
     void OnRead() override;
     void OnWrite() override;
     void OnShutdown() override;
 
-    
 private:
     // connection members
-    RingBuffer _recvBuffer;
-    RingBuffer _sendBuffer;
-
-    base_socket_type _socket;
-    uint32_t _op{0};
-
-    uint32_t _maxBufferSize{0};
-    uint32_t _headLen{0};
-
+    base_socket_type socket_{-1};
+    uint32_t         op_{0};
+    //
+    RingBuffer       recv_buffer_;
+    RingBuffer       send_buffer_;
+    //
+    uint32_t         max_buffer_size_{0};
+    uint8_t          head_len_{0};
     // connection state
-    bool _isConnected{false};
-    std::string _errorMessage;
-
+    bool             is_connected_{false};
+    int16_t          error_code_{-1};
     // peer information
-    WEndPointInfo _peerInfo;
+    WEndPointInfo    peer_info_;
 
-    // from out side
-    WNetWorkHandler* _handler{nullptr};
-    WBaseConnection::Listener* _listener{nullptr};
-
-    WHandlerData* _handlerData{nullptr};
+    //
+    WNetWorkHandler           *handler_{nullptr};
+    WBaseConnection::Listener *listener_{nullptr};
+    //
+    WHandlerData              *handler_data_{nullptr};
 };
 
-class WFixedBufferConnection : public WBaseConnection, public WNetWorkHandler::Listener
-{
+class WFixedBufferConnection : public WBaseConnection, public WNetWorkHandler::Listener {
 public:
-    explicit WFixedBufferConnection(WBaseConnection::Listener* listener);
-    WFixedBufferConnection(const WFixedBufferConnection& other) = delete;
-    WFixedBufferConnection& operator=(const WFixedBufferConnection& other) = delete;
-    virtual ~WFixedBufferConnection();
+    explicit WFixedBufferConnection(WBaseConnection::Listener *listener);
+    ~WFixedBufferConnection() override;
+    // no copyable
+    WFixedBufferConnection(const WFixedBufferConnection &other) = delete;
+    WFixedBufferConnection &operator=(const WFixedBufferConnection &other) = delete;
 
     // class life time
-    bool Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t messageSize = 0) override;
-    bool SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo) override;
+    bool Init(WNetWorkHandler *handler, uint32_t maxBufferSize, uint32_t messageSize) override;
+    bool SetConnectedSocket(base_socket_type socket, const WEndPointInfo &peerInfo) override;
     void Clear() override;
-    void Destroy() override;
+    void Destroy();
 
     // class methods
-    bool Send(const std::string& message) override;
+    bool Send(const std::string &message) override;
     bool Receive() override;
     // close 
-    void Close() override;  // close the connection not socket
+    void CloseConnection() override;  // close the connection not socket
 
     // get connection state
-    inline bool isConnected() override { return this->_isConnected; };
-    inline const std::string& getErrorMessage() override { return this->_errorMessage; };
-
-    const std::string& getPeerIpAddress() override { return this->_peerInfo.ip_address; };
-    const uint16_t getPeerPort() override { return this->_peerInfo.port; };
+    inline bool isConnected() override { return this->is_connected_; };
+    int GetErrorCode() override;
+    const WEndPointInfo &GetPeerInfo() override;
 
 private:
-    void HandleError(int error_code);
+    void HandleError(int16_t error_code);
 
 protected:
     // return false if need to close
-    void OnError(int error_code) override;
+    void OnError(int16_t error_code) override;
     void OnClosed() override;
     void OnRead() override;
     void OnWrite() override;
     void OnShutdown() override;
 
-    
 private:
     // connection members
-    RingBuffer _recvBuffer;
-    RingBuffer _sendBuffer;
-
-    base_socket_type _socket;
-    uint32_t _op{0};
-
-    uint32_t _maxBufferSize{0};
-    uint32_t _messageSize{0};
-
+    base_socket_type          socket_{-1};
+    uint32_t                  op_{0};
+    //
+    uint32_t                  max_buffer_size_{0};
+    uint32_t                  message_size_{0};
+    RingBuffer                recv_buffer_;
+    RingBuffer                send_buffer_;
     // connection state
-    bool _isConnected{false};
-    std::string _errorMessage;
-
+    bool                      is_connected_{false};
+    int16_t                   error_code_{-1};
     // peer information
-    WEndPointInfo _peerInfo;
-
+    WEndPointInfo             peer_info_;
     // from out side
-    WNetWorkHandler* _handler{nullptr};
-    WBaseConnection::Listener* _listener{nullptr};
-
-    WHandlerData* _handlerData{nullptr};
+    WNetWorkHandler           *handler_{nullptr};
+    WBaseConnection::Listener *listener_{nullptr};
+    //
+    WHandlerData              *handler_data_{nullptr};
 };
-
-
 
 }   // namespace wlb::NetWork

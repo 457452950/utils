@@ -29,7 +29,7 @@ bool WTcpClient::Send(const std::string& message)
 }
 void WTcpClient::CloseConnection()
 {
-    this->_connection->Close();
+    this->_connection->CloseConnection();
 }
 bool WTcpClient::ConnectToHost(const WEndPointInfo& host)
 {

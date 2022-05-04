@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 #include "WConnection.hpp"
 #include "../WList.hpp"
 
@@ -21,12 +22,7 @@ public:
         virtual void OnSessionClosed(SessionNode* session) = 0;
     };
     WBaseSession(WBaseSession::Listener* listener) : _listener(listener) {
-        if (listener == nullptr){
-            std::cout << "listener nullptr" << std::endl;
-        }
-        if (this->_listener == nullptr){
-            std::cout << " nullptr" << std::endl;
-        }
+        assert(this->_listener);
     };
     virtual ~WBaseSession() {};
 

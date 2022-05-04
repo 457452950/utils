@@ -24,8 +24,10 @@ public:
     virtual void AddTimer(WTimerHandlerData *data) = 0;
     virtual void RemoveTimer(WTimerHandlerData *data) = 0;
     virtual void GetAndEmitTimer(int32_t timeout) = 0;
-};
 
+    virtual int16_t GetErrorNo() = 0;
+};
+// 注册时存储数据
 struct WTimerHandlerData {
     WTimerHandler::Listener *listener;
     timerfd                 &timer_fd_;
