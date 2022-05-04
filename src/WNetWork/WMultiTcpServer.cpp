@@ -83,11 +83,8 @@ void WMultiTcpServer::Destroy()
         delete this->_timerThread;
         this->_timerThread = nullptr;
     }
-    
 
     delete this->_timer;
-
-    timeHandler->Destroy();
 }
 
 void WMultiTcpServer::run()

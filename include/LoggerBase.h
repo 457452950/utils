@@ -8,6 +8,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <memory>
+#include <string>
 
 #include "WSystem.h"
 
@@ -16,12 +17,17 @@
 #include <windows.h>    // GetLocalTime
 #include <direct.h>     // mkdir
 #include <io.h>         // access
+
+  #define FILENAME(x) strrchr(x,'\\')?strrchr(x,'\\')+1:x
 #else   // linux
 
 #include <unistd.h>     // access()
 #include <ctime>
 
+  #define FILENAME(x) strrchr(x,'/')?(strrchr(x,'/')+1):x
 #endif
+
+#define __FILENAME__ FILENAME(__FILE__)
 
 namespace wlb {
 

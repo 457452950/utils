@@ -234,6 +234,11 @@ int32_t WBaseEpoll::GetEvents(epoll_event * events, int32_t events_size, int32_t
     }
     return res;
 }
+std::string WBaseEpoll::GetErrorMessage() {
+    std::string _t = this->_errorMessage;
+    this->_errorMessage.clear();
+    return _t;
+}
 
 
 
@@ -400,6 +405,11 @@ uint32_t WEpoll::GetEpollEventsFromOP(uint32_t op)
     
     return _events;
 }
+std::string WEpoll::GetErrorMessage() {
+    std::string _t;
+    std::swap(_t, this->_errorMessage);
+    return _t;
+}
 
 
 /////////////////////////////////
@@ -423,15 +433,6 @@ void WTimerEpoll::Close()
         this->_events = nullptr;
     }
     WBaseEpoll::Close();
-}
-
-void WTimerEpoll::Destroy()
-{
-    if (this->_events != nullptr)
-    {
-        delete [] this->_events;
-        this->_events = nullptr;
-    }
 }
 
 void WTimerEpoll::GetAndEmitTimer(int32_t timeout)

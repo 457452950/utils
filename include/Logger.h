@@ -84,7 +84,7 @@ private:
 
 #define LOG(level)                    \
     if (Logger::s_LogLevel <= level && Logger::s_IsActive) \
-        Logger::getInstance()->Write(#level, __FILE__, __LINE__, \
+        Logger::getInstance()->Write(#level, __FILENAME__, __LINE__, \
                              __FUNCTION__)->Get()
 
 }

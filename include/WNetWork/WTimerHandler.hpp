@@ -17,13 +17,13 @@ public:
         virtual void OnTime(WTimer *_timer) = 0;
     };
 
+    virtual ~WTimerHandler() = default;
     virtual bool Init() = 0;
     virtual void Close() = 0;
-    virtual void Destroy() = 0;
 
     virtual void AddTimer(WTimerHandlerData *data) = 0;
     virtual void RemoveTimer(WTimerHandlerData *data) = 0;
-    virtual void GetAndEmitTimer(int32_t timeout = 0) = 0;
+    virtual void GetAndEmitTimer(int32_t timeout) = 0;
 };
 
 struct WTimerHandlerData {

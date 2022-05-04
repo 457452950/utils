@@ -25,18 +25,19 @@ void MakeMessageHead(const char *file_name,
                      const char *func_name,
                      char *head,
                      int max_len) {
-    char data_val[128];
+    char        data_val[128];
+    std::string _file_name(file_name);
 
-    GetCurrentTime(data_val, 128);
+    wlb::GetCurrentTime(data_val, 128);
 
     // get head
-    snprintf(head, max_len,
-             "%s[%s][%s:%d:%s] ",
-             data_val,
-             log_level,
-             file_name,
-             line_no,
-             func_name
+    ::snprintf(head, max_len,
+               "%s[%s][%s:%d:%s] ",
+               data_val,
+               log_level,
+               file_name,
+               line_no,
+               func_name
     );
 }
 

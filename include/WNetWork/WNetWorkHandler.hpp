@@ -15,7 +15,7 @@ public:
     class Listener
     {
     public:
-        virtual ~Listener() {};
+        virtual ~Listener() = default;
     public:
         virtual void OnError(int error_code) = 0;
         virtual void OnClosed() = 0;
@@ -36,6 +36,7 @@ public:
 
 public:
     WNetWorkHandler() = default;
+    virtual ~WNetWorkHandler() = default;
     WNetWorkHandler(const WNetWorkHandler& other) = delete;
     WNetWorkHandler& operator=(const WNetWorkHandler&) = delete;
 
@@ -47,7 +48,7 @@ public:
     virtual bool ModifySocket(WHandlerData* data, uint32_t op_event) = 0;
     virtual void RemoveSocket(base_socket_type socket) = 0;
 
-    virtual const std::string GetErrorMessage() = 0;
+    virtual std::string GetErrorMessage() = 0;
 };
 
 
