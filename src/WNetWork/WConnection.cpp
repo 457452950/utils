@@ -43,7 +43,7 @@ bool WNetAccepter::Init(WNetWorkHandler* handler, const std::string& IpAddress, 
 {
     /////////////////////////////////
     // Initialize socket
-    this->_socket = MakeTcpv4Socket();       // tcp v4
+    this->_socket = MakeTcpV4Socket();       // tcp v4
     if (this->_socket == -1)
     {
         return false;
@@ -127,7 +127,7 @@ bool WNetAccepter::Listen()
 
 base_socket_type WNetAccepter::Accept(WEndPointInfo& info)
 {
-    return wlb::NetWork::Accept(this->_socket, info, true);
+    return wlb::NetWork::Accept(this->_socket, &info, true);
 }
 
 base_socket_type WNetAccepter::GetListenSocket()

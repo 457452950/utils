@@ -6,7 +6,7 @@ namespace wlb::NetWork
 
 bool WTcpClient::Init()
 {
-    this->_socket = MakeTcpv4Socket();
+    this->_socket = MakeTcpV4Socket();
     if (this->_socket == -1)
     {
         return false;

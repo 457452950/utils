@@ -58,7 +58,7 @@ struct WHandlerData
     WNetWorkHandler::Listener *listener;
     base_socket_type& socket;
     WHandlerData(base_socket_type& socket, WNetWorkHandler::Listener *listener)
-        : socket(socket), listener(listener) {}
+        : listener(listener), socket(socket) {}
 };
 
 WNetWorkHandler* CreateNetworkHandlerAndInit(uint32_t events_size);

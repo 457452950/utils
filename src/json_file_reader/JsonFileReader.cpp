@@ -2,18 +2,18 @@
 
 namespace wlb {
 
-JsonFileReader::JsonFileReader(const std::string& fileName) {
+JsonFileReader::JsonFileReader(const std::string &fileName) {
     std::ifstream ifile(fileName);
     if (!ifile.is_open()) {
         exit(-1);
     }
     rapidjson::IStreamWrapper iSW(ifile);
 
-    m_docData.ParseStream(iSW);
-    if (m_docData.HasParseError()) {
+    document_.ParseStream(iSW);
+    if (document_.HasParseError()) {
     }
 
-    if (!m_docData.IsObject()) {
+    if (!document_.IsObject()) {
     }
 
 }
