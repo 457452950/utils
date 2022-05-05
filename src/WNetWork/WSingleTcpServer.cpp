@@ -8,8 +8,8 @@ namespace wlb::NetWork
 
 bool WSingleTcpServer::Init()
 {
-    this->_connectionTemp.Init(); 
-    this->_connectionList.Init();
+    this->session_temp_.Init();
+    this->session_list_.Init();
     this->_accepterMap.clear();
 
     this->_handler = CreateNetworkHandlerAndInit(128);
@@ -31,8 +31,8 @@ void WSingleTcpServer::Close()
 {
     this->_running = false;
 
-    this->_connectionTemp.clear();
-    this->_connectionList.clear();
+    this->session_temp_.clear();
+    this->session_list_.clear();
 
     this->_handler->Close();
 }
@@ -45,8 +45,8 @@ void WSingleTcpServer::Destroy()
         this->_workThread = nullptr;
     }
 
-    this->_connectionTemp.clear();
-    this->_connectionList.clear();
+    this->session_temp_.clear();
+    this->session_list_.clear();
 
     for (auto it : this->_accepterMap)
     {
@@ -99,14 +99,14 @@ bool WSingleTcpServer::AddAccepter(const std::string& IpAddress, uint16_t port)
 
 bool WSingleTcpServer::OnNewConnection(base_socket_type socket, const WEndPointInfo& peerInfo)
 {
-    if (this->_connectionTemp.empty() && !this->UpdateConnectionTemp())
+    if (this->session_temp_.empty() && !this->UpdateConnectionTemp())
     {
-        // cant new connection
+        // can't new connection
         std::cout << "cant new connection" << std::endl;
         exit(-1);
     }
     
-    auto node = this->_connectionTemp.front();
+    auto node = this->session_temp_.front();
     WBaseSession* session = node->val;
     if (session->IsConnected())
     {
@@ -126,12 +126,12 @@ bool WSingleTcpServer::OnNewConnection(base_socket_type socket, const WEndPointI
 
 void WSingleTcpServer::OnNewSession(SessionNode* node)
 {
-    this->_connectionTemp.erase(node);
-    this->_connectionList.push_back(node);
+    this->session_temp_.erase(node);
+    this->session_list_.push_back(node);
 }
 void WSingleTcpServer::OnSessionClosed(SessionNode* node)
 {
-    this->_connectionTemp.strong_push_back(node);
+    this->session_temp_.strong_push_back(node);
 }
 
 void WSingleTcpServer::Loop()
@@ -153,7 +153,7 @@ bool WSingleTcpServer::UpdateConnectionTemp()
             return false;
         }
         
-        this->_connectionTemp.push_front(session);
+        this->session_temp_.push_front(session);
     }
     return true;
 }

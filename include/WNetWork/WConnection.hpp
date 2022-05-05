@@ -74,7 +74,7 @@ private:
 
 /////////////////////////////////////////////////////////
 // Created by wlb on 2021/9/17.
-// Seession
+// Connection
 ////////////////////////////////////////////////////////
 
 // 网络层抽象逻辑
@@ -150,7 +150,7 @@ public:
     WFloatBufferConnection(const WFloatBufferConnection &other) = delete;
     WFloatBufferConnection &operator=(const WFloatBufferConnection &other) = delete;
 
-    // class life time
+    // class lifetime
     bool Init(WNetWorkHandler *handler, uint32_t maxBufferSize, uint32_t headLen) override;
     // 清理，准备服用
     void Clear() override;
@@ -210,7 +210,7 @@ public:
     WFixedBufferConnection(const WFixedBufferConnection &other) = delete;
     WFixedBufferConnection &operator=(const WFixedBufferConnection &other) = delete;
 
-    // class life time
+    // class lifetime
     bool Init(WNetWorkHandler *handler, uint32_t maxBufferSize, uint32_t messageSize) override;
     bool SetConnectedSocket(base_socket_type socket, const WEndPointInfo &peerInfo) override;
     void Clear() override;
@@ -231,7 +231,7 @@ private:
     void HandleError(int16_t error_code);
 
 protected:
-    // return false if need to close
+    // return false if connection need to close
     void OnError(int16_t error_code) override;
     void OnClosed() override;
     void OnRead() override;
@@ -252,7 +252,7 @@ private:
     int16_t                   error_code_{-1};
     // peer information
     WEndPointInfo             peer_info_;
-    // from out side
+    //
     WNetWorkHandler           *handler_{nullptr};
     WBaseConnection::Listener *listener_{nullptr};
     //
