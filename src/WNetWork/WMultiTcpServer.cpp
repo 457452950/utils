@@ -43,7 +43,6 @@ bool WMultiTcpServer::Init(uint16_t threads) {
 
 void WMultiTcpServer::Close() {
     this->_isRunning = false;
-    timeHandler->Close();
 
     // 采用迭代器，防止init失败时，this->_threadsCount失效
     for (auto it : this->_servers) {

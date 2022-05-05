@@ -43,7 +43,7 @@ protected:
     WBaseConnection        *connection_{nullptr};
 };
 
-WBaseSession *CreateNewSession(WBaseSession::Listener *listener);
+extern WBaseSession *CreateNewSession(WBaseSession::Listener *listener);
 SessionNode *CreateNewSessionNodeAndInit(WBaseSession::Listener *listener, WNetWorkHandler *handler);
 
 }

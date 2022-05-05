@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../WOS.h"
-#include <stdint.h>
+#include <cstdint>
 #include "WNetWorkUtils.h"
 
 namespace wlb::NetWork {

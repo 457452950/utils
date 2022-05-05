@@ -198,21 +198,21 @@ void WEpoll::GetAndEmitEvents(int32_t timeout) {
             WNetWorkHandler::Listener *listener = data->listener;
             base_socket_type          sock      = data->socket;
 
-            // if (events_[index].events & EPOLLHUP)  // 对端已经关闭 受到最后一次挥手
-            // {
-            // }
-            // if (events_[index].events & EPOLLERR)
-            // {
-            // }
-            // if (events_[index].events & EPOLLRDHUP)    // 对端关闭写，
-            // {
-            // }
-            // if (events_[index].events & EPOLLIN)
-            // {
-            // }
-            // if (events_[index].events & EPOLLOUT)
-            // {
-            // }
+            if (events_[index].events & EPOLLHUP) { // 对端已经关闭 受到最后一次挥手
+                std::cout << "epoll-hup" << std::endl;
+            }
+            if (events_[index].events & EPOLLERR) {
+                std::cout << "epoll-err" << std::endl;
+            }
+            if (events_[index].events & EPOLLRDHUP) {   // 对端关闭写，
+                std::cout << "epoll-rdhup" << std::endl;
+            }
+            if (events_[index].events & EPOLLIN) {
+                std::cout << "epoll-in" << std::endl;
+            }
+            if (events_[index].events & EPOLLOUT) {
+                std::cout << "epoll-out" << std::endl;
+            }
 
             if (events_[index].events & EPOLLHUP) {
                 // 对端已经关闭 受到最后一次挥手

@@ -34,14 +34,24 @@ target_link_libraries(wutils pthread)
 
 add_library(
         wnetwork
+        include/WNetWork/WBaseSession.hpp
+        include/WNetWork/WConnection.hpp
+        include/WNetWork/WEpoll.hpp
+        include/WNetWork/WMultiTcpServer.hpp
+        include/WNetWork/WNetWork.h
+        include/WNetWork/WNetWorkHandler.hpp
+        include/WNetWork/WNetWorkUtils.h
+        include/WNetWork/WService.hpp
+        include/WNetWork/WSingleTcpServer.hpp
+        include/WNetWork/WTcpClient.hpp
+        include/WNetWork/WTimerHandler.hpp
         src/WNetWork/NetWorkUtils.cpp
-        src/WNetWork/WEpoll.cpp
-        src/WNetWork/WConnection.cpp
-        src/WNetWork/WSingleTcpServer.cpp
-        src/WNetWork/WMultiTcpServer.cpp
         src/WNetWork/WBaseSession.cpp
+        src/WNetWork/WConnection.cpp
+        src/WNetWork/WEpoll.cpp
+        src/WNetWork/WMultiTcpServer.cpp
+        src/WNetWork/WSingleTcpServer.cpp
         src/WNetWork/WTcpClient.cpp
-        src/WBuffer.cpp
 )
 target_link_libraries(wnetwork pthread wutils)
 

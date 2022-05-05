@@ -515,7 +515,6 @@ void WFixedBufferConnection::Destroy() {
 
     delete this->handler_data_;
     this->handler_data_ = nullptr;
-
 }
 
 bool WFixedBufferConnection::Send(const std::string &message) {
@@ -545,6 +544,8 @@ bool WFixedBufferConnection::Receive() {
                               this->recv_buffer_.GetTopRestBufferSize(),
                               0);
 
+    std::cout << "recv " << recv_len << std::endl;
+
     if (recv_len <= -1) {
         this->error_code_ = errno;
         this->listener_->OnConnectionError();
@@ -565,6 +566,7 @@ void WFixedBufferConnection::HandleError(int16_t error_code) {
 }
 
 void WFixedBufferConnection::OnError(int16_t error_no) {
+    this->is_connected_ = false;
     HandleError(error_no);
 
     if (this->listener_ != nullptr) {
@@ -574,6 +576,8 @@ void WFixedBufferConnection::OnError(int16_t error_no) {
 }
 
 void WFixedBufferConnection::OnClosed() {
+    this->is_connected_ = false;
+
     if (this->listener_ != nullptr) {
         this->listener_->OnConnectionClosed();
     }
@@ -592,9 +596,11 @@ void WFixedBufferConnection::OnRead() {
         uint32_t len = this->recv_buffer_.GetFrontMessage(&receive_message, this->message_size_);
 
         if (len != this->message_size_) {
-            std::cout << "no enough message" << std::endl;
+//            std::cout << "no enough message" << std::endl;
             return;
         }
+
+        this->recv_buffer_.UpdateReadOffset(len);
 
         this->listener_->OnConnectionMessage(receive_message);
     }
@@ -604,7 +610,7 @@ void WFixedBufferConnection::OnWrite() {
     std::string send_message;
     uint32_t    msg_len  = send_buffer_.GetAllMessage(&send_message);
     ssize_t     send_len = ::send(this->socket_, send_message.c_str(), msg_len, 0);
-    // std::cout << "send:" << send_len << std::endl;
+     std::cout << "send:" << send_len << std::endl;
 
     this->send_buffer_.UpdateReadOffset(send_len);
 
@@ -622,6 +628,7 @@ void WFixedBufferConnection::OnWrite() {
 }
 
 void WFixedBufferConnection::OnShutdown() {
+    this->is_connected_ = false;
     if (this->listener_ != nullptr) {
         this->listener_->OnConnectionShutdown();
     }

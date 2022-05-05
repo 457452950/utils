@@ -69,7 +69,7 @@ void RingBuffer::UpdateWriteOffset(uint32_t len) {
 
     this->write_offset_ += len;
 
-    assert(this->write_offset_ > this->max_buffer_size_);
+    assert(this->write_offset_ <= this->max_buffer_size_);
 
     this->write_offset_ %= this->max_buffer_size_;
 
@@ -133,7 +133,7 @@ uint32_t RingBuffer::GetFrontMessage(std::string *message, uint32_t len) {
     if (this->write_offset_ > this->read_offset_) {
         uint32_t msg_size = this->write_offset_ - this->read_offset_;
         if (len > msg_size) {
-            std::cout << "no enough msg size" << msg_size << " l" << len << std::endl;
+//            std::cout << "no enough msg size" << msg_size << " l" << len << std::endl;
             return 0;   // Not enough message
         }
         message->append(this->buffer_ + this->read_offset_, len);
@@ -143,14 +143,14 @@ uint32_t RingBuffer::GetFrontMessage(std::string *message, uint32_t len) {
         uint32_t back_size  = this->max_buffer_size_ - this->read_offset_;
 
         if (front_size + back_size < len) {
-            std::cout << "no enough fsize" << front_size << "bsize" << back_size << " l" << len << std::endl;
+//            std::cout << "no enough fsize" << front_size << "bsize" << back_size << " l" << len << std::endl;
             return 0; // Not enough message
         }
 
         uint32_t cp_size          = back_size > len ? len : back_size;
         uint32_t temp_read_offset = this->read_offset_;
         while (cp_size != 0) {
-            std::cout << "cp_size" << cp_size << std::endl;
+//            std::cout << "cp_size" << cp_size << std::endl;
             message->append(this->buffer_ + temp_read_offset, cp_size);
             temp_read_offset = (temp_read_offset + cp_size) % this->max_buffer_size_; // 更新临时读指针
             len -= cp_size;
