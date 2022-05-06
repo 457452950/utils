@@ -5,7 +5,6 @@
 #include <thread>
 #include "../WOS.h"
 #include "WBaseSession.hpp"
-#include "WService.hpp"
 #include "WList.hpp"
 
 #if OS_IS_LINUX

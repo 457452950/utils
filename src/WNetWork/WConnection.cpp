@@ -575,14 +575,6 @@ void WFixedBufferConnection::OnError(int16_t error_no) {
 
 }
 
-void WFixedBufferConnection::OnClosed() {
-    this->is_connected_ = false;
-
-    if (this->listener_ != nullptr) {
-        this->listener_->OnConnectionClosed();
-    }
-}
-
 void WFixedBufferConnection::OnRead() {
     if (!this->Receive()) {
         return;
@@ -627,8 +619,17 @@ void WFixedBufferConnection::OnWrite() {
 
 }
 
+void WFixedBufferConnection::OnClosed() {
+    this->is_connected_ = false;
+
+    if (this->listener_ != nullptr) {
+        this->listener_->OnConnectionClosed();
+    }
+}
+
 void WFixedBufferConnection::OnShutdown() {
     this->is_connected_ = false;
+
     if (this->listener_ != nullptr) {
         this->listener_->OnConnectionShutdown();
     }

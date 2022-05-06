@@ -225,6 +225,7 @@ void WEpoll::GetAndEmitEvents(int32_t timeout) {
                 // 对端关闭写
                 // peer shutdown write
                 listener->OnShutdown();
+                RemoveSocket(sock);
             } else if (events_[index].events & EPOLLIN) {
                 listener->OnRead();
             } else if (events_[index].events & EPOLLOUT) {

@@ -41,7 +41,6 @@ add_library(
         include/WNetWork/WNetWork.h
         include/WNetWork/WNetWorkHandler.hpp
         include/WNetWork/WNetWorkUtils.h
-        include/WNetWork/WService.hpp
         include/WNetWork/WSingleTcpServer.hpp
         include/WNetWork/WTcpClient.hpp
         include/WNetWork/WTimerHandler.hpp
