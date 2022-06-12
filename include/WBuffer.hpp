@@ -1,7 +1,7 @@
-#include "WOS.h"
 #include <cstdint>
-#include <string>
 #include <cstring>
+#include <string>
+#include "WOS.h"
 
 namespace wlb {
 
@@ -12,7 +12,7 @@ public:
     explicit RingBuffer();
     ~RingBuffer();
     // unablecopy
-    RingBuffer(const RingBuffer &) = delete;
+    RingBuffer(const RingBuffer &)            = delete;
     RingBuffer &operator=(const RingBuffer &) = delete;
 
     // class life time
@@ -21,12 +21,11 @@ public:
     void Destroy();
 
     // class methods
-    uint32_t GetRestBufferSize() const;
-    uint32_t GetTopRestBufferSize() const;
-    char *GetBuffer();
-    char *GetRestBuffer();  // 返回写指针指向的位置
-    void UpdateWriteOffset(uint32_t len);
-    void UpdateReadOffset(uint32_t len);
+    uint32_t    GetRestBufferSize() const;
+    uint32_t    GetTopRestBufferSize() const;
+    char       *GetRestBuffer(); // 返回写指针指向的位置
+    void        UpdateWriteOffset(uint32_t len);
+    void        UpdateReadOffset(uint32_t len);
     inline bool Empty() const { return this->is_empty_; };
 
     // return 0 when false, otherwise return the number of success bytes
@@ -39,16 +38,16 @@ public:
 
 protected:
     // buffer
-    char        *buffer_{nullptr};
-    uint32_t    max_buffer_size_{0};
+    char    *buffer_{nullptr};
+    uint32_t max_buffer_size_{0};
+
     // offset
-    uint32_t    read_offset_{0};
-    uint32_t    write_offset_{0};
+    uint32_t read_offset_{0};
+    uint32_t write_offset_{0};
+
     // state
-    bool        is_full_{false};
-    bool        is_empty_{true};
+    bool is_full_{false};
+    bool is_empty_{true};
 };
 
 } // namespace wlb
-
-

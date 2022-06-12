@@ -54,10 +54,6 @@ uint32_t RingBuffer::GetTopRestBufferSize() const {
            (this->read_offset_ - this->write_offset_);
 }
 
-char *RingBuffer::GetBuffer() {
-    return this->buffer_;
-}
-
 char *RingBuffer::GetRestBuffer() {
     return this->buffer_ + this->write_offset_;
 }

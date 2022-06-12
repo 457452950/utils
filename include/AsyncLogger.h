@@ -15,15 +15,10 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <thread>
-#include "LoggerBase.h"
+#include <unistd.h> // access()
 
-#ifdef WIN32
-#include <direct.h>  // mkdir
-#include <io.h>      // access
-#include <windows.h> // GetLocalTime
-#else                // linux
-#include <unistd.h>  // access()
-#endif
+#include "LoggerBase.h"
+#include "WSystem.h"
 
 
 // #define ERROR "ERROR"
@@ -55,20 +50,17 @@ public:
     static void Wait2Exit();
 
     static Logger   *getInstance();
-    static bool      IsActive();
     static LOG_LEVEL GetLogLevel();
     void             Loop();
 
 private:
+    // log config
     static Logger *instance_;
-    bool           active_{false};
     LOG_LEVEL      log_level_{L_ERROR};
     int8_t         log_type_{LOG_TYPE::L_STDOUT};
 
-    // file log
-    char *base_file_name_{nullptr};
-
-    // Check file size
+    // file config
+    char         *base_file_name_{nullptr};
     const int64_t max_file_size_  = 100 * 1024 * 1024; // 10MB
     const int8_t  max_check_times = 10;
     int8_t        check_times_{0};
@@ -106,7 +98,7 @@ private:
 };
 
 #define LOG(level)                                                                                                     \
-    if(Logger::GetLogLevel() <= (level) && Logger::IsActive())                                                         \
+    if(Logger::getInstance() && Logger::GetLogLevel() <= (level))                                                      \
     Logger::getInstance()->Write(#level, __FILENAME__, __LINE__, __FUNCTION__)->Get()
 
 } // namespace wlb::Log

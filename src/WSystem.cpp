@@ -4,11 +4,7 @@
 namespace wlb {
 
 bool mkdir(const std::string &path) {
-#ifdef OS_IS_WINDOWS
-    auto res = ::_mkdir(path.c_str());
-#elif OS_IS_LINUX
     auto res = ::mkdir(path.c_str(), 477);
-#endif
     if(res == 0) {
         return true;
     }
@@ -17,22 +13,7 @@ bool mkdir(const std::string &path) {
 
 bool IsFileExist(const std::string &path) { return !access(path.c_str(), 0); }
 
-void wlb::GetCurrentTimeFormat(char *buff, int max_len) {
-
-#ifdef OS_IS_WINDOWS
-    SYSTEMTIME curTime;
-    ::GetLocalTime(&curTime);
-    ::snprintf(buff,
-               max_len,
-               "[%d-%d-%d %02d:%02d:%02d-%03ld]",
-               curTime.wYear + 1900,
-               curTime.wMonth + 1,
-               curTime.wDay,
-               curTime.wHour,
-               curTime.wMinute,
-               curTime.wSecond,
-               curTime.wMilliseconds);
-#else
+void GetCurrentTimeFormat(char *buff, int max_len) {
     // get ms
     timeval curTime{};
     ::gettimeofday(&curTime, nullptr);
@@ -52,7 +33,6 @@ void wlb::GetCurrentTimeFormat(char *buff, int max_len) {
                _time->tm_sec,
                curTime.tv_usec / 1000,
                curTime.tv_usec % 1000);
-#endif
 }
 
 } // namespace wlb

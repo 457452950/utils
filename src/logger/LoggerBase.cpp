@@ -22,6 +22,7 @@ void GetLogFileName(const std::string &base_file_name, char *file_name, int max_
 }
 void MakeMessageHead(
         const char *file_name, int line_no, const char *log_level, const char *func_name, char *head, int max_len) {
+
     char        data_val[128];
     std::string _file_name(file_name);
 

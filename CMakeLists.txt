@@ -11,13 +11,11 @@ include_directories(
 )
 set(LIBRARY_OUTPUT_PATH lib)
 
-add_library(logger src/logger/AsyncLogger.cpp src/logger/LoggerBase.cpp)
+if(WIN32)
+        message("not support windows!!!")
+        return()
+endif()
 
-add_library(jsonreader src/json_file_reader/JsonFileReader.cpp)
-target_link_libraries(jsonreader)
-
-
-if(Unix)
 
 add_library(redis src/redis/Redis.cpp)
 target_link_libraries(redis hiredis event)
@@ -34,6 +32,13 @@ add_library(
         src/thread_pool/WThreadPool.cpp
 )
 target_link_libraries(wutils pthread)
+
+add_library(logger src/logger/AsyncLogger.cpp src/logger/LoggerBase.cpp)
+target_link_libraries(logger wutils)
+
+add_library(jsonreader src/json_file_reader/JsonFileReader.cpp)
+target_link_libraries(jsonreader)
+
 
 add_library(
         wnetwork
@@ -57,11 +62,6 @@ add_library(
 )
 target_link_libraries(wnetwork pthread wutils)
 
-
-elseif(WIN32)
-        
-endif(Unix)
-
-
+add_subdirectory(demo)
 
 

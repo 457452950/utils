@@ -1,12 +1,12 @@
 #pragma once
 
 #include <atomic>
-#include <unordered_map>
-#include <thread>
 #include <iostream>
+#include <thread>
+#include <unordered_map>
+#include "WNetWork/WEpoll.hpp"
 #include "WOS.h"
 #include "WTimer.hpp"
-#include "WNetWork/WEpoll.hpp"
 
 namespace wlb::debug {
 
@@ -19,9 +19,9 @@ public:
 
     // class lifetime
     // init
-    bool Init(long timeout);
+    bool        Init(long timeout);
     inline bool IsActive() const { return this->_isActive; }
-    void Destroy();
+    void        Destroy();
 
     void MemberAdd(const std::string &name);
     void MemberRemove(const std::string &name);
@@ -33,32 +33,30 @@ private:
 
 private:
     WTimer      *_timer{nullptr};
-    bool        _isActive{false};
+    bool         _isActive{false};
     std::thread *_thread{nullptr};
-
+    //
     std::unordered_map<std::string, std::atomic<int64_t>> _memberMap;
 };
 
 extern Debugger *debugger;
 
-#define DEBUGADD(name) \
-    if (debugger != nullptr && debugger->IsActive()) \
+#define DEBUGADD(name)                                                                                                 \
+    if(debugger != nullptr && debugger->IsActive())                                                                    \
         debugger->MemberAdd(name);
 
-#define DEBUGRM(name) \
-    if (debugger != nullptr && debugger->IsActive()) \
+#define DEBUGRM(name)                                                                                                  \
+    if(debugger != nullptr && debugger->IsActive())                                                                    \
         debugger->MemberRemove(name);
 
-#define NEWADD \
-    DEBUGADD("new")
-#define DELADD \
-    DEBUGADD("delete")\
+#define NEWADD DEBUGADD("new")
+#define DELADD                                                                                                         \
+    DEBUGADD("delete")                                                                                                 \
     DEBUGRM("new")
 
-#define NEWARRAYADD \
-    DEBUGADD("new[]")
-#define DELARRAYADD \
-    DEBUGADD("delete[]")\
+#define NEWARRAYADD DEBUGADD("new[]")
+#define DELARRAYADD                                                                                                    \
+    DEBUGADD("delete[]")                                                                                               \
     DEBUGRM("new[]")
 
 class WTimeDebugger {
@@ -84,6 +82,4 @@ private:
 
 [[maybe_unused]] extern WTimeDebugger time_debug;
 
-}   // namespace wlb::debug
-
-
+} // namespace wlb::debug
