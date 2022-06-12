@@ -17,7 +17,7 @@ bool mkdir(const std::string &path) {
 
 bool IsFileExist(const std::string &path) { return !access(path.c_str(), 0); }
 
-void GetCurrentTime(char *buff, int max_len) {
+void wlb::GetCurrentTimeFormat(char *buff, int max_len) {
 
 #ifdef OS_IS_WINDOWS
     SYSTEMTIME curTime;

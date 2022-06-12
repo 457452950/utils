@@ -17,6 +17,7 @@
 #include <windows.h>    // GetLocalTime
 #include <direct.h>     // mkdir
 #include <io.h>         // access
+#include <process.h>    // getpid
 
   #define FILENAME(x) strrchr(x,'\\')?strrchr(x,'\\')+1:x
 #else   // linux

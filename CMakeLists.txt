@@ -16,6 +16,9 @@ add_library(logger src/logger/AsyncLogger.cpp src/logger/LoggerBase.cpp)
 add_library(jsonreader src/json_file_reader/JsonFileReader.cpp)
 target_link_libraries(jsonreader)
 
+
+if(Unix)
+
 add_library(redis src/redis/Redis.cpp)
 target_link_libraries(redis hiredis event)
 
@@ -53,5 +56,12 @@ add_library(
         src/WNetWork/WTcpClient.cpp
 )
 target_link_libraries(wnetwork pthread wutils)
+
+
+elseif(WIN32)
+        
+endif(Unix)
+
+
 
 
