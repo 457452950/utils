@@ -1,19 +1,20 @@
 #pragma once
 
-#include "./WNetWorkUtils.h"
-
-#if defined(OS_IS_LINUX)
-
-#include <map>
+#include <atomic>
+#include <functional>
+#include <list>
+#include <mutex>
 #include <sys/epoll.h>
-#include <sys/timerfd.h>
-#include "./WNetWorkHandler.hpp"
-#include "./WTimerHandler.hpp"
+#include <thread>
 
-namespace wlb::NetWork {
+#include "WEvent.h"
+#include "WNetWorkUtils.h"
+
+
+namespace wlb::network {
 
 using epoll_type = int32_t;
-using epoll_ptr = epoll_type *;
+using epoll_ptr  = epoll_type *;
 
 epoll_type CreateNewEpollFd();
 
@@ -128,27 +129,27 @@ bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t event
 // return 0 No Events
 // return -1 errno
 int32_t EpollGetEvents(epoll_type epoll, struct epoll_event *events, int32_t events_size, int32_t timeout = 0);
+void    CloseEpoll(epoll_type epoll);
 
-void CloseEpoll(epoll_type epoll);
-
-class WBaseEpoll {
+// not thread safe
+class WBaseEpoll final {
 public:
     WBaseEpoll() = default;
     ~WBaseEpoll();
     // no copyable
-    WBaseEpoll(const WBaseEpoll &other) = delete;
+    WBaseEpoll(const WBaseEpoll &other)            = delete;
     WBaseEpoll &operator=(const WBaseEpoll &other) = delete;
 
-    bool Init();
-    void Close();
+    bool    Init();
+    void    Close();
     int16_t GetErrorNo();
 
     bool AddSocket(base_socket_type socket, uint32_t events);
+    bool AddSocket(base_socket_type socket, uint32_t events, epoll_data_t data);
     bool ModifySocket(base_socket_type socket, uint32_t events);
+    bool ModifySocket(base_socket_type socket, uint32_t events, epoll_data_t data);
     void RemoveSocket(base_socket_type socket);
 
-    bool AddSocket(base_socket_type socket, uint32_t events, epoll_data_t data);
-    bool ModifySocket(base_socket_type socket, uint32_t events, epoll_data_t data);
 
     int32_t GetEvents(epoll_event *events, int32_t events_size, int32_t timeout = 0);
 
@@ -157,69 +158,54 @@ protected:
     int16_t    errno_{-1};
 };
 
-// not thread safe
-class WEpoll final : public WBaseEpoll, public WNetWorkHandler {
+
+void on_read_cb(base_socket_type socket, void *user_data);
+
+class WEpoll final {
 public:
-    explicit WEpoll() = default;
-    ~WEpoll() override { this->Close(); };
-    // no copyable
-    WEpoll(const WEpoll &) = delete;
-    WEpoll &operator=(const WEpoll &) = delete;
+    WEpoll();
+    ~WEpoll();
 
-    // WNetWorkHandler
-    // 初始化
-    bool Init(uint32_t events_size) override;
-    // 关闭
-    void Close() override;
-    void GetAndEmitEvents(int timeout) override;
-    int16_t GetErrorNo() override;
 
-    // WBaseEpoll
-    bool AddSocket(WHandlerData *data, uint32_t op) override;
-    bool ModifySocket(WHandlerData *data, uint32_t op) override;
-    void RemoveSocket(base_socket_type socket) override;
+    using user_data_ptr = void *;
+    struct ep_data_t {
+        base_socket_type socket_;
+        user_data_ptr    user_data_;
+        uint8_t          events_;
+    };
+    using fd_list      = std::list<ep_data_t*>;
+    using fd_list_item = fd_list::iterator;
+
+    // control
+    fd_list_item NewSocket(base_socket_type socket, uint8_t events, user_data_ptr user_data = nullptr);
+    void         ModifySocket(fd_list_item item);
+    void         DelSocket(fd_list_item item);
+
+    // thread control
+    void Start();
+    void Detach();
+    void Stop();
+    void Join();
+
+    // call back
+    using read_callback  = std::function<void(base_socket_type, user_data_ptr)>;
+    using write_callback = std::function<void(base_socket_type, user_data_ptr)>;
+    using error_callback = std::function<void(base_socket_type, user_data_ptr)>;
+
+    read_callback  read_;
+    write_callback write_;
+    error_callback error_;
 
 private:
-    uint32_t GetEpollEventsFromOP(uint32_t op);
+    void EventLoop();
 
-protected:
-    epoll_event    *events_{nullptr};     // epoll_wait 获取事件数组
-    uint32_t       events_size_{0};
-    const uint32_t default_events_size_{128};
+private:
+    WBaseEpoll   ep;
+    fd_list      list;
+    uint32_t     fd_count{0};
+    bool         active_{false};
+    std::thread *work_thread_{nullptr};
 };
 
 
-
-////////////////////////////////
-// timer
-////////////////////////////////
-
-// timerfd = socket fd
-
-class WTimerEpoll final : public WBaseEpoll, public WTimerHandler {
-public:
-    WTimerEpoll() = default;
-    ~WTimerEpoll() override { this->Close(); };
-
-    // override WTimerHandler
-    bool Init() override;
-    void Close() override;
-
-    void GetAndEmitTimer(int32_t timeout) override;
-
-    // override WBaseEpoll
-    void AddTimer(WTimerHandlerData *data) override;
-    void RemoveTimer(WTimerHandlerData *data) override;
-
-    int16_t GetErrorNo() override;
-
-private:
-    epoll_event   *events_{nullptr};
-    int32_t       events_size_{30};
-    const int32_t default_events_size_{30};
-};
-
-} // namespace wlb
-
-
-#endif
+} // namespace wlb::network

@@ -3,6 +3,7 @@ project(demo)
 
 add_subdirectory(Log)
 add_subdirectory(wnet)
+add_subdirectory(libevent)
 
 
 

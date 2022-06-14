@@ -1,71 +1,44 @@
 #include "WNetWork/WTcpClient.hpp"
 
-namespace wlb::NetWork
-{
+namespace wlb::network {
 
 
-bool WTcpClient::Init()
-{
+bool WTcpClient::Init() {
     this->_socket = MakeTcpV4Socket();
-    if (this->_socket == -1)
-    {
+    if(this->_socket == -1) {
         return false;
     }
     return true;
 }
-void WTcpClient::Destroy()
-{
-    if (this->_socket != -1)
-    {
+void WTcpClient::Destroy() {
+    if(this->_socket != -1) {
         ::close(this->_socket);
         this->_socket = -1;
     }
-    
 }
 
-bool WTcpClient::Send(const std::string& message)
-{
-    return this->_connection->Send(message);
-}
-void WTcpClient::CloseConnection()
-{
-    this->_connection->CloseConnection();
-}
-bool WTcpClient::ConnectToHost(const WEndPointInfo& host)
-{
+bool WTcpClient::Send(const std::string &message) { return this->_connection->Send(message); }
+void WTcpClient::CloseConnection() { this->_connection->CloseConnection(); }
+bool WTcpClient::ConnectToHost(const WEndPointInfo &host) {
     this->_serverInfo = host;
-    if (!wlb::NetWork::ConnectToHost(this->_socket, this->_serverInfo))
-    {
+    if(!wlb::NetWork::ConnectToHost(this->_socket, this->_serverInfo)) {
         return false;
     }
-    if (!this->_connection->SetConnectedSocket(this->_socket, this->_serverInfo))
-    {
+    if(!this->_connection->SetConnectedSocket(this->_socket, this->_serverInfo)) {
         return false;
     }
     return true;
 }
-bool WTcpClient::ConnectToHost(const std::string& address, uint16_t port)
-{
+bool WTcpClient::ConnectToHost(const std::string &address, uint16_t port) {
     this->_serverInfo = {address, port};
-    if (!wlb::NetWork::ConnectToHost(this->_socket, this->_serverInfo))
-    {
+    if(!wlb::NetWork::ConnectToHost(this->_socket, this->_serverInfo)) {
         return false;
     }
-    if (this->_connection->SetConnectedSocket(this->_socket, this->_serverInfo))
-    {
+    if(this->_connection->SetConnectedSocket(this->_socket, this->_serverInfo)) {
         return false;
     }
     return true;
 }
 
 
-
-
-
-
-
-
-}
-
-
-
+} // namespace wlb::network

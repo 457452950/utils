@@ -1,21 +1,27 @@
 //
 // Created by wang on 22-5-5.
 //
-
+#pragma once
 #ifndef UTILS_DEMO_UTILS_INCLUDE_WNETWORK_WNETWORK_H_
 #define UTILS_DEMO_UTILS_INCLUDE_WNETWORK_WNETWORK_H_
 
+#include "WEpoll.h"
+#include "WEventHandle.h"
 #include "WNetWorkUtils.h"
-#include "WMultiTcpServer.hpp"
-#include "WBaseSession.hpp"
 
-namespace wlb::NetWork {
-// need to Define by user:
-extern WBaseSession *CreateNewSession(WBaseSession::Listener *listener);
-extern WNetWorkHandler *CreateNetworkHandlerAndInit(uint32_t events_size);
+namespace wlb::network {
 
-// need to override by user:
-class WBaseSession;
-}
 
-#endif //UTILS_DEMO_UTILS_INCLUDE_WNETWORK_WNETWORK_H_
+enum class EventHanleType {
+#ifdef OS_IS_LINUX
+    SELECT,
+    EPOLL,
+#endif
+};
+
+inline WEventHandle *MakeEventHandle(EventHanleType type);
+
+
+} // namespace wlb::network
+
+#endif // UTILS_DEMO_UTILS_INCLUDE_WNETWORK_WNETWORK_H_

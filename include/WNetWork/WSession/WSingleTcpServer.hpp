@@ -1,26 +1,23 @@
-#include <vector>
-#include <set>
 #include <map>
+#include <set>
+#include <vector>
 // #include <list>
 #include <thread>
-#include "../WOS.h"
+#include "../../WList.hpp"
+#include "../../WOS.h"
 #include "WBaseSession.hpp"
-#include "WList.hpp"
 
 #if OS_IS_LINUX
 
-namespace wlb::NetWork {
+namespace wlb::network {
 
-class WSingleTcpServer :
-        public WNetAccepter::Listener,
-        public WBaseSession::Listener {
+class WSingleTcpServer : public WNetAccepter::Listener, public WBaseSession::Listener {
 public:
-
 public:
     explicit WSingleTcpServer() = default;
     ~WSingleTcpServer() override;
     // no copyable
-    WSingleTcpServer(const WSingleTcpServer &other) = delete;
+    WSingleTcpServer(const WSingleTcpServer &other)            = delete;
     WSingleTcpServer &operator=(const WSingleTcpServer &other) = delete;
 
     // class lifetime
@@ -50,19 +47,17 @@ private:
     bool IncreaseConnectionTemp();
 
 private:
-    std::thread                                *work_thread_{nullptr};
-    bool                                       running_{false};
+    std::thread *work_thread_{nullptr};
+    bool         running_{false};
     //
-    WNetWorkHandler                            *handler_{nullptr};
+    WNetWorkHandler                           *handler_{nullptr};
     std::map<base_socket_type, WNetAccepter *> accepter_map_;
     // 内存池设计
-    SessionList                                session_list_;
-    SessionList                                session_temp_;
-    const uint16_t                             connections_increase_ = 100;    // 内存池增长
-
+    SessionList    session_list_;
+    SessionList    session_temp_;
+    const uint16_t connections_increase_ = 100; // 内存池增长
 };
 
-}   // namespace wlb::NetWork
+} // namespace wlb::network
 
 #endif //
-

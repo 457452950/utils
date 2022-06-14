@@ -1,11 +1,11 @@
 #pragma once
 
-#include <thread>
 #include <list>
+#include <thread>
+#include "../../WTimer.hpp"
 #include "WSingleTcpServer.hpp"
-#include "../WTimer.hpp"
 
-namespace wlb::NetWork {
+namespace wlb::network {
 
 /////////////////////////////////////////////////////////
 // timer
@@ -13,8 +13,7 @@ extern WTimerHandler *timeHandler;
 
 class WServerTimer : public wlb::WTimer {
 public:
-    explicit WServerTimer(WTimerHandler::Listener *listener)
-            : WTimer(listener, timeHandler) {}
+    explicit WServerTimer(WTimerHandler::Listener *listener) : WTimer(listener, timeHandler) {}
     ~WServerTimer() override = default;
 };
 
@@ -24,10 +23,10 @@ public:
 
 class WMultiTcpServer : public WTimerHandler::Listener {
 public:
-    explicit WMultiTcpServer() = default;
+    explicit WMultiTcpServer()  = default;
     ~WMultiTcpServer() override = default;
     // no copyable
-    WMultiTcpServer(const WMultiTcpServer &other) = delete;
+    WMultiTcpServer(const WMultiTcpServer &other)            = delete;
     WMultiTcpServer &operator=(const WMultiTcpServer &other) = delete;
 
     // class lifetime
@@ -55,10 +54,10 @@ private:
     uint16_t                      _threadsCount{0};
     std::list<WSingleTcpServer *> _servers;
     //
-    bool                          _isRunning{false};
-    std::thread                   *_timerThread{nullptr};
+    bool         _isRunning{false};
+    std::thread *_timerThread{nullptr};
     //
-    WServerTimer                  *_timer{nullptr};
+    WServerTimer *_timer{nullptr};
 };
 
-}
+} // namespace wlb::network
