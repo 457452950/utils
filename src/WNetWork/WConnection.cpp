@@ -1,26 +1,8 @@
-#include "WNetWork/WConnection.hpp"
+#include "WNetWork/WSession/WConnection.hpp"
+#include <cassert>
 #include <iostream>
-#include "../WDebugger.hpp"
 
-using namespace wlb::debug;
-
-#define ACCEPTERADD \
-DEBUGADD("WNetAccepter")
-#define ACCEPTERRM \
-DEBUGRM("WNetAccepter")
-
-#define FLOATSESSADD \
-DEBUGADD("WFloatBufferConnection")
-#define FLOATSESSRM \
-DEBUGRM("WFloatBufferConnection")
-
-#define FIXEDSESSADD \
-DEBUGADD("WFixedBufferConnection")
-#define FIXEDSESSRM \
-DEBUGRM("WFixedBufferConnection")
-
-namespace wlb::NetWork
-{
+namespace wlb::network {
 
 /////////////////////////////////////////////////////////
 // Created by wlb on 2021/9/17.
@@ -28,152 +10,116 @@ namespace wlb::NetWork
 ////////////////////////////////////////////////////////
 
 
-WNetAccepter::WNetAccepter(Listener* listener) : _listener(listener) 
-{
-    ACCEPTERADD;
+WNetAccepter::WNetAccepter(Listener *listener) : listener_(listener) {}
+
+WNetAccepter::~WNetAccepter() { this->Close(); }
+
+bool WNetAccepter::Init(WNetWorkHandler *handler, const std::string &IpAddress, uint16_t port) {
+    return this->Init(handler, {IpAddress, port, true});
 }
 
-WNetAccepter::~WNetAccepter() 
-{
-    ACCEPTERRM;
-    this->Close();
+bool WNetAccepter::Listen() {
+    if(::listen(this->socket_, 1024) == -1) {
+        this->errno_ = errno;
+        return false;
+    }
+    return true;
 }
 
-bool WNetAccepter::Init(WNetWorkHandler* handler, const std::string& IpAddress, uint16_t port)
-{
-    /////////////////////////////////
-    // Initialize socket
-    this->_socket = MakeTcpv4Socket();       // tcp v4
-    if (this->_socket == -1)
-    {
+base_socket_type WNetAccepter::Accept(WEndPointInfo *info) { return wlb::network::Accept(this->socket_, info, true); }
+
+base_socket_type WNetAccepter::GetListenSocket() noexcept { return this->socket_; }
+
+void WNetAccepter::Close() {
+    this->handler_->RemoveSocket(this->socket_);
+
+    if(this->socket_ != -1) {
+        ::close(this->socket_);
+        this->socket_ = -1;
+    }
+
+    this->handler_ = nullptr;
+
+    this->listener_ = nullptr;
+
+    delete this->handler_data_;
+    this->handler_data_ = nullptr;
+}
+
+void WNetAccepter::OnRead() {
+    WEndPointInfo    info;
+    base_socket_type cli_sock = this->Accept(&info);
+
+    if(cli_sock == -1) {
+        this->errno_ = errno;
+        return;
+    }
+
+    if(this->listener_ != nullptr) {
+        if(!this->listener_->OnNewConnection(cli_sock, info)) {
+            ::close(cli_sock);
+            std::cout << "close client" << info.ip_address << " " << info.port << std::endl;
+        }
+    }
+}
+
+void WNetAccepter::OnError(int16_t error_code) { this->errno_ = error_code; }
+
+int16_t WNetAccepter::GetErrorNo() noexcept {
+    int16_t e    = this->errno_;
+    this->errno_ = -1;
+    return e;
+}
+bool WNetAccepter::Init(WNetWorkHandler *handler, const WEndPointInfo &end_point_info) {
+    this->socket_ = MakeTcpV4Socket(); // tcp v4
+    if(this->socket_ == -1) {
         return false;
     }
-    
 
-    if ( !SetSocketReuseAddr(this->_socket) || 
-            !SetSocketReusePort(this->_socket) || 
-            !SetSocketKeepAlive(this->_socket) )
-    {
-        
+    if(!SetSocketReuseAddr(this->socket_) || !SetSocketReusePort(this->socket_) || !SetSocketKeepAlive(this->socket_)) {
+        this->errno_ = errno;
         return false;
     }
-    
-    if ( !SetSocketNoBlock(this->_socket) )
-    {
-        
-    }
-    
 
+    if(!SetSocketNoBlock(this->socket_)) {
+        this->errno_ = errno;
+    }
     // ///////////////////////////////////////
     // Init members
-    this->_address = IpAddress; // copy
-    this->_port = port;
-    
-    this->_handler = handler;
-    if (this->_handler == nullptr)
-    {
-        
-        return false;
-    }
-    
+    this->local_info_ = end_point_info;
+
+    this->handler_ = handler;
+    assert(this->handler_);
 
     // ///////////////////////////////////////
-    // Bind 
-    if ( !wlb::NetWork::Bind(this->_socket, this->_address, this->_port) )
-    {
+    // Bind
+    if(!wlb::network::Bind(this->socket_, this->local_info_)) {
+        this->errno_ = errno;
         return false;
     }
-    
-
     /////////////////////////////////
     // Listen
-    if ( !this->Listen() )
-    {
-        
+    if(!this->Listen()) {
         return false;
     }
-    
-    this->_handlerData = new(std::nothrow) WHandlerData(this->_socket, this);
-    if (this->_handlerData == nullptr)
-    {
-        return false;
-    }
-    
+
+    this->handler_data_ = new(std::nothrow) WHandlerData(this->socket_, this);
+    assert(this->handler_data_);
+
     // //////////////////////////////
     // add socket in handler
     uint32_t op = 0;
     op |= WNetWorkHandler::OP_IN;
     op |= WNetWorkHandler::OP_ERR;
-    
-    if ( !this->_handler->AddSocket(this->_handlerData, op) )
-    {
-        
+
+    if(!this->handler_->AddSocket(this->handler_data_, op)) {
+        this->errno_ = this->handler_->GetErrorNo();
         return false;
     }
-    
-    
+
     return true;
 }
-
-
-bool WNetAccepter::Listen()
-{
-    if ( ::listen(this->_socket, 1024) == -1) 
-    {
-        return false;
-    }
-    return true;
-}
-
-base_socket_type WNetAccepter::Accept(WEndPointInfo& info)
-{
-    return wlb::NetWork::Accept(this->_socket, info, true);
-}
-
-base_socket_type WNetAccepter::GetListenSocket()
-{
-    return this->_socket;
-}
-
-void WNetAccepter::Close()
-{
-    this->_handler->RemoveSocket(this->_socket);
-    ::close(this->_socket);
-    this->_handler = nullptr;
-    this->_listener = nullptr;
-
-    if (this->_handlerData != nullptr)
-    {
-        delete this->_handlerData;
-    }
-}
-
-void WNetAccepter::OnRead()
-{
-    WEndPointInfo info;
-    base_socket_type cli_sock = this->Accept(info);
-
-    if (this->_listener != nullptr)
-    {
-        if (!this->_listener->OnNewConnection(cli_sock, info))
-        {
-            ::close(cli_sock);
-            std::cout << "close client" << info.ip_address << " " << info.port << std::endl;
-        }
-    }
-    
-    return;
-}
-
-void WNetAccepter::OnError(int error_code)
-{
-    this->Close();
-    return;
-}
-
-
-
-
+const WEndPointInfo &WNetAccepter::GetLocalInfo() const { return local_info_; }
 
 
 /////////////////////////////////////////////////////////
@@ -181,617 +127,473 @@ void WNetAccepter::OnError(int error_code)
 // Seession
 ////////////////////////////////////////////////////////
 
-WFloatBufferConnection::WFloatBufferConnection(WBaseConnection::Listener* listener):
-    _listener(listener) 
-{
-    FLOATSESSADD;
-}
-WFloatBufferConnection::~WFloatBufferConnection()
-{
-    FLOATSESSRM;
-    this->Destroy();
-}
+WFloatBufferConnection::WFloatBufferConnection(WBaseConnection::Listener *listener) : listener_(listener) {}
+WFloatBufferConnection::~WFloatBufferConnection() { this->Destroy(); }
 
-bool WFloatBufferConnection::Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t headLen)
-{
-    this->_maxBufferSize = maxBufferSize;
-    this->_headLen = headLen;
+bool WFloatBufferConnection::Init(WNetWorkHandler *handler, uint32_t maxBufferSize, uint32_t headLen) {
+    this->max_buffer_size_ = maxBufferSize;
+    this->head_len_        = headLen;
 
-    if ( !_recvBuffer.Init(maxBufferSize) )
-    {
-        this->_errorMessage = this->_recvBuffer.GetErrorMessage();
+    if(!recv_buffer_.Init(maxBufferSize)) {
         return false;
     }
-    if ( !_sendBuffer.Init(maxBufferSize) )
-    {
-        this->_errorMessage = this->_sendBuffer.GetErrorMessage();
+    if(!send_buffer_.Init(maxBufferSize)) {
         return false;
     }
 
-    this->_handler = handler;
-    if (this->_handler == nullptr)
-    {
-        this->_errorMessage = "handler is nullptr";
-        return false;
-    }
-    
-    this->_op |= WNetWorkHandler::OP_IN;
-    this->_op |= WNetWorkHandler::OP_ERR;
-    this->_op |= WNetWorkHandler::OP_SHUT;
-    this->_op |= WNetWorkHandler::OP_CLOS;
+    this->handler_ = handler;
+    assert(this->handler_);
 
-    this->_handlerData = new(std::nothrow) WHandlerData(this->_socket, this);
-    if (this->_handlerData == nullptr)
-    {
-        return false;
-    }
+    this->op_ |= WNetWorkHandler::OP_IN;
+    this->op_ |= WNetWorkHandler::OP_ERR;
+    this->op_ |= WNetWorkHandler::OP_SHUT;
+    this->op_ |= WNetWorkHandler::OP_CLOS;
+
+    this->handler_data_ = new(std::nothrow) WHandlerData(this->socket_, this);
+    assert(this->handler_data_);
 
     return true;
 }
 
-bool WFloatBufferConnection::SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo)
-{
-    this->_socket = socket;
+bool WFloatBufferConnection::SetConnectedSocket(base_socket_type socket, const WEndPointInfo &peerInfo) {
+    this->socket_ = socket;
 
-    if (    !SetTcpSocketNoDelay(this->_socket) || 
-            !SetSocketKeepAlive(this->_socket) )
-    {
-        this->_errorMessage = strerror(errno);
+    if(!SetTcpSocketNoDelay(this->socket_) || !SetSocketKeepAlive(this->socket_)) {
+        this->error_code_ = errno;
         return false;
     }
-    if ( !SetSocketNoBlock(this->_socket))
-    {
-        this->_errorMessage = strerror(errno);
+    if(!SetSocketNoBlock(this->socket_)) {
+        this->error_code_ = errno;
     }
-    if ( !_handler->AddSocket(this->_handlerData, this->_op))
-    {
-        this->_errorMessage = this->_handler->GetErrorMessage();
+    if(!handler_->AddSocket(this->handler_data_, this->op_)) {
+        this->error_code_ = this->handler_->GetErrorNo();
         return false;
     }
 
-    this->_peerInfo = peerInfo;
+    this->peer_info_ = peerInfo;
 
-    this->_isConnected = true;
+    this->is_connected_ = true;
 
     return true;
 }
 
-void WFloatBufferConnection::Close()
-{
-    if (::shutdown(this->_socket, SHUT_RDWR) == -1)
-    {
-        this->_errorMessage = strerror(errno);
+void WFloatBufferConnection::CloseConnection() {
+    if(::shutdown(this->socket_, SHUT_RDWR) == -1) {
+        this->error_code_ = errno;
+        this->listener_->OnConnectionError();
     }
 }
 
-void WFloatBufferConnection::Clear()
-{
-    this->_handler->RemoveSocket(this->_socket);
-    this->_isConnected = false;
-    ::close(this->_socket);
-    this->_socket = -1;
-    _recvBuffer.Clear();
-    _sendBuffer.Clear();
-}
-
-void WFloatBufferConnection::Destroy()
-{
-    _recvBuffer.Destroy();
-    _sendBuffer.Destroy();
-    this->_listener = nullptr;
-    if (this->_handlerData != nullptr)
-    {
-        delete this->_handlerData;
+void WFloatBufferConnection::Clear() {
+    if(!this->is_connected_) {
+        return;
     }
-    
+
+    this->is_connected_ = false;
+
+    this->handler_->RemoveSocket(this->socket_);
+
+    if(this->socket_ != -1) {
+        ::close(this->socket_);
+        this->socket_ = -1;
+    }
+
+    recv_buffer_.Clear();
+    send_buffer_.Clear();
 }
 
-bool WFloatBufferConnection::Send(const std::string& message)
-{
-    uint32_t msgSize = message.size();
+void WFloatBufferConnection::Destroy() {
+    this->Clear();
+
+    recv_buffer_.Destroy();
+    send_buffer_.Destroy();
+
+    this->listener_ = nullptr;
+
+    delete this->handler_data_;
+    this->handler_data_ = nullptr;
+}
+
+bool WFloatBufferConnection::Send(const std::string &message) {
+    uint32_t msgSize    = message.size();
     uint32_t insert_len = 0;
 
-    std::string head;
-    if (this->_headLen == 2)
-    {
-        head = MakeWlbHead(wlbHead2(msgSize));
+    std::string send_message;
+    if(this->head_len_ == 2) {
+        wlbHead<2> head{msgSize};
+        send_message.append(reinterpret_cast<char *>(head.data_uchar));
+    } else if(this->head_len_ == 4) {
+        wlbHead<4> head{msgSize};
+        send_message.append(reinterpret_cast<char *>(head.data_uchar));
     }
-    else if (this->_headLen == 4)
-    {
-        head = MakeWlbHead(wlbHead4(msgSize));
-    }
-    
-    std::string send_message = head + message;
-    insert_len = _sendBuffer.InsertMessage(send_message);
-    if (insert_len != send_message.length())
-    {
-        this->_errorMessage = "insert message false";
+
+    send_message.append(message);
+    insert_len = send_buffer_.InsertMessage(send_message);
+    if(insert_len != send_message.length()) {
+        std::cout << "insert message false" << std::endl;
         return false;
     }
 
     std::cout << "send message start set epoll out" << std::endl;
-    if (!(this->_op & WNetWorkHandler::OP_OUT))
-    {
+    if(!(this->op_ & WNetWorkHandler::OP_OUT)) {
         std::cout << "send message set epoll out" << std::endl;
         // 添加进 send events
-        this->_op |= WNetWorkHandler::OP_OUT;
-        if ( !_handler->ModifySocket(this->_handlerData, this->_op) )
-        {
+        this->op_ |= WNetWorkHandler::OP_OUT;
+        if(!handler_->ModifySocket(this->handler_data_, this->op_)) {
             std::cout << "send message set epoll out failed" << std::endl;
-            this->_errorMessage = this->_handler->GetErrorMessage();
-            std::cout << "send message set epoll out failed" << this->_errorMessage << std::endl;
+            this->error_code_ = this->handler_->GetErrorNo();
+            std::cout << "send message set epoll out failed" << strerror(this->error_code_) << std::endl;
             return false;
         }
-    }    
+    }
     std::cout << "WFloatBufferConnection::Send end" << std::endl;
     return true;
 }
 
-bool WFloatBufferConnection::Receive()
-{
+bool WFloatBufferConnection::Receive() {
     std::cout << "WFloatBufferConnection::Receive" << std::endl;
-    int32_t recv_len = ::recv(this->_socket, 
-                                this->_recvBuffer.GetRestBuffer(), 
-                                this->_recvBuffer.GetTopRestBufferSize(),
-                                0);
-    if (recv_len <= -1)
-    {
+    int64_t recv_len =
+            ::recv(this->socket_, this->recv_buffer_.GetRestBuffer(), this->recv_buffer_.GetTopRestBufferSize(), 0);
+    if(recv_len <= -1) {
         this->HandleError(errno);
-        std::cout << this->_errorMessage << std::endl;
-        this->_listener->OnConnectionError();
+        std::cout << this->error_code_ << std::endl;
+        this->listener_->OnConnectionError();
         return false;
     }
-    if (recv_len == 0 && _recvBuffer.GetTopRestBufferSize() != 0)
-    {
-        this->_errorMessage = "recv 0";
-        std::cout << this->_errorMessage << std::endl;
+    if(recv_len == 0 && recv_buffer_.GetTopRestBufferSize() != 0) {
+        this->listener_->OnConnectionClosed();
+        std::cout << "recv 0" << std::endl;
         return false;
     }
-    
-    this->_recvBuffer.UpdateWriteOffset(recv_len);
+
+    this->recv_buffer_.UpdateWriteOffset(recv_len);
 
     return true;
 }
 
-void WFloatBufferConnection::HandleError(int error_code)
-{
-    this->_errorMessage.clear();
-    this->_errorMessage.assign(::strerror(error_code));
-}
+void WFloatBufferConnection::HandleError(int16_t error_code) { this->error_code_ = error_code; }
 
-void WFloatBufferConnection::OnError(int error_no)
-{
+void WFloatBufferConnection::OnError(int16_t error_no) {
     HandleError(error_no);
 
-    if (this->_listener != nullptr)
-    {
-        this->_listener->OnConnectionError();
+    if(this->listener_ != nullptr) {
+        this->listener_->OnConnectionError();
     }
-    
-    return;
 }
 
-void WFloatBufferConnection::OnClosed()
-{   
-    if (this->_listener != nullptr)
-    {
-        this->_listener->OnConnectionClosed();
+void WFloatBufferConnection::OnClosed() {
+    if(this->listener_ != nullptr) {
+        this->listener_->OnConnectionClosed();
     }
-    return;
 }
 
-void WFloatBufferConnection::OnRead()
-{
-    if (!this->Receive())
-    {
-        ::shutdown(this->_socket, SHUT_RD);
+void WFloatBufferConnection::OnRead() {
+    if(!this->Receive()) {
         return;
     }
     std::cout << "WFloatBufferConnection::OnRead" << std::endl;
-    
+
     std::string head;
     std::string receive_message;
     // on message
-    while (1)
-    {
+    while(true) {
         receive_message.clear();
-        uint32_t len = this->_recvBuffer.GetFrontMessage(head, this->_headLen);
-        
-        if (len != this->_headLen)
-        {
+        uint32_t len = this->recv_buffer_.GetFrontMessage(&head, this->head_len_);
+
+        if(len != this->head_len_) {
             std::cout << "WFloatBufferConnection::OnRead no enough message len:" << len << std::endl;
             break;
         }
-        
-        len = GetLengthFromWlbHead(head.c_str(), this->_headLen);
+
+        len = GetLengthFromWlbHead(head.c_str(), this->head_len_);
         std::cout << "WFloatBufferConnection::OnRead head body length:" << len << std::endl;
-        
-        if (len == 0)
-        {
-            this->_errorMessage = "Invalid message head len = 0";
-            this->_listener->OnConnectionError();
-            std::cout << this->_errorMessage << std::endl;
+
+        if(len == 0) {
+            this->CloseConnection();
+            std::cout << "Invalid message head len = 0" << std::endl;
             return;
         }
 
-        if (len > this->_recvBuffer.GetFrontMessageLength())
-        {
+        if(len > this->recv_buffer_.GetFrontMessageLength()) {
             std::cout << "WFloatBufferConnection::OnRead no enough message len" << len << std::endl;
             return;
         }
-        
-        this->_recvBuffer.UpdateReadOffset(this->_headLen);
 
-        len = this->_recvBuffer.GetFrontMessage(receive_message, len);
-        if (len == 0)
-        {
+        this->recv_buffer_.UpdateReadOffset(this->head_len_);
+
+        len = this->recv_buffer_.GetFrontMessage(&receive_message, len);
+        if(len == 0) {
             // no enough message
             std::cout << "WFloatBufferConnection::OnRead error no enough message len" << len << std::endl;
             break;
         }
 
-        (len > 0) ? this->_recvBuffer.UpdateReadOffset(len)
-                    : this->_recvBuffer.UpdateReadOffset(0);
-        
-        this->_listener->OnConnectionMessage(receive_message);
+        (len > 0) ? this->recv_buffer_.UpdateReadOffset(len) : this->recv_buffer_.UpdateReadOffset(0);
+
+        this->listener_->OnConnectionMessage(receive_message);
     }
 }
 
-void WFloatBufferConnection::OnWrite()
-{
+void WFloatBufferConnection::OnWrite() {
     std::cout << "WFloatBufferConnection::OnWrite()" << std::endl;
     std::string send_message;
-    uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
-    ssize_t send_len = ::send(this->_socket, send_message.c_str(), msg_len, 0);
-    
-    std::cout << "sned len :" << send_len << std::endl;
+    uint32_t    msg_len  = send_buffer_.GetAllMessage(&send_message);
+    ssize_t     send_len = ::send(this->socket_, send_message.c_str(), msg_len, 0);
 
-    this->_sendBuffer.UpdateReadOffset(send_len);
+    std::cout << "send len :" << send_len << std::endl;
 
-    if (send_len < 0)
-    {
+    this->send_buffer_.UpdateReadOffset(send_len);
+
+    if(send_len < 0) {
         this->HandleError(errno);
-        this->_listener->OnConnectionError();
+        this->listener_->OnConnectionError();
         return;
     }
 
-    if (_sendBuffer.Empty())
-    {
-        this->_op -= WNetWorkHandler::OP_OUT;
-        this->_handler->ModifySocket(this->_handlerData, this->_op);
+    if(send_buffer_.Empty()) {
+        this->op_ -= WNetWorkHandler::OP_OUT;
+        this->handler_->ModifySocket(this->handler_data_, this->op_);
     }
-
-    return;
 }
 
-void WFloatBufferConnection::OnShutdown()
-{
-    if (this->_listener != nullptr)
-    {
-        this->_listener->OnConnectionShutdown();
+void WFloatBufferConnection::OnShutdown() {
+    if(this->listener_ != nullptr) {
+        this->listener_->OnConnectionShutdown();
     }
-    
-    return;
 }
-
-
-
-
-
-
-
+int WFloatBufferConnection::GetErrorCode() {
+    auto e            = this->error_code_;
+    this->error_code_ = -1;
+    return e;
+}
+const WEndPointInfo &WFloatBufferConnection::GetPeerInfo() { return this->peer_info_; }
 
 // wlb style methods
-
-const std::string MakeWlbHead(const wlbHead2& length)
-{
-    std::string head = "";
-    head.append((char*)&length.data.data, 2);
-    return head;
-}
-const std::string MakeWlbHead(const wlbHead4& length)
-{
-    std::string head = "";
-    head.append((char*)&length.data.data, 4);
-    return head;
-}
-
-uint32_t GetLengthFromWlbHead(const char* wlbHead, uint32_t head_length)
-{
-    if (head_length == 0)
-    {
-        return 0;
+uint64_t GetLengthFromWlbHead(const char *str_data, uint8_t head_length) {
+    if(head_length == 0) {
+        assert(head_length);
+    } else if(head_length == 2) {
+        wlbHead<2> data{};
+        memccpy(data.data_uchar, str_data, head_length, head_length);
+        return data.data_int;
+    } else if(head_length == 4) {
+        wlbHead<4> data{};
+        memccpy(data.data_uchar, str_data, head_length, head_length);
+        return data.data_int;
     }
-    else if (head_length == 2)
-    {
-        wlbHead2 head;
-        try
-        {
-            memcpy(head.data.data, wlbHead, 2);
-            return head.data.length;
-        }
-        catch(const std::exception& e)
-        {
-            // error
-            // std::cout << e.what() << '\n';
-            return 0;
-        }
-    }
-    else if (head_length == 4)
-    {
-        wlbHead4 head;
-        try
-        {
-            memcpy(head.data.data, wlbHead, 4);
-            return head.data.length;
-        }
-        catch(const std::exception& e)
-        {
-            // error
-            // std::cout << e.what() << '\n';
-            return 0;
-        }
-    }
-    return 0;
+    assert(head_length == 0);
 }
-
-
-
-
-
 
 
 /////////////////////////////////
 // WFixedBufferConnection
 
 
-WFixedBufferConnection::WFixedBufferConnection(WBaseConnection::Listener* listener):
-    _listener(listener) 
-{
-    FIXEDSESSADD;
-}
-WFixedBufferConnection::~WFixedBufferConnection()
-{
-    FIXEDSESSRM;
-}
+WFixedBufferConnection::WFixedBufferConnection(WBaseConnection::Listener *listener) : listener_(listener) {}
+WFixedBufferConnection::~WFixedBufferConnection() = default;
 
-bool WFixedBufferConnection::Init(WNetWorkHandler* handler, uint32_t maxBufferSize, uint32_t messageSize)
-{
-    this->_maxBufferSize = maxBufferSize;
-    this->_messageSize = messageSize;
+bool WFixedBufferConnection::Init(WNetWorkHandler *handler, uint32_t maxBufferSize, uint32_t messageSize) {
+    this->max_buffer_size_ = maxBufferSize;
+    this->message_size_    = messageSize;
 
-    if ( !_recvBuffer.Init(maxBufferSize) )
-    {
-        this->_errorMessage = this->_recvBuffer.GetErrorMessage();
+    if(!recv_buffer_.Init(maxBufferSize)) {
         return false;
     }
-    if ( !_sendBuffer.Init(maxBufferSize) )
-    {
-        this->_errorMessage = this->_sendBuffer.GetErrorMessage();
+    if(!send_buffer_.Init(maxBufferSize)) {
         return false;
     }
 
-    this->_handler = handler;
-    if (this->_handler == nullptr)
-    {
-        this->_errorMessage = "Invalid _handler nullptr";
+    this->handler_ = handler;
+    assert(this->handler_);
+
+    this->op_ |= WNetWorkHandler::OP_IN;
+    this->op_ |= WNetWorkHandler::OP_ERR;
+    this->op_ |= WNetWorkHandler::OP_SHUT;
+    this->op_ |= WNetWorkHandler::OP_CLOS;
+
+    this->handler_data_ = new(std::nothrow) WHandlerData(this->socket_, this);
+    if(this->handler_data_ == nullptr) {
         return false;
     }
-    
-    this->_op |= WNetWorkHandler::OP_IN;
-    this->_op |= WNetWorkHandler::OP_ERR;
-    this->_op |= WNetWorkHandler::OP_SHUT;
-    this->_op |= WNetWorkHandler::OP_CLOS;
-
-
-    this->_handlerData = new(std::nothrow) WHandlerData(this->_socket, this);
-    if (this->_handlerData == nullptr)
-    {
-        return false;
-    }
-    
 
     return true;
 }
 
-bool WFixedBufferConnection::SetConnectedSocket(base_socket_type socket, const WEndPointInfo& peerInfo)
-{
-    this->_socket = socket;
+bool WFixedBufferConnection::SetConnectedSocket(base_socket_type socket, const WEndPointInfo &peerInfo) {
+    this->socket_ = socket;
 
-    if (    !SetTcpSocketNoDelay(this->_socket) || 
-            !SetSocketKeepAlive(this->_socket) )
-    {
-        
+    if(!SetTcpSocketNoDelay(this->socket_) || !SetSocketKeepAlive(this->socket_)) {
+        this->error_code_ = errno;
         return false;
     }
-    if ( !SetSocketNoBlock(this->_socket))
-    {
+    if(!SetSocketNoBlock(this->socket_)) {
+        this->error_code_ = errno;
         // error set noblock failed
     }
-    if ( !_handler->AddSocket(this->_handlerData, this->_op))
-    {
+    if(!handler_->AddSocket(this->handler_data_, this->op_)) {
+        this->error_code_ = this->handler_->GetErrorNo();
         return false;
     }
 
-    this->_peerInfo = peerInfo;
+    this->peer_info_ = peerInfo;
 
-    this->_isConnected = true;
+    this->is_connected_ = true;
 
     return true;
 }
 
-void WFixedBufferConnection::Close()
-{
-    shutdown(this->_socket, SHUT_RDWR);
-}
+void WFixedBufferConnection::CloseConnection() {
+    if(shutdown(this->socket_, SHUT_RDWR) != 0) {
+        this->error_code_ = errno;
 
-void WFixedBufferConnection::Clear()
-{
-    this->_handler->RemoveSocket(this->_socket);
-    this->_isConnected = false;
-    ::close(this->_socket);
-    this->_socket = -1;
-
-    _recvBuffer.Clear();
-    _sendBuffer.Clear();
-}
-
-void WFixedBufferConnection::Destroy()
-{
-    _recvBuffer.Destroy();
-    _sendBuffer.Destroy();
-    this->_listener = nullptr;
-    if (this->_handlerData != nullptr)
-    {
-        delete this->_handlerData;
+        if(this->listener_) {
+            this->listener_->OnConnectionError();
+        }
     }
 }
 
-bool WFixedBufferConnection::Send(const std::string& message)
-{
-    uint32_t msgSize = message.size();
+void WFixedBufferConnection::Clear() {
+    this->is_connected_ = false;
+
+    this->handler_->RemoveSocket(this->socket_);
+
+    if(this->socket_ != -1) {
+        ::close(this->socket_);
+        this->socket_ = -1;
+    }
+
+    recv_buffer_.Clear();
+    send_buffer_.Clear();
+}
+
+void WFixedBufferConnection::Destroy() {
+    this->Clear();
+
+    recv_buffer_.Destroy();
+    send_buffer_.Destroy();
+
+    this->listener_ = nullptr;
+
+    delete this->handler_data_;
+    this->handler_data_ = nullptr;
+}
+
+bool WFixedBufferConnection::Send(const std::string &message) {
+    uint32_t msgSize    = message.size();
     uint32_t insert_len = 0;
 
-    if (msgSize > this->_messageSize)
-    {
-        // message is too large
-        return false;
-    }
-    
-    insert_len = _sendBuffer.InsertMessage(message);
-    if (insert_len != message.length())
-    {
+    assert(msgSize <= this->message_size_);
+
+    insert_len = send_buffer_.InsertMessage(message);
+    if(insert_len != message.length()) {
         return false;
     }
 
     // 添加进 send events
-    this->_op |= WNetWorkHandler::OP_OUT;
-    if ( !_handler->ModifySocket(this->_handlerData, this->_op) )
-    {
+    this->op_ |= WNetWorkHandler::OP_OUT;
+    if(!handler_->ModifySocket(this->handler_data_, this->op_)) {
+        this->error_code_ = errno;
         return false;
     }
-    
-    return true;
-}
-
-bool WFixedBufferConnection::Receive()
-{
-    int32_t recv_len = ::recv(this->_socket, 
-                                this->_recvBuffer.GetRestBuffer(), 
-                                this->_recvBuffer.GetTopRestBufferSize(),
-                                0);
-    if (recv_len <= -1)
-    {
-        
-        return false;
-    }
-    if (recv_len == 0 && _recvBuffer.GetTopRestBufferSize() != 0)
-    {
-        
-        return false;
-    }
-    
-    this->_recvBuffer.UpdateWriteOffset(recv_len);
 
     return true;
 }
 
-void WFixedBufferConnection::HandleError(int error_code)
-{
-    this->_errorMessage.clear();
-    this->_errorMessage.assign(::strerror(error_code));
+bool WFixedBufferConnection::Receive() {
+    int64_t recv_len =
+            ::recv(this->socket_, this->recv_buffer_.GetRestBuffer(), this->recv_buffer_.GetTopRestBufferSize(), 0);
 
+    std::cout << "recv " << recv_len << std::endl;
+
+    if(recv_len <= -1) {
+        this->error_code_ = errno;
+        this->listener_->OnConnectionError();
+        return false;
+    }
+    if(recv_len == 0 && recv_buffer_.GetTopRestBufferSize() != 0) {
+        this->listener_->OnConnectionClosed();
+        return false;
+    }
+
+    this->recv_buffer_.UpdateWriteOffset(recv_len);
+
+    return true;
 }
 
-void WFixedBufferConnection::OnError(int error_no)
-{
+void WFixedBufferConnection::HandleError(int16_t error_code) { this->error_code_ = error_code; }
+
+void WFixedBufferConnection::OnError(int16_t error_no) {
+    this->is_connected_ = false;
     HandleError(error_no);
-    
-    if (this->_listener != nullptr)
-    {
-        this->_listener->OnConnectionError();
+
+    if(this->listener_ != nullptr) {
+        this->listener_->OnConnectionError();
     }
-    
-    return;
 }
 
-void WFixedBufferConnection::OnClosed()
-{
-    if (this->_listener != nullptr)
-    {
-        this->_listener->OnConnectionClosed();
-    }
-    return;
-}
-
-void WFixedBufferConnection::OnRead()
-{
-    if (!this->Receive())
-    {
-        ::shutdown(this->_socket, SHUT_RD);
+void WFixedBufferConnection::OnRead() {
+    if(!this->Receive()) {
         return;
     }
-    
+
     std::string receive_message;
     // on message
-    while (1)
-    {
+    while(true) {
         receive_message.clear();
 
-        uint32_t len = this->_recvBuffer.GetFrontMessage(receive_message, this->_messageSize);
-        
-        if (len != this->_messageSize)
-        {
-            
+        uint32_t len = this->recv_buffer_.GetFrontMessage(&receive_message, this->message_size_);
+
+        if(len != this->message_size_) {
+            //            std::cout << "no enough message" << std::endl;
             return;
         }
-        
 
-        this->_listener->OnConnectionMessage(receive_message);
+        this->recv_buffer_.UpdateReadOffset(len);
+
+        this->listener_->OnConnectionMessage(receive_message);
     }
 }
 
-void WFixedBufferConnection::OnWrite()
-{
+void WFixedBufferConnection::OnWrite() {
     std::string send_message;
-    uint32_t msg_len = _sendBuffer.GetAllMessage(send_message);
-    ssize_t send_len = ::send(this->_socket, send_message.c_str(), msg_len, 0);
-    // std::cout << "send:" << send_len << std::endl;
-    
-    this->_sendBuffer.UpdateReadOffset(send_len);
+    uint32_t    msg_len  = send_buffer_.GetAllMessage(&send_message);
+    ssize_t     send_len = ::send(this->socket_, send_message.c_str(), msg_len, 0);
+    std::cout << "send:" << send_len << std::endl;
 
-    if (send_len < 0)
-    {
+    this->send_buffer_.UpdateReadOffset(send_len);
+
+    if(send_len < 0) {
         this->HandleError(errno);
-        this->_listener->OnConnectionError();
+        this->listener_->OnConnectionError();
         return;
     }
 
-    if (_sendBuffer.Empty())
-    {
-        this->_op -= WNetWorkHandler::OP_OUT;
-        this->_handler->ModifySocket(this->_handlerData, this->_op);
+    if(send_buffer_.Empty()) {
+        this->op_ -= WNetWorkHandler::OP_OUT;
+        this->handler_->ModifySocket(this->handler_data_, this->op_);
     }
-
-    return;
 }
 
-void WFixedBufferConnection::OnShutdown()
-{
-    if (this->_listener != nullptr)
-    {
-        this->_listener->OnConnectionShutdown();
+void WFixedBufferConnection::OnClosed() {
+    this->is_connected_ = false;
+
+    if(this->listener_ != nullptr) {
+        this->listener_->OnConnectionClosed();
     }
-    
-    if ( ::shutdown(this->_socket, SHUT_RDWR) == -1 )
-    {
-        
-        return;
-    }
-    return;
 }
 
+void WFixedBufferConnection::OnShutdown() {
+    this->is_connected_ = false;
 
-
+    if(this->listener_ != nullptr) {
+        this->listener_->OnConnectionShutdown();
+    }
 }
+int WFixedBufferConnection::GetErrorCode() {
+    auto e            = this->error_code_;
+    this->error_code_ = -1;
+    return e;
+}
+const WEndPointInfo &WFixedBufferConnection::GetPeerInfo() { return this->peer_info_; }
 
+} // namespace wlb::network

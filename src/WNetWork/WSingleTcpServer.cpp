@@ -1,161 +1,70 @@
-#include "WNetWork/WSingleTcpServer.hpp"
+#include "WNetWork/WSingleTcpServer.h"
 
-#include <iostream>
 #include <cassert>
+#include <iostream>
 
-namespace wlb::NetWork
-{
+namespace wlb::network {
 
-bool WSingleTcpServer::Init()
-{
-    this->_connectionTemp.Init(); 
-    this->_connectionList.Init();
-    this->_accepterMap.clear();
+static auto handle_read_callback = [](base_socket_type sock, WEpoll::user_data_ptr data) {
+    auto *ch = (ReadChannel *)data;
+    std::cout << "get channel call channel in [" << ch << "]" << std::endl;
+    ch->ChannelIn();
+    std::cout << "get channel call channel in end" << std::endl;
+};
 
-    this->_handler = CreateNetworkHandlerAndInit(128);
-    if ( this->_handler == nullptr)
-    {
-        return false;
-    }
+static auto handle_write_callback = [](base_socket_type sock, WEpoll::user_data_ptr data) {
+    auto *ch_ = (WChannel *)data;
+    auto  ch  = static_cast<WriteChannel *>(ch_);
+    std::cout << "get channel call channel out [" << ch_ << "]" << std::endl;
+    std::cout << "handle_write_callback get channel call channel out" << std::endl;
+    // std::cout << " ch->ChannelOut & " << (int)&(ch->ChannelOut) << std::endl;
+    ch->ChannelOut();
+    std::cout << "handle_write_callback get channel call channel out end" << std::endl;
+};
 
-    if (!this->UpdateConnectionTemp())
-    {
-        return false;
-    }
-    
-    
-    return true;
+WSingleTcpServer::WSingleTcpServer() {
+    this->contex_.event_handle_ = CreateNetHandle(HandleType::SELECT);
+    // this->contex_.event_handle_         = CreateNetHandle(HandleType::EPOLL);
+    this->contex_.event_handle_->read_  = handle_read_callback;
+    this->contex_.event_handle_->write_ = handle_write_callback;
+    this->contex_.max_read_size_        = 102400;
+}
+WSingleTcpServer::~WSingleTcpServer() { delete this->contex_.event_handle_; }
+
+void WSingleTcpServer::Start() { this->contex_.event_handle_->Start(); }
+void WSingleTcpServer::Join() { this->contex_.event_handle_->Join(); }
+
+void WSingleTcpServer::Detach() { this->contex_.event_handle_->Detach(); }
+
+bool WSingleTcpServer::AddAccepter(const std::string &IpAddress, uint16_t port, bool isv4) {
+    this->AddAccepter({IpAddress, port, isv4});
 }
 
-void WSingleTcpServer::Close()
-{
-    this->_running = false;
-
-    this->_connectionTemp.clear();
-    this->_connectionList.clear();
-
-    this->_handler->Close();
-}
-
-void WSingleTcpServer::Destroy()
-{
-    if (this->_workThread != nullptr)
-    {
-        delete this->_workThread;
-        this->_workThread = nullptr;
+bool WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) {
+    auto l = -1;
+    if(local_info.isv4) {
+        l = MakeSocket(AF_FAMILY::INET, AF_PROTOL::TCP);
+    } else {
+        l = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
     }
 
-    this->_connectionTemp.clear();
-    this->_connectionList.clear();
+    SetSocketReuseAddr(l);
+    SetSocketReusePort(l);
+    SetSocketNoBlock(l);
 
-    for (auto it : this->_accepterMap)
-    {
-        delete it.second;
-    }
-    this->_accepterMap.clear();
-    
-    if (this->_handler != nullptr)
-    {
-        delete this->_handler;
-        this->_handler = nullptr;
-    }
+    Bind(l, local_info);
+    listen(l, 1024);
+
+    assert(l != -1);
+
+    auto *a = new WAccepterChannel(l, local_info, &this->contex_);
+    accepters_.push_back(a);
 }
+void WSingleTcpServer::SetOnAccept(accept_cb_t cb) { this->contex_.onAccept = cb; }
+void WSingleTcpServer::SetOnAccpetError(event_context_t::accept_error_cb_t cb) { this->contex_.onAcceptError = cb; }
 
-void WSingleTcpServer::run()
-{
-    this->_running = true;
-    this->_workThread = new(std::nothrow) std::thread(&WSingleTcpServer::Loop, this);
-}
+void WSingleTcpServer::SetOnMessage(event_context_t::read_cb_t cb) { this->contex_.onRead = cb; }
+void WSingleTcpServer::SetOnMessageError(event_context_t::read_error_cb_t cb) { this->contex_.onReadError = cb; }
+void WSingleTcpServer::SetOnSendOrror(event_context_t::write_error_cb_t cb) { this->contex_.onWriteError = cb; }
 
-void WSingleTcpServer::WaitForQuit()
-{
-    if (this->_workThread != nullptr && this->_workThread->joinable())
-    {
-        this->_workThread->join();
-    }
-}
-
-bool WSingleTcpServer::AddAccepter(const std::string& IpAddress, uint16_t port)
-{
-    WNetAccepter* acc = new(std::nothrow) WNetAccepter(this);
-    if (acc == nullptr)
-    {
-        
-        return false;
-    }
-    
-    
-    if ( !acc->Init(this->_handler, IpAddress, port) )
-    {
-        
-        delete acc;
-        return false;
-    }
-    
-
-    _accepterMap.insert(std::make_pair(acc->GetListenSocket(), acc));
-    return true;
-}
-
-bool WSingleTcpServer::OnNewConnection(base_socket_type socket, const WEndPointInfo& peerInfo)
-{
-    if (this->_connectionTemp.empty() && !this->UpdateConnectionTemp())
-    {
-        // cant new connection
-        std::cout << "cant new connection" << std::endl;
-        exit(-1);
-    }
-    
-    auto node = this->_connectionTemp.front();
-    WBaseSession* session = node->val;
-    if (session->IsConnected())
-    {
-        std::cout << "connection is connected" << std::endl;
-        assert(session->IsConnected());
-    }
-    
-    if ( !session->SetConnectedSocket(socket, peerInfo) )
-    {
-        session->Clear();
-        return false;
-    }
-    
-    return true;
-}
-
-
-void WSingleTcpServer::OnNewSession(SessionNode* node)
-{
-    this->_connectionTemp.erase(node);
-    this->_connectionList.push_back(node);
-}
-void WSingleTcpServer::OnSessionClosed(SessionNode* node)
-{
-    this->_connectionTemp.strong_push_back(node);
-}
-
-void WSingleTcpServer::Loop()
-{
-    while (_running)
-    {
-        this->_handler->GetAndEmitEvents(-1);
-    }
-}
-
-bool WSingleTcpServer::UpdateConnectionTemp()
-{
-    for (size_t index = 0; index < this->connectionsIncrease; ++index)
-    {
-        auto* session = CreateNewSessionNodeAndInit(this, this->_handler);
-
-        if (session == nullptr)
-        {
-            return false;
-        }
-        
-        this->_connectionTemp.push_front(session);
-    }
-    return true;
-}
-
-}
+} // namespace wlb::network

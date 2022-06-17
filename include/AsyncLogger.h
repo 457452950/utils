@@ -5,28 +5,20 @@
 #ifndef MYSERVICE_ASYNCLOGGER_H
 #define MYSERVICE_ASYNCLOGGER_H
 
-#include <sys/stat.h>
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <thread>
-#include <mutex>
 #include <condition_variable>
-#include <memory>
-#include <list>
 #include <cstring>
+#include <fstream>
+#include <iostream>
+#include <list>
+#include <memory>
+#include <mutex>
+#include <sstream>
+#include <sys/stat.h>
+#include <thread>
+#include <unistd.h> // access()
 
-#ifdef WIN32
-
-#include <windows.h>    // GetLocalTime
-#include <direct.h>     // mkdir
-#include <io.h>         // access
-#else   // linux
-
-#include <unistd.h>     // access()
-#include <sys/time.h>
-
-#endif
+#include "LoggerBase.h"
+#include "WSystem.h"
 
 
 // #define ERROR "ERROR"
@@ -35,122 +27,87 @@
 // #define DEBUG "DEBUG"
 
 
-bool IsFileExist(const char* path);
+namespace wlb::Log {
 
-namespace wlb
-{
+class LogHelper;
+using LogHelper_ptr = std::shared_ptr<LogHelper>;
 
-namespace Log
-{
-    
-    enum LOG_LEVEL : uint8_t
-    {
-        L_DEBUG = 1 << 0,
-        L_INFO  = 1 << 1,
-        L_WARN  = 1 << 2,
-        L_ERROR = 1 << 3,
-        L_FATAL = 1 << 4,
-    };
+// 生产者-消费者模型
+class Logger {
+private:
+    // Singleton
+    Logger();
 
-    class LogHelper;
+public:
+    ~Logger();
+    // no copyable
+    void operator=(Logger *) = delete;
+    Logger(const Logger &)   = delete;
 
-    using LogHelper_ptr = std::shared_ptr<LogHelper>;
+    // 初始化
+    static void Init(int8_t type, LOG_LEVEL level, char *fileName);
+    static void Stop();
+    static void Wait2Exit();
 
-    class Logger
-    {
-        // Singleton
-    public:
-        static void Init(LOG_LEVEL level, char* fileName){
-            s_strFileName = new char[strlen(fileName)+1];
-            memcpy(s_strFileName, fileName, strlen(fileName));
-            s_strFileName[strlen(fileName)] = '\0';
-            s_Instance = new Logger();
-            s_LogLevel = level;
-            s_Instance->m_bIsRunning = true;
-            s_Instance->m_pThread = new(std::nothrow) std::thread(&Logger::Loop, s_Instance);
-            Logger::s_bIsActive = true;
-        }
-        static void Stop()
-        {
-            s_Instance->m_bIsRunning = false;
-        }
-        static void Wait2Exit()
-        {
-            if (s_Instance->m_pThread != nullptr && s_Instance->m_pThread->joinable())
-            {
-                s_Instance->m_pThread->join();
-            }
-        }
-        static Logger* getInstance();
-        static bool s_bIsActive;
-        void operator=(Logger*) = delete;
-        Logger(const Logger&) = delete;
+    static Logger   *getInstance();
+    static LOG_LEVEL GetLogLevel();
+    void             Loop();
 
-        static LOG_LEVEL    s_LogLevel;
-    private:
-        Logger();
-        ~Logger();
-        static Logger*      s_Instance;
-        static char*        s_strFileName;
+private:
+    // log config
+    static Logger *instance_;
+    LOG_LEVEL      log_level_{L_ERROR};
+    int8_t         log_type_{LOG_TYPE::L_STDOUT};
 
-        // Logger
-    public:
-        LogHelper_ptr   Write(const char* level,
-                              const char* file,
-                              int           lineNo,
-                              const char* date,
-                              const char* _time,
-                              const char* _func);
-        std::stringstream& GetStream() { return m_sstream; }
-        void            commit();
+    // file config
+    char         *base_file_name_{nullptr};
+    const int64_t max_file_size_  = 100 * 1024 * 1024; // 10MB
+    const int8_t  max_check_times = 10;
+    int8_t        check_times_{0};
 
-    private:
-        void            initFilePath();
-        int             getFileSize() { return m_oStream.tellp(); }
-        void            Loop();
+    // async
+    std::ofstream           file_stream_;
+    bool                    running_{false};
+    std::thread            *thread_{nullptr};
+    std::mutex              mutex_;
+    std::condition_variable con_variable_;
 
-    private:
-        const int       m_maxFileSize = 100 * 1024 * 1024;  // 10MB
-        const int       m_iCheckTimes = 10;
-        int             m_iTimes{ 0 };
+    // Logger
+public:
+    LogHelper_ptr      Write(const char *level, const char *file, int lineNo, const char *_func);
+    std::stringstream &GetStream() { return string_stream_; }
+    void               commit();
 
-        
-        std::ofstream   m_oStream;
-        std::mutex      m_mMutex;
-        std::condition_variable m_condition;
-        std::thread*    m_pThread{nullptr};
-        std::stringstream m_sstream;
-        std::list<std::string>
-                        m_LogList;
-        bool            m_bIsRunning{false};
-    };
+private:
+    void    initFilePath();
+    int64_t getFileSize() { return file_stream_.tellp(); }
 
-    class LogHelper
-    {
-    public:
-        LogHelper(Logger* log) { _log = log; }
-        ~LogHelper() { _log->commit(); }
-        std::stringstream& Get() { return _log->GetStream(); };
-    private:
-        Logger* _log;
-    };
+private:
+    std::list<std::string> log_string_list_;
+    std::stringstream      string_stream_;
+};
 
-#define LOG(level)                    \
-    if (Logger::s_LogLevel <= level && Logger::s_bIsActive)           \
-        Logger::getInstance()->Write(#level, __FILE__, __LINE__,     \
-                            __DATE__, __TIME__, __FUNCTION__)->Get()
+class LogHelper {
+public:
+    explicit LogHelper(Logger *log) : _log(log) {}
+    ~LogHelper() { _log->commit(); }
+    std::stringstream &Get() { return _log->GetStream(); };
 
-                        
-        
-} // namespace Log
+private:
+    Logger *_log;
+};
 
-}
+#define LOG(level)                                                                                                     \
+    if(Logger::getInstance() && Logger::GetLogLevel() <= (level))                                                      \
+    Logger::getInstance()->Write(#level, __FILENAME__, __LINE__, __FUNCTION__)->Get()
+
+} // namespace wlb::Log
 
 /*WARNING !!!
-* Cant use by this:
-*
-*    LOG(xxx) << func();
-*
-*    func() { LOG(xxx); }
-*/
-#endif //MYSERVICE_LOGGER_H
+ * Cant use by this:
+ *
+ *    LOG(xxx) << func();
+ *
+ *    func() { LOG(xxx); }
+ */
+#endif // MYSERVICE_ASYNCLOGGER_H

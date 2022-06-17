@@ -1,51 +1,42 @@
 #pragma once
 
-#include <sys/stat.h>
-#include <iostream>
-#include <fstream>
-#include <thread>
 #include <atomic>
-#include <mutex>
 #include <condition_variable>
+#include <ctime>
+#include <fstream>
+#include <iostream>
 #include <memory>
+#include <mutex>
+#include <string>
+#include <sys/stat.h>
+#include <thread>
+#include <unistd.h> // access()
 
-#ifdef WIN32
+#include "WSystem.h"
 
-#include <windows.h>    // GetLocalTime
-#include <direct.h>     // mkdir
-#include <io.h>         // access
-#else   // linux
+#define FILENAME(x) strrchr(x, '/') ? (strrchr(x, '/') + 1) : x
+#define __FILENAME__ FILENAME(__FILE__)
 
-#include <unistd.h>     // access()
-#include <sys/time.h>
+namespace wlb {
 
-#endif
+void GetLogFileName(const std::string &base_file_name, char *file_name, int max_len);
+void MakeMessageHead(
+        const char *file_name, int line_no, const char *log_level, const char *func_name, char *head, int max_len);
 
-namespace wlb
-{
+namespace Log {
 
-bool IsFileExist(const char* path);
-void GetCurrentTime(char buff[128]);
+namespace LOG_TYPE {
+const int8_t L_STDOUT = 1 << 0;
+const int8_t L_FILE   = 1 << 1;
+} // namespace LOG_TYPE
 
-namespace Log
-{
+enum LOG_LEVEL : uint8_t {
+    L_DEBUG = 1 << 0,
+    L_INFO  = 1 << 1,
+    L_WARN  = 1 << 2,
+    L_ERROR = 1 << 3,
+    L_FATAL = 1 << 4,
+};
 
-    enum LOG_LEVEL : uint8_t
-    {
-        L_DEBUG = 1 << 0,
-        L_INFO  = 1 << 1,
-        L_WARN  = 1 << 2,
-        L_ERROR = 1 << 3,
-        L_FATAL = 1 << 4,
-    };
-
-
-
-
-
-
-}   // namespace Log
-
-
-}   // namespace wlb
-
+} // namespace Log
+} // namespace wlb

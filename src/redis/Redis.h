@@ -1,6 +1,5 @@
 #include "RedisClientInterface.h"
 #include <mutex>
-#include "Logger.h"
 
 namespace wlb
 {
