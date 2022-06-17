@@ -161,6 +161,7 @@ protected:
 
 void on_read_cb(base_socket_type socket, void *user_data);
 
+// TODO: 屏蔽void*,使用模板
 class WEpoll final : public WEventHandle {
 public:
     WEpoll();
