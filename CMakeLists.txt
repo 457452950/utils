@@ -27,8 +27,6 @@ add_library(
         wutils
         src/WSystem.cpp
         src/WBuffer.cpp
-        src/WDebugger.cpp
-        src/WTimer.cpp
         src/thread_pool/WThreadPool.cpp
 )
 target_link_libraries(wutils pthread)
@@ -43,11 +41,17 @@ target_link_libraries(jsonreader)
 add_library(
         wnetwork
         include/WNetWork/WEpoll.h
-        include/WNetWork/WEventHandle.h
+        include/WNetWork/WChannel.h
         include/WNetWork/WNetWorkUtils.h
+        include/WNetWork/WSelect.h
+        include/WNetWork/WNetWork.h
+        include/WNetWork/WSingleTcpServer.h
         src/WNetWork/NetWorkUtils.cpp
         src/WNetWork/WEpoll.cpp
-        src/WNetWork/WEventHandle.cpp
+        src/WNetWork/WChannel.cpp
+        src/WNetWork/WSelect.cpp
+        src/WNetWork/WEvent.cpp
+        src/WNetWork/WSingleTcpServer.cpp
 )
 target_link_libraries(wnetwork pthread wutils)
 

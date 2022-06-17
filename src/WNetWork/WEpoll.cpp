@@ -107,9 +107,13 @@ bool WBaseEpoll::ModifySocket(base_socket_type socket, uint32_t events) {
     }
     return true;
 }
+
 bool WBaseEpoll::AddSocket(base_socket_type socket, uint32_t events, epoll_data_t data) {
     assert(socket != -1);
     assert(events > 0);
+
+    std::cout << "WBaseEpoll::AddSocket in & " << data.ptr << std::endl;
+    std::cout << "WBaseEpoll::AddSocket socket : " << socket << std::endl;
 
     if(!EpollAddSocket(this->epoll_fd_, socket, events, data)) {
         this->errno_ = errno;
@@ -160,7 +164,7 @@ WEpoll::~WEpoll() {
 };
 
 WEpoll::fd_list_item WEpoll::NewSocket(base_socket_type socket, uint8_t events, user_data_ptr user_data) {
-    ep_data_t   *ed = new ep_data_t;
+    hdle_data_t *ed = new hdle_data_t;
     uint32_t     ev = 0;
     epoll_data_t d{0};
 
@@ -168,48 +172,46 @@ WEpoll::fd_list_item WEpoll::NewSocket(base_socket_type socket, uint8_t events, 
     ed->socket_    = socket;
     ed->user_data_ = user_data;
 
-    if(events & EventType::EV_Error) {
-        ev |= EPOLLERR;
-    }
-    if(events & EventType::EV_READ) {
+    if(events & KernelEventType::EV_IN) {
         ev |= EPOLLIN;
     }
-    if(events & EventType::EV_WRITE) {
+    if(events & KernelEventType::EV_OUT) {
         ev |= EPOLLOUT;
     }
 
     d.ptr = ed;
 
-    std::cout << "in evetns " << (int)ed->events_ << " - " << (int)events << " =" << std::endl;
-    std::cout << "in & " << ed << std::endl;
+    // std::cout << "in evetns " << (int)ed->events_ << " - " << (int)events << " =" << std::endl;
+    // std::cout << "in & " << ed << std::endl;
+    std::cout << "WEpoll::NewSocket new hdle_data_t & " << d.ptr << std::endl;
 
     ep.AddSocket(socket, ev, d);
 
-    ++this->fd_count;
+    ++this->fd_count_;
 
     this->list.push_front(ed);
     return this->list.begin();
 }
 
 void WEpoll::ModifySocket(fd_list_item item) {
-    uint32_t ev     = 0;
-    uint8_t  events = (*item)->events_;
+    uint32_t     ev     = 0;
+    uint8_t      events = (*item)->events_;
+    epoll_data_t d{0};
 
-    if(events & EventType::EV_Error) {
-        ev |= EPOLLERR;
-    }
-    if(events & EventType::EV_READ) {
+    if(events & KernelEventType::EV_IN) {
         ev |= EPOLLIN;
     }
-    if(events & EventType::EV_WRITE) {
+    if(events & KernelEventType::EV_OUT) {
         ev |= EPOLLOUT;
     }
 
-    ep.ModifySocket((*item)->socket_, ev);
+    d.ptr = (*item);
+
+    ep.ModifySocket((*item)->socket_, ev, d);
 }
 
 void WEpoll::DelSocket(WEpoll::fd_list_item item) {
-    --this->fd_count;
+    --this->fd_count_;
     this->ep.RemoveSocket((*item)->socket_);
     this->list.erase(item);
     delete *item;
@@ -218,12 +220,15 @@ void WEpoll::DelSocket(WEpoll::fd_list_item item) {
 void WEpoll::EventLoop() {
     epoll_event *events;
 
+    std::cout << "wepoll event loop start" << std::endl;
+
     while(this->active_) {
-        int events_size = fd_count;
+        int events_size = fd_count_;
         std::cout << "array len " << events_size << std::endl;
         events = new epoll_event[events_size];
 
         events_size = ep.GetEvents(events, events_size, -1);
+        std::cout << "get events return " << events_size << std::endl;
 
         if(events_size == -1) {
             std::cout << "error : " << strerror(errno) << std::endl;
@@ -232,33 +237,39 @@ void WEpoll::EventLoop() {
             continue;
         }
 
-        for(size_t i = 0; i < events_size; i++) {
-            uint32_t         ev   = events[i].events;
-            ep_data_t       *data = (ep_data_t *)events[i].data.ptr;
-            uint8_t          eev  = data->events_;
+        // for(auto i : this->list) {
+        //     std::cout << i->socket_ << std::endl;
+        // }
+
+        for(size_t i = 0; i < events_size; ++i) {
+            std::cout << "events index " << i << std::endl;
+
+            uint32_t     ev   = events[i].events;
+            hdle_data_t *data = (hdle_data_t *)events[i].data.ptr;
+            assert(data);
             base_socket_type sock = data->socket_;
+            uint8_t          eev  = data->events_;
 
-            std::cout << "out & " << data << std::endl;
+            // std::cout << "out & " << data << std::endl;
+            // std::cout << ev << " - - " << (int)eev << std::endl;
 
-            std::cout << ev << " - - " << (int)eev << std::endl;
             std::cout << "socket " << sock << std::endl;
-            if(ev & EPOLLIN && eev & EventType::EV_READ) {
+            assert(sock > 0);
+
+            if(ev & EPOLLIN && eev & KernelEventType::EV_IN) {
                 if(this->read_) {
                     this->read_(sock, data->user_data_);
+                    std::cout << "read over" << std::endl;
                 }
             }
-            if(ev & EPOLLOUT && eev & EventType::EV_WRITE) {
+            if(ev & EPOLLOUT && eev & KernelEventType::EV_OUT) {
                 if(this->write_) {
                     this->write_(sock, data->user_data_);
                 }
             }
-            if(ev & EPOLLERR && eev & EventType::EV_Error) {
-                if(this->error_) {
-                    this->error_(sock, data->user_data_);
-                }
-            }
         }
 
+        std::cout << "delete[] events" << std::endl;
         delete[] events;
     }
 }

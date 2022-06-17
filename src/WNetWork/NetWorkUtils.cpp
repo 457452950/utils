@@ -3,7 +3,21 @@
 
 namespace wlb::network {
 
+timerfd_t CreateNewTimerfd() {
+    // return ::timerfd_create(CLOCK_REALTIME_ALARM, TFD_NONBLOCK | TFD_CLOEXEC);
+    return ::timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);
+    // return ::timerfd_create(CLOCK_REALTIME, 0);
+}
 
+bool SetTimerTime(timerfd_t fd, SetTimeFlag flag, const struct itimerspec *next_time, struct itimerspec *prev_time) {
+    if(::timerfd_settime(fd, (int)flag, next_time, prev_time) == 0) {
+        return true;
+    }
+
+    return false;
+}
+
+// -1 for errno
 base_socket_type MakeSocket(enum AF_FAMILY family, enum AF_PROTOL protol) {
     if(protol == AF_PROTOL::TCP) {
         return ::socket(static_cast<int>(family), SOCK_STREAM, IPPROTO_TCP);
@@ -133,6 +147,31 @@ bool Bind(base_socket_type socket, const std::string &host, uint16_t port, bool 
 
 bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo) {
     return Bind(socket, serverInfo.ip_address, serverInfo.port, serverInfo.isv4);
+}
+
+
+base_socket_type MakeListenedSocket(const WEndPointInfo &info, enum AF_PROTOL protol) {
+    base_socket_type listen_sock = 0;
+    auto             fami        = AF_FAMILY::INET;
+    if(!info.isv4) {
+        fami = AF_FAMILY::INET6;
+    }
+
+    listen_sock = MakeSocket(fami, protol);
+    if(listen_sock == -1) {
+        std::cout << "make listened socket : make socket failed" << strerror(errno) << std::endl;
+        return listen_sock;
+    }
+
+    if(Bind(listen_sock, info)) {
+        if(::listen(listen_sock, 1024) == 0) {
+            return listen_sock;
+        }
+    }
+
+close_sock:
+    close(listen_sock);
+    return -1;
 }
 
 base_socket_type Accept(base_socket_type socket, WEndPointInfo *info, bool isv4) {

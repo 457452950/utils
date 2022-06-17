@@ -161,40 +161,21 @@ protected:
 
 void on_read_cb(base_socket_type socket, void *user_data);
 
-class WEpoll final {
+class WEpoll final : public WEventHandle {
 public:
     WEpoll();
     ~WEpoll();
 
-
-    using user_data_ptr = void *;
-    struct ep_data_t {
-        base_socket_type socket_;
-        user_data_ptr    user_data_;
-        uint8_t          events_;
-    };
-    using fd_list      = std::list<ep_data_t*>;
-    using fd_list_item = fd_list::iterator;
-
     // control
-    fd_list_item NewSocket(base_socket_type socket, uint8_t events, user_data_ptr user_data = nullptr);
-    void         ModifySocket(fd_list_item item);
-    void         DelSocket(fd_list_item item);
+    fd_list_item NewSocket(base_socket_type socket, uint8_t events, user_data_ptr user_data = nullptr) override;
+    void         ModifySocket(fd_list_item item) override;
+    void         DelSocket(fd_list_item item) override;
 
     // thread control
-    void Start();
-    void Detach();
-    void Stop();
-    void Join();
-
-    // call back
-    using read_callback  = std::function<void(base_socket_type, user_data_ptr)>;
-    using write_callback = std::function<void(base_socket_type, user_data_ptr)>;
-    using error_callback = std::function<void(base_socket_type, user_data_ptr)>;
-
-    read_callback  read_;
-    write_callback write_;
-    error_callback error_;
+    void Start() override;
+    void Detach() override;
+    void Stop() override;
+    void Join() override;
 
 private:
     void EventLoop();
@@ -202,7 +183,7 @@ private:
 private:
     WBaseEpoll   ep;
     fd_list      list;
-    uint32_t     fd_count{0};
+    uint32_t     fd_count_{0};
     bool         active_{false};
     std::thread *work_thread_{nullptr};
 };

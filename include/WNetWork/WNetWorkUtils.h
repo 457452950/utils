@@ -1,19 +1,20 @@
 #pragma once
 
-#include <cstdint>
-#include <exception>
-#include <string>
-
-#include "../WOS.h"
-
 #include <arpa/inet.h> // inet_ntop inet_pton
 #include <cerrno>
+#include <cstdint>
 #include <cstring> // strerror
+#include <exception>
 #include <fcntl.h> // fcntl
 #include <netinet/in.h>
 #include <netinet/tcp.h> // tcp_nodelay
+#include <string>
 #include <sys/socket.h>
+#include <sys/timerfd.h>
 #include <unistd.h>
+
+#include "../WOS.h"
+
 
 namespace wlb::network {
 
@@ -24,6 +25,21 @@ enum class AF_PROTOL { TCP = IPPROTO_TCP, UDP = IPPROTO_UDP };
 struct WEndPointInfo;
 using base_socket_type = int32_t;
 using base_socket_ptr  = base_socket_type *;
+
+using timerfd_t = int32_t;
+using timerfd_p = timerfd_t *;
+
+// 设置时间差的意义
+enum class SetTimeFlag {
+    REL = 0, // 相对时间
+    ABS = 1, // 绝对时间
+};
+timerfd_t CreateNewTimerfd();
+bool      SetTimerTime(timerfd_t                fd,
+                       SetTimeFlag              flag,
+                       const struct itimerspec *next_time,
+                       struct itimerspec       *prev_time = nullptr);
+
 
 // sockaddr
 // sockaddr_in sockaddr_in6
@@ -48,6 +64,8 @@ bool MakeSockAddr_in6(const std::string &ip_address, uint16_t port, sockaddr_in6
 // server methods
 bool Bind(base_socket_type socket, const std::string &host, uint16_t port, bool isv4 = true);
 bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo);
+
+base_socket_type MakeListenedSocket(const WEndPointInfo &info, enum AF_PROTOL protol);
 
 // return -1 if fail
 base_socket_type Accept(base_socket_type socket, WEndPointInfo *info, bool isv4 = true);
