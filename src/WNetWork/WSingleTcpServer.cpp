@@ -7,24 +7,24 @@ namespace wlb::network {
 
 static auto handle_read_callback = [](base_socket_type sock, WEpoll::user_data_ptr data) {
     auto *ch = (ReadChannel *)data;
-    std::cout << "get channel call channel in [" << ch << "]" << std::endl;
+    // std::cout << "get channel call channel in [" << ch << "]" << std::endl;
     ch->ChannelIn();
-    std::cout << "get channel call channel in end" << std::endl;
+    // std::cout << "get channel call channel in end" << std::endl;
 };
 
 static auto handle_write_callback = [](base_socket_type sock, WEpoll::user_data_ptr data) {
     auto *ch_ = (WChannel *)data;
     auto  ch  = static_cast<WriteChannel *>(ch_);
-    std::cout << "get channel call channel out [" << ch_ << "]" << std::endl;
-    std::cout << "handle_write_callback get channel call channel out" << std::endl;
-    // std::cout << " ch->ChannelOut & " << (int)&(ch->ChannelOut) << std::endl;
+    // std::cout << "get channel call channel out [" << ch_ << "]" << std::endl;
+    // std::cout << "handle_write_callback get channel call channel out" << std::endl;
+    // // std::cout << " ch->ChannelOut & " << (int)&(ch->ChannelOut) << std::endl;
     ch->ChannelOut();
-    std::cout << "handle_write_callback get channel call channel out end" << std::endl;
+    // std::cout << "handle_write_callback get channel call channel out end" << std::endl;
 };
 
 WSingleTcpServer::WSingleTcpServer() {
-    this->contex_.event_handle_ = CreateNetHandle(HandleType::SELECT);
-    // this->contex_.event_handle_         = CreateNetHandle(HandleType::EPOLL);
+    // this->contex_.event_handle_ = CreateNetHandle(HandleType::SELECT);
+    this->contex_.event_handle_         = CreateNetHandle(HandleType::EPOLL);
     this->contex_.event_handle_->read_  = handle_read_callback;
     this->contex_.event_handle_->write_ = handle_write_callback;
     this->contex_.max_read_size_        = 102400;

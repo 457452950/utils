@@ -68,38 +68,38 @@ void WSelect::EventLoop() {
             // time out
             continue;
         }
-        std::cout << "select res : " << res << std::endl;
+        // std::cout << "select res : " << res << std::endl;
 
         auto temp_end = this->list.end();
         // 迭代器失效
 
         for(auto i = this->list.begin(); i != temp_end; ++i) {
-            std::cout << "one for start " << this->list.size() << std::endl;
+            // std::cout << "one for start " << this->list.size() << std::endl;
             if(this->read_) {
-                std::cout << "has read" << std::endl;
+                // // std::cout << "has read" << std::endl;
                 if((*i)->events_ & KernelEventType::EV_IN && SetCheckFd((*i)->socket_, &read_set_)) {
-                    std::cout << "read start" << std::endl;
+                    // std::cout << "read start" << std::endl;
                     this->read_((*i)->socket_, (*i)->user_data_);
-                    std::cout << "read over" << std::endl;
+                    // std::cout << "read over" << std::endl;
                 }
             }
             if(this->write_) {
-                std::cout << "has write" << std::endl;
+                // std::cout << "has write" << std::endl;
                 if((*i)->events_ & KernelEventType::EV_OUT && SetCheckFd((*i)->socket_, &write_set_)) {
-                    std::cout << "write start" << std::endl;
+                    // std::cout << "write start" << std::endl;
                     this->write_((*i)->socket_, (*i)->user_data_);
-                    std::cout << "write over" << std::endl;
+                    // std::cout << "write over" << std::endl;
                 }
             }
-            std::cout << "one for over " << std::endl;
+            // std::cout << "one for over " << std::endl;
         }
-        std::cout << "one loop over " << std::endl;
+        // std::cout << "one loop over " << std::endl;
 
         while(!this->rubish_stack_.empty()) {
             this->list.erase(this->rubish_stack_.top());
             this->rubish_stack_.pop();
         }
-        std::cout << "rubish over " << this->list.size() << std::endl;
+        // std::cout << "rubish over " << this->list.size() << std::endl;
     }
 }
 

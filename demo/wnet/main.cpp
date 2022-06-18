@@ -155,7 +155,7 @@ void test_channel() {
                  .onAcceptError = [](int err) { cout << "error :" << strerror(err) << endl; },
                  .onRead =
                          [](WChannel *channel, void *read_data, int64_t read_size) {
-                        cout << "read len : " << read_size << "\n" << (char *)read_data << endl;
+                        // cout << "read len : " << read_size << "\n" << (char *)read_data << endl;
                     },
                  .max_read_size_ = 10240,
                  .event_handle_  = &ep,
@@ -213,7 +213,7 @@ void test_tcpserver() {
     ser.SetOnAccept(acc_cb);
     ser.SetOnMessage([](WChannel *channel, void *read_data, int64_t read_size) {
         if(read_size) {
-            cout << "read len : " << read_size << "\n"; //  << (char *)read_data << endl;
+            // cout << "read len : " << read_size << "\n"; //  << (char *)read_data << endl;
             channel->Send(read_data, read_size);
         } else {
             cout << "recv 0 "
