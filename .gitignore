@@ -22,7 +22,7 @@ lib/libwtimer.a
 lib/libwdebug.a
 lib/libwlb.a    
 
-.vscode/settings.json
+.vscode/
 build/*
 .cmake/
 build.ninja

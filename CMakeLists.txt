@@ -45,6 +45,7 @@ add_library(
         include/WNetWork/WNetWorkUtils.h
         include/WNetWork/WSelect.h
         include/WNetWork/WNetWork.h
+        include/WNetWork/WEvent.h
         include/WNetWork/WSingleTcpServer.h
         src/WNetWork/NetWorkUtils.cpp
         src/WNetWork/WEpoll.cpp
