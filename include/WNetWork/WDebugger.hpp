@@ -4,42 +4,66 @@
 #include <iostream>
 #include <thread>
 #include <unordered_map>
-#include "WNetWork/WEpoll.h"
-#include "WOS.h"
-#include "WTimer.hpp"
+#include "WChannel.h"
 
 namespace wlb::debug {
 
-extern WTimerHandler *debuggerHandler;
+using namespace network;
 
-class Debugger final : public WTimerHandler::Listener {
+using WTimerHandle                  = WEventHandle<WBaseChannel>;
+inline WTimerHandle *debuggerHandle = new WEpoll<WBaseChannel>;
+
+static auto handle_read_callback = [](base_socket_type sock, WEpoll<WBaseChannel>::user_data_ptr data) {
+    auto *ch = (ReadChannel *)data;
+    // std::cout << "get channel call channel in [" << ch << "]" << std::endl;
+    ch->ChannelIn();
+    // std::cout << "get channel call channel in end" << std::endl;
+};
+
+class Debugger;
+extern Debugger *debugger;
+
+class Debugger final {
 public:
     explicit Debugger() = default;
-    ~Debugger() override { this->Destroy(); };
+    ~Debugger() { this->Destroy(); };
 
     // class lifetime
     // init
-    bool        Init(long timeout);
+    bool Init(long timeout) {
+        debuggerHandle->read_ = handle_read_callback;
+
+        this->_timer         = new WTimer(debuggerHandle);
+        this->_timer->OnTime = []() {
+            // std::cout << "on time" << std::endl;
+            for(auto &item : debugger->_memberMap) {
+                std::cout << item.first << " : " << item.second << std::endl;
+            }
+        };
+        this->_isActive = true;
+        this->_timer->Start(timeout, timeout);
+
+        debuggerHandle->Start();
+        // debuggerHandle->Detach();
+    };
     inline bool IsActive() const { return this->_isActive; }
-    void        Destroy();
+    void        Destroy() {
+               debuggerHandle->Join();
+               delete this->_timer;
+               this->_timer = nullptr;
+    };
 
-    void MemberAdd(const std::string &name);
-    void MemberRemove(const std::string &name);
+    void MemberAdd(const std::string &name) { _memberMap[name]++; };
+    void MemberRemove(const std::string &name) { _memberMap[name]--; };
 
-private:
-    // override methods OnTime from WTimerHandler::Listener
-    void OnTime(WTimer *timer) override;
-    void Loop() const;
-
-private:
-    WTimer      *_timer{nullptr};
-    bool         _isActive{false};
-    std::thread *_thread{nullptr};
+    WTimer *_timer{nullptr};
+    bool    _isActive{false};
     //
     std::unordered_map<std::string, std::atomic<int64_t>> _memberMap;
 };
 
-extern Debugger *debugger;
+inline Debugger *debugger = new Debugger;
+#ifdef DEBUG
 
 #define DEBUGADD(name)                                                                                                 \
     if(debugger != nullptr && debugger->IsActive())                                                                    \
@@ -58,6 +82,18 @@ extern Debugger *debugger;
 #define DELARRAYADD                                                                                                    \
     DEBUGADD("delete[]")                                                                                               \
     DEBUGRM("new[]")
+
+#else
+#define DEBUGADD(name) ;
+#define DEBUGRM(name) ;
+
+#define NEWADD DEBUGADD("new");
+#define DELADD ;
+
+#define NEWARRAYADD DEBUGADD("new[]");
+#define DELARRAYADD ;
+
+#endif
 
 class WTimeDebugger {
 public:

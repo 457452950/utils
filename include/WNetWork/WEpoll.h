@@ -1,7 +1,9 @@
 #pragma once
 
 #include <atomic>
+#include <cassert>
 #include <functional>
+#include <iostream>
 #include <list>
 #include <mutex>
 #include <sys/epoll.h>
@@ -134,7 +136,7 @@ void    CloseEpoll(epoll_type epoll);
 // not thread safe
 class WBaseEpoll final {
 public:
-    WBaseEpoll() = default;
+    WBaseEpoll();
     ~WBaseEpoll();
     // no copyable
     WBaseEpoll(const WBaseEpoll &other)            = delete;
@@ -159,34 +161,163 @@ protected:
 };
 
 
-void on_read_cb(base_socket_type socket, void *user_data);
-
-// TODO: 屏蔽void*,使用模板
-class WEpoll final : public WEventHandle {
+template <typename U>
+class WEpoll final : public WEventHandle<U> {
 public:
-    WEpoll();
-    ~WEpoll();
+    WEpoll() {
+        if(!ep.Init()) {
+            std::cerr << "epoll init failed!" << std::endl;
+        }
+    }
+    ~WEpoll() {
+        std::cout << "~WEpoll!!" << std::endl;
+        exit(-1);
+        this->Join();
+        delete this->work_thread_;
+        this->work_thread_ = nullptr;
+        while(!this->list.empty()) {
+            delete this->list.front();
+            this->list.pop_front();
+        }
+    }
 
     // control
-    fd_list_item NewSocket(base_socket_type socket, uint8_t events, user_data_ptr user_data = nullptr) override;
-    void         ModifySocket(fd_list_item item) override;
-    void         DelSocket(fd_list_item item) override;
+    typename WEventHandle<U>::fd_list_item
+    NewSocket(base_socket_type                        socket,
+              uint8_t                                 events,
+              typename WEventHandle<U>::user_data_ptr user_data = nullptr) override {
+
+        typename WEventHandle<U>::hdle_data_t *ed = new typename WEventHandle<U>::hdle_data_t;
+        uint32_t                               ev = 0;
+        epoll_data_t                           d{0};
+
+        ed->events_    = events;
+        ed->socket_    = socket;
+        ed->user_data_ = user_data;
+
+        if(events & KernelEventType::EV_IN) {
+            ev |= EPOLLIN;
+        }
+        if(events & KernelEventType::EV_OUT) {
+            ev |= EPOLLOUT;
+        }
+
+        d.ptr = ed;
+
+        // // std::cout << "in evetns " << (int)ed->events_ << " - " << (int)events << " =" << std::endl;
+        // std::cout << "in ed & " << ed << std::endl;
+        // std::cout << "WEpoll::NewSocket new hdle_data_t & " << d.ptr << std::endl;
+
+        ep.AddSocket(socket, ev, d);
+
+        ++this->fd_count_;
+
+        this->list.push_front(ed);
+        return this->list.begin();
+    }
+    void ModifySocket(typename WEventHandle<U>::fd_list_item item) override {
+        uint32_t     ev     = 0;
+        uint8_t      events = (*item)->events_;
+        epoll_data_t d{0};
+
+        if(events & KernelEventType::EV_IN) {
+            ev |= EPOLLIN;
+        }
+        if(events & KernelEventType::EV_OUT) {
+            ev |= EPOLLOUT;
+        }
+
+        d.ptr = (*item);
+
+        ep.ModifySocket((*item)->socket_, ev, d);
+    }
+    void DelSocket(typename WEventHandle<U>::fd_list_item item) override {
+        --this->fd_count_;
+        this->ep.RemoveSocket((*item)->socket_);
+        delete *item;
+        *item = nullptr;
+        this->list.erase(item);
+    }
 
     // thread control
-    void Start() override;
-    void Detach() override;
-    void Stop() override;
-    void Join() override;
+    void Start() override {
+        this->active_      = true;
+        this->work_thread_ = new std::thread(&WEpoll::EventLoop, this);
+    }
+    void Detach() override { this->work_thread_->detach(); }
+    void Stop() override { this->active_ = false; }
+    void Join() override {
+        if(this->work_thread_ && this->work_thread_->joinable()) {
+            this->work_thread_->join();
+        }
+    }
 
 private:
-    void EventLoop();
+    void EventLoop() {
+
+        epoll_event *events;
+
+        // std::cout << "wepoll event loop start" << std::endl;
+
+        while(this->active_) {
+            int events_size = fd_count_;
+            // std::cout << "array len " << events_size << std::endl;
+            events = new epoll_event[events_size];
+
+            events_size = ep.GetEvents(events, events_size, -1);
+            // std::cout << "get events return " << events_size << std::endl;
+
+            if(events_size == -1) {
+                // std::cout << "error : " << strerror(errno) << std::endl;
+                break;
+            } else if(events_size == 0) {
+                continue;
+            }
+
+            // for(auto i : this->list) {
+            //     // std::cout << i->socket_ << std::endl;
+            // }
+
+            for(size_t i = 0; i < events_size; ++i) {
+                // std::cout << "events index " << i << std::endl;
+
+                uint32_t                               ev = events[i].events;
+                typename WEventHandle<U>::hdle_data_t *data =
+                        (typename WEventHandle<U>::hdle_data_t *)events[i].data.ptr;
+                assert(data);
+                base_socket_type sock = data->socket_;
+                uint8_t          eev  = data->events_;
+
+                // // std::cout << "out & " << data << std::endl;
+                // // std::cout << ev << " - - " << (int)eev << std::endl;
+
+                // std::cout << "socket " << sock << std::endl;
+                assert(sock > 0);
+
+                if(ev & EPOLLOUT && eev & KernelEventType::EV_OUT) {
+                    if(this->write_) {
+                        this->write_(sock, data->user_data_);
+                    }
+                }
+                if(ev & EPOLLIN && eev & KernelEventType::EV_IN) {
+                    if(this->read_) {
+                        this->read_(sock, data->user_data_);
+                        // std::cout << "read over" << std::endl;
+                    }
+                }
+            }
+
+            // std::cout << "delete[] events" << std::endl;
+            delete[] events;
+        }
+    }
 
 private:
-    WBaseEpoll   ep;
-    fd_list      list;
-    uint32_t     fd_count_{0};
-    bool         active_{false};
-    std::thread *work_thread_{nullptr};
+    WBaseEpoll                        ep;
+    typename WEventHandle<U>::fd_list list;
+    uint32_t                          fd_count_{0};
+    bool                              active_{false};
+    std::thread                      *work_thread_{nullptr};
 };
 
 

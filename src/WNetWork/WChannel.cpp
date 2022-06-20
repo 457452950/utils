@@ -2,11 +2,19 @@
 #include <cassert>
 #include <iostream>
 
+#include "WNetWork/WDebugger.hpp"
+
 
 namespace wlb::network {
 
-WTimer::WTimer(WEventHandle *handle) : handle_(handle) { this->timer_fd_ = CreateNewTimerfd(); }
+using namespace debug;
+
+WTimer::WTimer(WEventHandle<WBaseChannel> *handle) : handle_(handle) {
+    this->timer_fd_ = CreateNewTimerfd();
+    DEBUGADD("WTimer");
+}
 WTimer::~WTimer() {
+    DEBUGRM("WTimer");
     this->Stop();
     if(this->timer_fd_) {
         ::close(this->timer_fd_);
@@ -45,8 +53,10 @@ bool WTimer::Start(long time_value, long interval) {
 }
 
 void WTimer::Stop() {
-    this->handle_->DelSocket(item_);
-    this->active_ = false;
+    if(this->active_) {
+        this->handle_->DelSocket(item_);
+        this->active_ = false;
+    }
 }
 
 
@@ -88,6 +98,7 @@ void WAccepterChannel::ChannelIn() {
 }
 
 WChannel::WChannel(base_socket_type socket, WEndPointInfo &remote_endpoint, event_context_p context) {
+    DEBUGADD("WChannel");
     this->client_socket_   = socket;
     this->remote_endpoint_ = remote_endpoint;
     this->event_context_   = context;
@@ -99,25 +110,32 @@ WChannel::WChannel(base_socket_type socket, WEndPointInfo &remote_endpoint, even
 
     this->recv_buf_size_ = event_context_->max_read_size_;
     this->recv_buf_      = new uint8_t[this->recv_buf_size_];
+    NEWADD;
 
     this->send_buf_size_ = event_context_->max_read_size_;
     this->send_buf_      = new uint8_t[this->send_buf_size_];
+    NEWADD;
 
     // std::cout << "WChannel WChannel this& " << this << std::endl;
 }
 
 WChannel::~WChannel() {
-    // std::cout << "WChannel::~WChannel" << std::endl;
+    DEBUGRM("WChannel");
+
+    assert(this->event_context_->event_handle_);
     this->event_context_->event_handle_->DelSocket(this->item_);
 
     if(this->client_socket_) {
         ::close(this->client_socket_);
+        this->client_socket_ = -1;
     }
     if(this->recv_buf_) {
+        DELADD;
         delete[] this->recv_buf_;
         this->recv_buf_ = nullptr;
     }
     if(this->send_buf_) {
+        DELADD;
         delete[] this->send_buf_;
         this->send_buf_ = nullptr;
     }
@@ -142,7 +160,9 @@ void WChannel::ChannelIn() {
         }
     } else {
         this->event_context_->onRead(this, this->recv_buf_, recv_len);
+        // std::cout << "WChannel in on read end " << std::endl;
     }
+    // std::cout << "WChannel in end " << std::endl;
 }
 
 void WChannel::ChannelOut() {

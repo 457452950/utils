@@ -23,23 +23,18 @@ target_link_libraries(redis hiredis event)
 add_library(tinymysql src/mysql/libMySQL.cpp)
 target_link_libraries(tinymysql mysqlclient)
 
-add_library(
-        wutils
-        src/WSystem.cpp
-        src/WBuffer.cpp
-        src/thread_pool/WThreadPool.cpp
-)
-target_link_libraries(wutils pthread)
 
-add_library(logger src/logger/AsyncLogger.cpp src/logger/LoggerBase.cpp)
-target_link_libraries(logger wutils)
 
 add_library(jsonreader src/json_file_reader/JsonFileReader.cpp)
 target_link_libraries(jsonreader)
 
 
 add_library(
-        wnetwork
+        wutils
+        src/WSystem.cpp
+        src/WBuffer.cpp
+        src/thread_pool/WThreadPool.cpp
+        
         include/WNetWork/WEpoll.h
         include/WNetWork/WChannel.h
         include/WNetWork/WNetWorkUtils.h
@@ -54,7 +49,10 @@ add_library(
         src/WNetWork/WEvent.cpp
         src/WNetWork/WSingleTcpServer.cpp
 )
-target_link_libraries(wnetwork pthread wutils)
+target_link_libraries(wutils pthread)
+
+add_library(logger src/logger/AsyncLogger.cpp src/logger/LoggerBase.cpp)
+target_link_libraries(logger wutils)
 
 add_subdirectory(demo)
 

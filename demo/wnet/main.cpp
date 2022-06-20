@@ -1,6 +1,7 @@
 #include <csignal>
 #include <iostream>
 
+#include "WNetWork/WDebugger.hpp"
 #include "WNetWork/WNetWork.h"
 
 using namespace std;
@@ -69,7 +70,7 @@ struct test_s {
     int                      n;
 };
 
-auto r_cb = [](base_socket_type sock, WEpoll::user_data_ptr data) {
+auto r_cb = [](base_socket_type sock, WSelect<test_s>::user_data_ptr data) {
     cout << "in" << sock << endl;
 
     WEndPointInfo en;
@@ -91,7 +92,7 @@ auto r_cb = [](base_socket_type sock, WEpoll::user_data_ptr data) {
 
 void test_wepoll() {
     cout << "test wepoll " << endl;
-    WSelect ep;
+    WSelect<test_s> ep;
     ep.read_ = r_cb;
 
     auto sock = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
@@ -129,16 +130,16 @@ void test_wepoll() {
 }
 
 
-auto in_cb = [](base_socket_type sock, WEpoll::user_data_ptr data) {
+auto in_cb = [](base_socket_type sock, server_handle_type::user_data_ptr data) {
     auto *ch = (ReadChannel *)data;
     cout << "get channel call channel in" << std::endl;
     ch->ChannelIn();
 };
 
-event_context_t con;
-WEpoll          ep;
-WSelect         sl;
-WChannel       *ch;
+event_context_t       con;
+WEpoll<WBaseChannel>  ep;
+WSelect<WBaseChannel> sl;
+WChannel             *ch;
 
 auto ac_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> bool {
     cout << "recv : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
@@ -203,12 +204,19 @@ void test_channel() {
 }
 
 auto acc_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> bool {
-    cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
+    // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
     return true;
     // ch = new WChannel(socket, endpoint, &con);
 };
 
+void sin_handle(int signal) { exit(-1); }
+using namespace wlb::debug;
+
 void test_tcpserver() {
+    // debugger->Init(1000);
+
+    signal(SIGINT, sin_handle);
+
     WSingleTcpServer ser;
     ser.SetOnAccept(acc_cb);
     ser.SetOnMessage([](WChannel *channel, void *read_data, int64_t read_size) {
@@ -216,9 +224,12 @@ void test_tcpserver() {
             // cout << "read len : " << read_size << "\n"; //  << (char *)read_data << endl;
             channel->Send(read_data, read_size);
         } else {
-            cout << "recv 0 "
-                 << "del " << channel << std::endl;
+            // cout << "recv 0 "
+            //         "del "
+            //      << channel << std::endl;
             delete channel;
+            channel = nullptr;
+            // std::cout << "debug recv over " << endl;
         }
     });
     ser.AddAccepter({"0:0:0:0:0:0:0:0", 4000, 0});
@@ -231,17 +242,21 @@ void test_tcpserver() {
         cout << "connect error : " << strerror(errno) << endl;
     } else {
         cout << "connect ok" << endl;
-        new std::thread([&]() {
+        std::thread([&]() {
             ::send(cli, "123123", 6, 0);
             char arr[1024];
             ::recv(cli, arr, 1024, 0);
             cout << "recv arr : " << arr << std::endl;
-        });
+        }).detach();
     }
 
-    WTimer t(&ep);
-    t.OnTime = []() { cout << "ontime!!!" << endl; };
-    t.Start(1000, 1000);
+    auto t = ser.NewTimer();
+    // NEWADD;
+    // t->OnTime = []() { cout << "hello " << endl; };
+    // t->Start(1000, 1000);
+    delete t;
+    // DELADD;
+
 
     ser.Start();
     ser.Join();

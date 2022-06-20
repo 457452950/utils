@@ -24,17 +24,6 @@ enum class EventHanleType {
 #endif
 };
 
-// enum class HandleType {
-// #ifdef OS_IS_LINUX
-//     SELECT = 1 << 0,
-//     EPOLL  = 1 << 1,
-// #endif
-// };
-class WSelect;
-class WEpoll;
-
-extern WEventHandle *CreateNetHandle(HandleType type);
-
 
 // WChannel.h
 class WTimer;

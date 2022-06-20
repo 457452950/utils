@@ -7,30 +7,27 @@
 
 namespace wlb::network {
 
-class WBaseChannel {
-public:
-    virtual ~WBaseChannel() {}
-};
-
-class ReadChannel : virtual public WBaseChannel {
+class ReadChannel : public WBaseChannel {
 public:
     ReadChannel(){};
     ~ReadChannel() override {}
 
-    virtual void ChannelIn() = 0;
+private:
+    void ChannelOut() final{};
 };
 
-class WriteChannel : virtual public WBaseChannel {
+class WriteChannel : public WBaseChannel {
 public:
     WriteChannel(){};
     ~WriteChannel() override {}
 
-    virtual void ChannelOut() = 0;
+private:
+    void ChannelIn() final{};
 };
 
 class WTimer : public ReadChannel {
 public:
-    explicit WTimer(WEventHandle *handle);
+    explicit WTimer(WEventHandle<WBaseChannel> *handle);
     ~WTimer() override;
 
     typedef void (*on_time_cb_t)(void);
@@ -46,10 +43,10 @@ private:
     void ChannelIn() final;
 
 private:
-    WEventHandle              *handle_{nullptr};
-    WEventHandle::fd_list_item item_;
-    timerfd_t                  timer_fd_{-1};
-    bool                       active_{false};
+    WEventHandle<WBaseChannel>              *handle_{nullptr};
+    WEventHandle<WBaseChannel>::fd_list_item item_;
+    timerfd_t                                timer_fd_{-1};
+    bool                                     active_{false};
 };
 
 class WAccepterChannel : public ReadChannel {
@@ -66,13 +63,13 @@ private:
     event_context_p  event_context_{nullptr};
 };
 
-class WChannel : public ReadChannel, public WriteChannel {
+class WChannel : public WBaseChannel {
 public:
     explicit WChannel(base_socket_type socket, WEndPointInfo &remote_endpoint, event_context_p context);
     ~WChannel() override;
     // nocopy
-    WChannel(const WChannel &other) = delete;
-    WChannel &operator = (const WChannel &other) = delete;
+    WChannel(const WChannel &other)            = delete;
+    WChannel &operator=(const WChannel &other) = delete;
 
     void Send(void *send_message, uint64_t message_len);
 
@@ -81,10 +78,10 @@ private:
     void ChannelOut() final;
 
 private:
-    base_socket_type           client_socket_{-1};
-    WEndPointInfo              remote_endpoint_;
-    event_context_p            event_context_{nullptr};
-    WEventHandle::fd_list_item item_;
+    base_socket_type                         client_socket_{-1};
+    WEndPointInfo                            remote_endpoint_;
+    event_context_p                          event_context_{nullptr};
+    WEventHandle<WBaseChannel>::fd_list_item item_;
 
     uint8_t *recv_buf_{nullptr};
     uint64_t recv_buf_size_{0};
@@ -101,8 +98,8 @@ struct EventContext {
     typedef void (*accept_error_cb_t)(int error_no);
     // consumer channel
     typedef void (*read_cb_t)(WChannel *channel, void *read_data, int64_t read_size);
-    typedef void (*read_error_cb_t)(ReadChannel *channel, int error_no);
-    typedef void (*write_error_cb_t)(WriteChannel *channel, int error_no);
+    typedef void (*read_error_cb_t)(WChannel *channel, int error_no);
+    typedef void (*write_error_cb_t)(WChannel *channel, int error_no);
 
     accept_cb_t       onAccept{nullptr};
     accept_error_cb_t onAcceptError{nullptr};
@@ -111,8 +108,8 @@ struct EventContext {
     read_error_cb_t  onReadError{nullptr};
     write_error_cb_t onWriteError{nullptr};
 
-    uint64_t      max_read_size_{0};
-    WEventHandle *event_handle_{nullptr};
+    uint64_t                    max_read_size_{0};
+    WEventHandle<WBaseChannel> *event_handle_{nullptr};
 };
 
 

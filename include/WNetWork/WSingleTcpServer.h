@@ -34,6 +34,8 @@ public:
     void SetOnMessageError(event_context_t::read_error_cb_t cb);
     void SetOnSendOrror(event_context_t::write_error_cb_t cb);
 
+    WTimer* NewTimer();
+
 private:
     event_context_t                 contex_;
     std::vector<WAccepterChannel *> accepters_;
