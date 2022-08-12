@@ -6,6 +6,7 @@
 #define UTILS_DEMO_UTILS_INCLUDE_WNETWORK_WNETWORK_H_
 
 #include "WNetWorkUtils.h"
+#include "WNetWorkDef.h"
 #include "WEvent.h"
 #include "WSelect.h"
 #include "WEpoll.h"
