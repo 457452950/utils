@@ -3,7 +3,7 @@
 #include "WConnection.hpp"
 #include "../WList.hpp"
 
-namespace wlb::NetWork {
+namespace wlb::netWork {
 
 class WBaseSession;
 

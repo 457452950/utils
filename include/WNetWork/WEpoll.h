@@ -161,8 +161,8 @@ protected:
 };
 
 
-template <typename U>
-class WEpoll final : public WEventHandle<U> {
+template <typename UserData>
+class WEpoll final : public WEventHandle<UserData> {
 public:
     WEpoll() {
         if(!ep.Init()) {
@@ -182,12 +182,12 @@ public:
     }
 
     // control
-    typename WEventHandle<U>::fd_list_item
+    typename WEventHandle<UserData>::fd_list_item
     NewSocket(base_socket_type                        socket,
               uint8_t                                 events,
-              typename WEventHandle<U>::user_data_ptr user_data = nullptr) override {
+              typename WEventHandle<UserData>::user_data_ptr user_data = nullptr) override {
 
-        typename WEventHandle<U>::hdle_data_t *ed = new typename WEventHandle<U>::hdle_data_t;
+        typename WEventHandle<UserData>::hdle_data_t *ed = new typename WEventHandle<UserData>::hdle_data_t;
         uint32_t                               ev = 0;
         epoll_data_t                           d{0};
 
@@ -215,7 +215,7 @@ public:
         this->list.push_front(ed);
         return this->list.begin();
     }
-    void ModifySocket(typename WEventHandle<U>::fd_list_item item) override {
+    void ModifySocket(typename WEventHandle<UserData>::fd_list_item item) override {
         uint32_t     ev     = 0;
         uint8_t      events = (*item)->events_;
         epoll_data_t d{0};
@@ -231,7 +231,7 @@ public:
 
         ep.ModifySocket((*item)->socket_, ev, d);
     }
-    void DelSocket(typename WEventHandle<U>::fd_list_item item) override {
+    void DelSocket(typename WEventHandle<UserData>::fd_list_item item) override {
         --this->fd_count_;
         this->ep.RemoveSocket((*item)->socket_);
         delete *item;
@@ -282,8 +282,8 @@ private:
                 // std::cout << "events index " << i << std::endl;
 
                 uint32_t                               ev = events[i].events;
-                typename WEventHandle<U>::hdle_data_t *data =
-                        (typename WEventHandle<U>::hdle_data_t *)events[i].data.ptr;
+                typename WEventHandle<UserData>::hdle_data_t *data =
+                        (typename WEventHandle<UserData>::hdle_data_t *)events[i].data.ptr;
                 assert(data);
                 base_socket_type sock = data->socket_;
                 uint8_t          eev  = data->events_;
@@ -314,7 +314,7 @@ private:
 
 private:
     WBaseEpoll                        ep;
-    typename WEventHandle<U>::fd_list list;
+    typename WEventHandle<UserData>::fd_list list;
     uint32_t                          fd_count_{0};
     bool                              active_{false};
     std::thread                      *work_thread_{nullptr};

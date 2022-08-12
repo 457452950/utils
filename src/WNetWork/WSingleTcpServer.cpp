@@ -46,6 +46,10 @@ bool WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) {
         l = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
     }
 
+    if (l == -1) {
+        return false;
+    }
+
     SetSocketReuseAddr(l);
     SetSocketReusePort(l);
     SetSocketNoBlock(l);

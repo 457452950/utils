@@ -16,5 +16,5 @@ add_executable(
     main.cpp
 )
 
-target_link_libraries(wnet_demo wutils wnetwork)
+target_link_libraries(wnet_demo wutils)
 

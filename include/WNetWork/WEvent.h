@@ -4,6 +4,7 @@
 #include <list>
 
 #include "WNetWorkUtils.h"
+#include "WNetWorkDef.h"
 
 
 namespace wlb::network {
@@ -13,12 +14,12 @@ constexpr inline uint8_t EV_IN  = 1 << 0;
 constexpr inline uint8_t EV_OUT = 1 << 1;
 }; // namespace KernelEventType
 
-template <typename U>
+template <typename UserData>
 class WEventHandle {
 public:
     virtual ~WEventHandle() {}
 
-    using user_data_type = U;
+    using user_data_type = UserData;
     using user_data_ptr  = user_data_type *;
     struct hdle_data_t {
         base_socket_type socket_;
@@ -45,12 +46,11 @@ public:
     virtual void Stop()   = 0;
     virtual void Join()   = 0;
 };
-;
 
 
-template <typename U>
+template <typename UserData>
 class WSelect;
-template <typename U>
+template <typename UserData>
 class WEpoll;
 
 class WBaseChannel {
@@ -61,24 +61,17 @@ public:
     virtual void ChannelOut() = 0;
 };
 
-#ifdef OS_IS_LINUX
-#define SERVER_USE_EPOLL
-#else
-#define SERVER_USE_SELECT
-#endif
 
 #ifdef SERVER_USE_EPOLL
-using server_handle_type = WEpoll<WBaseChannel>;
+  using server_handle_type = WEpoll<WBaseChannel>;
 #elif defined SERVER_USE_SELECT
-using server_handle_type = WSelect<WBaseChannel>;
+  using server_handle_type = WSelect<WBaseChannel>;
 #endif
 
 using server_handle_ptr  = server_handle_type *;
 
 WEventHandle<WBaseChannel> *CreateNetHandle();
 
-class ReadChannel;
-class WriteChannel;
 
 struct EventContext;
 using event_context_t = EventContext;

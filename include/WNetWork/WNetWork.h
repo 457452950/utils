@@ -5,11 +5,11 @@
 #ifndef UTILS_DEMO_UTILS_INCLUDE_WNETWORK_WNETWORK_H_
 #define UTILS_DEMO_UTILS_INCLUDE_WNETWORK_WNETWORK_H_
 
-#include "WChannel.h"
-#include "WEpoll.h"
-#include "WEvent.h"
 #include "WNetWorkUtils.h"
+#include "WEvent.h"
 #include "WSelect.h"
+#include "WEpoll.h"
+#include "WChannel.h"
 #include "WSingleTcpServer.h"
 
 #include "../WOS.h"
@@ -25,10 +25,35 @@ enum class EventHanleType {
 };
 
 
-// WChannel.h
+
+/* WEvent.h */
+template <typename UserData>
+class WEventHandle;
+
+WEventHandle<WBaseChannel> *CreateNetHandle();
+
+
+/* WSelect.h */
+template <typename UserData>
+class WSelect;
+
+
+/* WEpoll.h */
+class WBaseEpoll;
+template<typename UserData>
+class WEpoll;
+
+
+/* WChannel.h */
 class WTimer;
 class WAccepterChannel;
 class WChannel;
+
+
+/* WsingleTcpServer.h */
+class WSingleTcpServer;
+
+
 
 } // namespace wlb::network
 
