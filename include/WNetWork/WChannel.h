@@ -76,17 +76,19 @@ private:
 
 class WChannel : public WBaseChannel {
 public:
-    explicit WChannel(base_socket_type socket, WEndPointInfo &remote_endpoint, event_context_p context);
+    explicit WChannel(base_socket_type socket, WEndPointInfo &remote_endpoint);
     ~WChannel() override;
     // nocopy
     WChannel(const WChannel &other)            = delete;
     WChannel &operator=(const WChannel &other) = delete;
 
+    void SetEventContext(event_context_p context);
+
     void Send(void *send_message, uint64_t message_len);
 
-private:
-    void ChannelIn() final;
-    void ChannelOut() final;
+protected:
+    void ChannelIn();
+    void ChannelOut();
 
 private:
     base_socket_type                         client_socket_{-1};
@@ -105,7 +107,7 @@ private:
 struct EventContext {
     // accepter
     // return true for accpet the connection
-    using accept_cb_t       = bool (*)(base_socket_type socket, WEndPointInfo &endpoint);
+    using accept_cb_t       = WChannel* (*)(base_socket_type socket, WEndPointInfo &endpoint);
     using accept_error_cb_t = void (*)(int error_no); 
     // consumer channel
     using read_cb_t         = void (*)(WChannel* channel, void* read_data, int64_t read_size);

@@ -91,30 +91,21 @@ void WAccepterChannel::ChannelIn() {
         event_context_->onAcceptError(errno);
     } else {
         // std::cout << "accpets not null and call " << std::endl;
-        if(event_context_->onAccept(cli, ei)) {
-            new WChannel(cli, ei, event_context_);
+        auto ch = event_context_->onAccept(cli, ei);
+        if (ch != nullptr) {
+            ch->SetEventContext(event_context_);
         }
     }
 }
 
-WChannel::WChannel(base_socket_type socket, WEndPointInfo &remote_endpoint, event_context_p context) {
+WChannel::WChannel(base_socket_type socket, WEndPointInfo &remote_endpoint) {
     DEBUGADD("WChannel");
     this->client_socket_   = socket;
     this->remote_endpoint_ = remote_endpoint;
-    this->event_context_   = context;
 
     // std::cout << "new wchannle " << socket << std::endl;
 
     // std::cout << "WChannel WChannel this& " << this << std::endl;
-    item_ = context->event_handle_->NewSocket(this->client_socket_, KernelEventType::EV_IN, this);
-
-    this->recv_buf_size_ = event_context_->max_read_size_;
-    this->recv_buf_      = new uint8_t[this->recv_buf_size_];
-    NEWADD;
-
-    this->send_buf_size_ = event_context_->max_read_size_;
-    this->send_buf_      = new uint8_t[this->send_buf_size_];
-    NEWADD;
 
     // std::cout << "WChannel WChannel this& " << this << std::endl;
 }
@@ -153,7 +144,7 @@ void WChannel::ChannelIn() {
     recv_len         = ::recv(this->client_socket_, this->recv_buf_, this->recv_buf_size_, 0);
     // std::cout << "channel in recv " << recv_len << std::endl;
 
-    if(recv_len == -1) {
+    if(recv_len < 0) {
         // std::cout << "recv len -1 :" << strerror(errno) << std::endl;
         if(this->event_context_->onReadError) {
             this->event_context_->onReadError(this, errno);
@@ -188,6 +179,19 @@ void WChannel::ChannelOut() {
         }
         send_size_ -= send_len;
     }
+}
+
+void WChannel::SetEventContext(event_context_p context) {
+    this->event_context_ = context;
+    item_ = context->event_handle_->NewSocket(this->client_socket_, KernelEventType::EV_IN, this);
+
+    this->recv_buf_size_ = event_context_->max_read_size_;
+    this->recv_buf_      = new uint8_t[this->recv_buf_size_];
+    NEWADD;
+
+    this->send_buf_size_ = event_context_->max_read_size_;
+    this->send_buf_      = new uint8_t[this->send_buf_size_];
+    NEWADD;
 }
 
 void WChannel::Send(void *send_message, uint64_t message_len) {

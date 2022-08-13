@@ -3,6 +3,7 @@
 
 #include "WDebugger.hpp"
 #include "WNetWork/WNetWork.h"
+#include "Channel.h"
 
 using namespace std;
 using namespace wlb::network;
@@ -13,6 +14,7 @@ void test_ipv6();
 void test_wepoll();
 void test_channel();
 void test_tcpserver();
+void test_myChannel();
 
 int main() {
 
@@ -22,7 +24,8 @@ int main() {
     // test_wepoll();
 
     // test_channel();
-    test_tcpserver();
+    // test_tcpserver();
+    test_myChannel();
 }
 
 
@@ -141,9 +144,10 @@ WEpoll<WBaseChannel>  ep;
 WSelect<WBaseChannel> sl;
 WChannel             *ch;
 
-auto ac_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> bool {
+auto ac_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> WChannel* {
     cout << "recv : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
-    // ch = new WChannel(socket, endpoint, &con);
+    ch = new WChannel(socket, endpoint);
+    return ch;
 };
 
 
@@ -203,10 +207,11 @@ void test_channel() {
     ep.Join();
 }
 
-auto acc_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> bool {
+auto acc_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> WChannel* {
     // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
-    return true;
-    // ch = new WChannel(socket, endpoint, &con);
+    
+    ch = new WChannel(socket, endpoint);
+    return ch;
 };
 
 void sin_handle(int signal) { exit(-1); }
@@ -219,6 +224,62 @@ void test_tcpserver() {
 
     WSingleTcpServer ser;
     ser.SetOnAccept(acc_cb);
+    ser.SetOnMessage([](WChannel *channel, void *read_data, int64_t read_size) {
+        if(read_size) {
+            // cout << "read len : " << read_size << "\n"; //  << (char *)read_data << endl;
+            channel->Send(read_data, read_size);
+        } else {
+            // cout << "recv 0 "
+            //         "del "
+            //      << channel << std::endl;
+            delete channel;
+            channel = nullptr;
+            // std::cout << "debug recv over " << endl;
+        }
+    });
+    ser.AddAccepter({"0:0:0:0:0:0:0:0", 4000, 0});
+
+
+    auto cli = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
+    auto res = ConnectToHost(cli, "0:0:0:0:0:0:0:1", 4000, 0);
+
+    if(!res) {
+        cout << "connect error : " << strerror(errno) << endl;
+    } else {
+        cout << "connect ok" << endl;
+        std::thread([&]() {
+            ::send(cli, "123123", 6, 0);
+            char arr[1024];
+            ::recv(cli, arr, 1024, 0);
+            cout << "recv arr : " << arr << std::endl;
+        }).detach();
+    }
+
+    auto t = ser.NewTimer();
+    // NEWADD;
+    // t->OnTime = []() { cout << "hello " << endl; };
+    // t->Start(1000, 1000);
+    delete t;
+    // DELADD;
+
+
+    ser.Start();
+    ser.Join();
+}
+
+auto acc2_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> WChannel* {
+    // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
+    
+    ch = new MyChannel(socket, endpoint);
+    return ch;
+};
+void test_myChannel() {
+    // debugger->Init(1000);
+
+    signal(SIGINT, sin_handle);
+
+    WSingleTcpServer ser;
+    ser.SetOnAccept(acc2_cb);
     ser.SetOnMessage([](WChannel *channel, void *read_data, int64_t read_size) {
         if(read_size) {
             // cout << "read len : " << read_size << "\n"; //  << (char *)read_data << endl;

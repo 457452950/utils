@@ -26,7 +26,7 @@ public:
     bool AddAccepter(const std::string &IpAddress, uint16_t port, bool isv4);
     bool AddAccepter(const WEndPointInfo &local_info);
 
-    typedef bool (*accept_cb_t)(base_socket_type socket, WEndPointInfo &endpoint);
+    typedef WChannel* (*accept_cb_t)(base_socket_type socket, WEndPointInfo &endpoint);
     void SetOnAccept(accept_cb_t cb);
     void SetOnAccpetError(event_context_t::accept_error_cb_t cb);
 
