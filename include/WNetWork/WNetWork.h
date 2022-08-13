@@ -18,20 +18,9 @@
 namespace wlb::network {
 
 
-enum class EventHanleType {
-#ifdef OS_IS_LINUX
-    SELECT,
-    EPOLL,
-#endif
-};
-
-
-
 /* WEvent.h */
 template <typename UserData>
 class WEventHandle;
-
-WEventHandle<WBaseChannel> *CreateNetHandle();
 
 
 /* WSelect.h */

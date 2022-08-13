@@ -2,7 +2,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "WNetWork/WDebugger.hpp"
+#include "WDebugger.hpp"
 
 
 namespace wlb::network {

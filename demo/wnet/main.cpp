@@ -1,7 +1,7 @@
 #include <csignal>
 #include <iostream>
 
-#include "WNetWork/WDebugger.hpp"
+#include "WDebugger.hpp"
 #include "WNetWork/WNetWork.h"
 
 using namespace std;
@@ -130,7 +130,7 @@ void test_wepoll() {
 }
 
 
-auto in_cb = [](base_socket_type sock, server_handle_type::user_data_ptr data) {
+auto in_cb = [](base_socket_type sock, WBaseChannel* data) {
     auto *ch = (ReadChannel *)data;
     cout << "get channel call channel in" << std::endl;
     ch->ChannelIn();

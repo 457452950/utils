@@ -7,6 +7,14 @@
 
 namespace wlb::network {
 
+class WBaseChannel {
+public:
+    virtual ~WBaseChannel() {}
+
+    virtual void ChannelIn()  = 0;
+    virtual void ChannelOut() = 0;
+};
+
 class ReadChannel : public WBaseChannel {
 public:
     ReadChannel(){};
@@ -24,6 +32,9 @@ public:
 private:
     void ChannelIn() final{};
 };
+
+
+/* Impl */
 
 class WTimer : public ReadChannel {
 public:

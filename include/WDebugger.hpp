@@ -4,7 +4,7 @@
 #include <iostream>
 #include <thread>
 #include <unordered_map>
-#include "WChannel.h"
+#include "WNetWork/WChannel.h"
 
 namespace wlb::debug {
 

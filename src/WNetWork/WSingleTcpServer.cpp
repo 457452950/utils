@@ -1,4 +1,5 @@
 #include "WNetWork/WSingleTcpServer.h"
+#include "WNetWork/WNetFactory.h"
 
 #include <cassert>
 #include <iostream>
@@ -19,7 +20,7 @@ static auto handle_write_callback = [](base_socket_type sock, WBaseChannel *ch) 
 };
 
 WSingleTcpServer::WSingleTcpServer() {
-    this->contex_.event_handle_         = CreateNetHandle();
+    this->contex_.event_handle_         = WNetFactory::GetInstance()->CreateNetHandle(default_handle_type);
     this->contex_.event_handle_->read_  = handle_read_callback;
     this->contex_.event_handle_->write_ = handle_write_callback;
     this->contex_.max_read_size_        = 102400;

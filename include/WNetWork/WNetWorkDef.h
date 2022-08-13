@@ -7,37 +7,23 @@
 namespace wlb::network {
 
 #ifdef OS_IS_LINUX
-  #define SERVER_USE_EPOLL
+    #define SERVER_USE_EPOLL
 #else
-  #define SERVER_USE_SELECT
+    #define SERVER_USE_SELECT
 #endif
 
-template<typename UserData>
-class WEventHandle;
-template <typename UserData>
-class WSelect;
-template <typename UserData>
-class WEpoll;
 
-class WBaseChannel {
-public:
-    virtual ~WBaseChannel() {}
 
-    virtual void ChannelIn()  = 0;
-    virtual void ChannelOut() = 0;
+enum class HandleType : uint8_t {
+    SELECT,
+    EPOLL,
 };
 
-
 #ifdef SERVER_USE_EPOLL
-  using server_handle_type = WEpoll<WBaseChannel>;
+    const auto default_handle_type = HandleType::EPOLL;
 #elif defined SERVER_USE_SELECT
-  using server_handle_type = WSelect<WBaseChannel>;
+    const auto default_handle_type = HandleType::SELECT;
 #endif
-
-using server_handle_ptr  = server_handle_type *;
-
-WEventHandle<WBaseChannel> *CreateNetHandle();
-
 
 struct EventContext;
 using event_context_t = EventContext;

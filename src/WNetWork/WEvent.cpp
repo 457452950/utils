@@ -8,6 +8,4 @@
 
 namespace wlb::network {
 
-WEventHandle<WBaseChannel> *CreateNetHandle() { return new server_handle_type; }
-
 } // namespace wlb::network
