@@ -13,7 +13,6 @@ bool SetTimerTime(timerfd_t fd, SetTimeFlag flag, const struct itimerspec *next_
     if(::timerfd_settime(fd, (int)flag, next_time, prev_time) == 0) {
         return true;
     }
-
     return false;
 }
 
@@ -41,8 +40,9 @@ bool IpAddrToString(in_addr addr_, std::string *buf) {
         delete[] _buf;
         return true;
     } catch(const std::exception &e) {
+        std::cerr << "IpAddrToString fail, error : " << e.what() << std::endl;
+        return false;
     }
-    return false;
 }
 
 bool IpAddrToString(in6_addr addr, std::string *buf) {
@@ -58,8 +58,9 @@ bool IpAddrToString(in6_addr addr, std::string *buf) {
         delete[] _buf;
         return true;
     } catch(const std::exception &e) {
+        std::cerr << "IpAddrToString fail, error : " << e.what() << std::endl;
+        return false;
     }
-    return false;
 }
 
 bool StringToIpAddress(const std::string &ip_str, in_addr *addr) {

@@ -26,13 +26,14 @@ WSingleTcpServer::WSingleTcpServer() {
     this->contex_.max_read_size_        = 102400;
 }
 WSingleTcpServer::~WSingleTcpServer() {
-    delete this->contex_.event_handle_;
-    this->contex_.event_handle_ = nullptr;
+    if (this->contex_.event_handle_ != nullptr) {
+        delete this->contex_.event_handle_;
+        this->contex_.event_handle_ = nullptr;
+    }
 }
 
 void WSingleTcpServer::Start() { this->contex_.event_handle_->Start(); }
 void WSingleTcpServer::Join() { this->contex_.event_handle_->Join(); }
-
 void WSingleTcpServer::Detach() { this->contex_.event_handle_->Detach(); }
 
 bool WSingleTcpServer::AddAccepter(const std::string &IpAddress, uint16_t port, bool isv4) {

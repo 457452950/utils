@@ -30,9 +30,9 @@ public:
     using fd_list_item = typename fd_list::iterator;
 
     // call back
-    typedef void (*callback_type)(base_socket_type sock, user_data_ptr data);
+    using callback_type = void (*)(base_socket_type sock, user_data_ptr data);
 
-    callback_type read_{nullptr};
+    callback_type read_ {nullptr};
     callback_type write_{nullptr};
 
     // control
@@ -47,6 +47,9 @@ public:
     virtual void Join()   = 0;
 };
 
+class WBaseChannel;
+using event_handle_t = WEventHandle<WBaseChannel>;
+using event_handle_p = event_handle_t*;
 
 
 } // namespace wlb::network

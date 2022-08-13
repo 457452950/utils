@@ -10,7 +10,7 @@ namespace wlb::debug {
 
 using namespace network;
 
-using WTimerHandle                  = WEventHandle<WBaseChannel>;
+using WTimerHandle                  = event_handle_t;
 inline WTimerHandle *debuggerHandle = new WEpoll<WBaseChannel>;
 
 static auto handle_read_callback = [](base_socket_type sock, WEpoll<WBaseChannel>::user_data_ptr data) {
@@ -45,6 +45,7 @@ public:
 
         debuggerHandle->Start();
         // debuggerHandle->Detach();
+        return true;
     };
     inline bool IsActive() const { return this->_isActive; }
     void        Destroy() {

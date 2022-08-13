@@ -16,9 +16,9 @@ namespace wlb::network {
 using fd_set_type = fd_set;
 using fd_set_ptr  = fd_set_type *;
 
-inline void SetClearFd(fd_set_ptr set) { FD_ZERO(set); };
-inline void SetAddFd(base_socket_type fd, fd_set_ptr set) { FD_SET(fd, set); };
-inline void SetDelFd(base_socket_type fd, fd_set_ptr set) { FD_CLR(fd, set); };
+inline void SetClearFd(fd_set_ptr set)                      { FD_ZERO(set); };
+inline void SetAddFd(base_socket_type fd, fd_set_ptr set)   { FD_SET(fd, set); };
+inline void SetDelFd(base_socket_type fd, fd_set_ptr set)   { FD_CLR(fd, set); };
 inline bool SetCheckFd(base_socket_type fd, fd_set_ptr set) { return FD_ISSET(fd, set); };
 
 // struct timeval
@@ -54,11 +54,12 @@ public:
 
     // control
     typename WEventHandle<UserData>::fd_list_item
-    NewSocket(base_socket_type                        socket,
-              uint8_t                                 events,
+    NewSocket(base_socket_type                               socket,
+              uint8_t                                        events,
               typename WEventHandle<UserData>::user_data_ptr user_data = nullptr) override {
+        // select fd 上限 1024
         if(this->fd_count_ == 1024) {
-            return this->list.end();
+            return this->fd_list_.end();
         }
 
         auto *sl       = new typename WEventHandle<UserData>::hdle_data_t;
@@ -66,15 +67,15 @@ public:
         sl->events_    = events;
         sl->user_data_ = user_data;
 
-        this->list.push_front(sl);
+        this->fd_list_.push_front(sl);
         ++this->fd_count_;
-        return this->list.begin();
+        return this->fd_list_.begin();
     }
     void ModifySocket(typename WEventHandle<UserData>::fd_list_item item) override {}
     void DelSocket(typename WEventHandle<UserData>::fd_list_item item) override {
-        std::cout << "Del socket 1" << std::endl;
+        // std::cout << "Del socket 1" << std::endl;
         this->rubish_stack_.push(item);
-        std::cout << "Del socket 2" << std::endl;
+        // std::cout << "Del socket 2" << std::endl;
         SetDelFd((*item)->socket_, &read_set_);
         SetDelFd((*item)->socket_, &write_set_);
         --this->fd_count_;
@@ -113,11 +114,11 @@ private:
             }
             // std::cout << "select res : " << res << std::endl;
 
-            auto temp_end = this->list.end();
+            auto temp_end = this->fd_list_.end();
             // 迭代器失效
 
-            for(auto i = this->list.begin(); i != temp_end; ++i) {
-                // std::cout << "one for start " << this->list.size() << std::endl;
+            for(auto i = this->fd_list_.begin(); i != temp_end; ++i) {
+                // std::cout << "one for start " << this->fd_list_.size() << std::endl;
                 if(this->read_) {
                     // // std::cout << "has read" << std::endl;
                     if((*i)->events_ & KernelEventType::EV_IN && SetCheckFd((*i)->socket_, &read_set_)) {
@@ -139,10 +140,10 @@ private:
             // std::cout << "one loop over " << std::endl;
 
             while(!this->rubish_stack_.empty()) {
-                this->list.erase(this->rubish_stack_.top());
+                this->fd_list_.erase(this->rubish_stack_.top());
                 this->rubish_stack_.pop();
             }
-            // std::cout << "rubish over " << this->list.size() << std::endl;
+            // std::cout << "rubish over " << this->fd_list_.size() << std::endl;
         }
     };
 
@@ -154,7 +155,7 @@ private:
     void SetAllSet() {
         max_fd_number = 0;
 
-        for(auto i : this->list) {
+        for(auto i : this->fd_list_) {
             if(max_fd_number < i->socket_) {
                 max_fd_number = i->socket_;
             }
@@ -173,11 +174,11 @@ private:
     fd_set_type read_set_;
     fd_set_type write_set_;
 
-    typename WEventHandle<UserData>::fd_list list;
-    uint32_t                          fd_count_{0};
-    base_socket_type                  max_fd_number{0};
-    bool                              active_{false};
-    std::thread                      *work_thread_{nullptr};
+    typename WEventHandle<UserData>::fd_list fd_list_;
+    uint32_t                                 fd_count_{0};
+    base_socket_type                         max_fd_number{0};
+    bool                                     active_{false};
+    std::thread                             *work_thread_{nullptr};
 
     std::stack<typename WEventHandle<UserData>::fd_list_item> rubish_stack_; // 防止迭代器失效
 };

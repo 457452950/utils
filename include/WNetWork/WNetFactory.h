@@ -11,7 +11,7 @@ namespace wlb::network {
 
 class WNetFactory final {
 public:
-    WEventHandle<WBaseChannel>* CreateNetHandle(HandleType type) {
+    event_handle_p CreateNetHandle(HandleType type) {
         switch (type)
         {
         case HandleType::SELECT:

@@ -9,7 +9,7 @@ namespace wlb::network {
 
 using namespace debug;
 
-WTimer::WTimer(WEventHandle<WBaseChannel> *handle) : handle_(handle) {
+WTimer::WTimer(event_handle_p handle) : handle_(handle) {
     this->timer_fd_ = CreateNewTimerfd();
     DEBUGADD("WTimer");
 }

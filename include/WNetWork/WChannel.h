@@ -38,7 +38,7 @@ private:
 
 class WTimer : public ReadChannel {
 public:
-    explicit WTimer(WEventHandle<WBaseChannel> *handle);
+    explicit WTimer(event_handle_p handle);
     ~WTimer() override;
 
     typedef void (*on_time_cb_t)(void);
@@ -54,10 +54,10 @@ private:
     void ChannelIn() final;
 
 private:
-    WEventHandle<WBaseChannel>              *handle_{nullptr};
-    WEventHandle<WBaseChannel>::fd_list_item item_;
-    timerfd_t                                timer_fd_{-1};
-    bool                                     active_{false};
+    event_handle_p               handle_{nullptr};
+    event_handle_t::fd_list_item item_;
+    timerfd_t                    timer_fd_{-1};
+    bool                         active_{false};
 };
 
 class WAccepterChannel : public ReadChannel {
@@ -92,7 +92,7 @@ private:
     base_socket_type                         client_socket_{-1};
     WEndPointInfo                            remote_endpoint_;
     event_context_p                          event_context_{nullptr};
-    WEventHandle<WBaseChannel>::fd_list_item item_;
+    event_handle_t::fd_list_item             item_;
 
     uint8_t *recv_buf_{nullptr};
     uint64_t recv_buf_size_{0};
@@ -105,22 +105,22 @@ private:
 struct EventContext {
     // accepter
     // return true for accpet the connection
-    typedef bool (*accept_cb_t)(base_socket_type socket, WEndPointInfo &endpoint);
-    typedef void (*accept_error_cb_t)(int error_no);
+    using accept_cb_t       = bool (*)(base_socket_type socket, WEndPointInfo &endpoint);
+    using accept_error_cb_t = void (*)(int error_no); 
     // consumer channel
-    typedef void (*read_cb_t)(WChannel *channel, void *read_data, int64_t read_size);
-    typedef void (*read_error_cb_t)(WChannel *channel, int error_no);
-    typedef void (*write_error_cb_t)(WChannel *channel, int error_no);
+    using read_cb_t         = void (*)(WChannel* channel, void* read_data, int64_t read_size);
+    using read_error_cb_t   = void (*)(WChannel* Channel, int error_no);
+    using write_error_cb_t  = read_error_cb_t; 
 
-    accept_cb_t       onAccept{nullptr};
-    accept_error_cb_t onAcceptError{nullptr};
+    accept_cb_t         onAccept{nullptr};
+    accept_error_cb_t   onAcceptError{nullptr};
 
-    read_cb_t        onRead{nullptr};
-    read_error_cb_t  onReadError{nullptr};
-    write_error_cb_t onWriteError{nullptr};
+    read_cb_t           onRead{nullptr};
+    read_error_cb_t     onReadError{nullptr};
+    write_error_cb_t    onWriteError{nullptr};
 
     uint64_t                    max_read_size_{0};
-    WEventHandle<WBaseChannel> *event_handle_{nullptr};
+    event_handle_t             *event_handle_{nullptr};
 };
 
 

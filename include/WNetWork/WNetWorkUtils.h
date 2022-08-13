@@ -42,14 +42,14 @@ bool      SetTimerTime(timerfd_t                fd,
 
 
 // sockaddr
-// sockaddr_in sockaddr_in6
-// in_addr  in6_addr
+// sockaddr_in      sockaddr_in6
+// in_addr          in6_addr
 
 base_socket_type MakeSocket(enum AF_FAMILY family, enum AF_PROTOL protol);
 base_socket_type MakeTcpV4Socket();
 base_socket_type MakeUdpV4Socket();
 
-bool IpAddrToString(in_addr addr_, std::string *buf);
+bool IpAddrToString(in_addr addr, std::string *buf);
 bool IpAddrToString(in6_addr addr, std::string *buf);
 
 bool StringToIpAddress(const std::string &ip_str, in_addr *addr);
