@@ -19,11 +19,13 @@ enum class HandleType : uint8_t {
     EPOLL,
 };
 
+
 #ifdef SERVER_USE_EPOLL
     const auto default_handle_type = HandleType::EPOLL;
 #elif defined SERVER_USE_SELECT
     const auto default_handle_type = HandleType::SELECT;
 #endif
+
 
 struct EventContext;
 using event_context_t = EventContext;

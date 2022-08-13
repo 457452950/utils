@@ -11,6 +11,7 @@
 #include "WSelect.h"
 #include "WEpoll.h"
 #include "WChannel.h"
+#include "WNetFactory.h"
 #include "WSingleTcpServer.h"
 
 #include "../WOS.h"
@@ -38,6 +39,10 @@ class WEpoll;
 class WTimer;
 class WAccepterChannel;
 class WChannel;
+
+
+/* WNetFactory.h */
+class WNetFactory;
 
 
 /* WsingleTcpServer.h */
