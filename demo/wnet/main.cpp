@@ -269,7 +269,7 @@ void test_tcpserver() {
 
 auto acc2_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> WChannel* {
     // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
-    
+    // TODO: 使用抽象工厂模式 
     ch = new MyChannel(socket, endpoint);
     return ch;
 };
