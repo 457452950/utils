@@ -1,9 +1,9 @@
 #include <csignal>
 #include <iostream>
 
+#include "Channel.h"
 #include "WDebugger.hpp"
 #include "WNetWork/WNetWork.h"
-#include "Channel.h"
 
 using namespace std;
 using namespace wlb::network;
@@ -117,7 +117,8 @@ void test_wepoll() {
     }
 
     test_s i{.f = [](int n) { cout << "heppy " << n << endl; }, .n = 3};
-    auto   list = ep.NewSocket(sock, KernelEventType::EV_IN, &i);
+    auto   list = ep.NewSocket(new typename WEventHandle<test_s>::option_type{
+              .socket_ = sock, .user_data_ = &i, .events_ = KernelEventType::EV_IN});
 
     auto cli = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
     res      = ConnectToHost(cli, "0:0:0:0:0:0:0:1", 4000, 0);
@@ -133,7 +134,7 @@ void test_wepoll() {
 }
 
 
-auto in_cb = [](base_socket_type sock, WBaseChannel* data) {
+auto in_cb = [](base_socket_type sock, WBaseChannel *data) {
     auto *ch = (ReadChannel *)data;
     cout << "get channel call channel in" << std::endl;
     ch->ChannelIn();
@@ -144,10 +145,10 @@ WEpoll<WBaseChannel>  ep;
 WSelect<WBaseChannel> sl;
 WChannel             *ch;
 
-auto ac_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> WChannel* {
+auto ac_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> bool {
     cout << "recv : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
-    ch = new WChannel(socket, endpoint);
-    return ch;
+    // ch = new WChannel(socket, endpoint);
+    return true;
 };
 
 
@@ -158,12 +159,7 @@ void test_channel() {
     con      = {
                  .onAccept      = ac_cb,
                  .onAcceptError = [](int err) { cout << "error :" << strerror(err) << endl; },
-                 .onRead =
-                         [](WChannel *channel, void *read_data, int64_t read_size) {
-                        // cout << "read len : " << read_size << "\n" << (char *)read_data << endl;
-                    },
-                 .max_read_size_ = 10240,
-                 .event_handle_  = &ep,
+                 .event_handle_ = &ep,
     };
 
 
@@ -207,11 +203,11 @@ void test_channel() {
     ep.Join();
 }
 
-auto acc_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> WChannel* {
+auto acc_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> bool {
     // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
-    
-    ch = new WChannel(socket, endpoint);
-    return ch;
+
+    // ch = new WChannel(socket, endpoint);
+    return true;
 };
 
 void sin_handle(int signal) { exit(-1); }
@@ -224,19 +220,6 @@ void test_tcpserver() {
 
     WSingleTcpServer ser;
     ser.SetOnAccept(acc_cb);
-    ser.SetOnMessage([](WChannel *channel, void *read_data, int64_t read_size) {
-        if(read_size) {
-            // cout << "read len : " << read_size << "\n"; //  << (char *)read_data << endl;
-            channel->Send(read_data, read_size);
-        } else {
-            // cout << "recv 0 "
-            //         "del "
-            //      << channel << std::endl;
-            delete channel;
-            channel = nullptr;
-            // std::cout << "debug recv over " << endl;
-        }
-    });
     ser.AddAccepter({"0:0:0:0:0:0:0:0", 4000, 0});
 
 
@@ -267,11 +250,11 @@ void test_tcpserver() {
     ser.Join();
 }
 
-auto acc2_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> WChannel* {
+auto acc2_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> bool {
     // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
-    // TODO: 使用抽象工厂模式 
-    ch = new MyChannel(socket, endpoint);
-    return ch;
+    // TODO: 使用抽象工厂模式
+    // ch = new MyChannel(socket, endpoint);
+    return true;
 };
 void test_myChannel() {
     // debugger->Init(1000);
@@ -280,19 +263,6 @@ void test_myChannel() {
 
     WSingleTcpServer ser;
     ser.SetOnAccept(acc2_cb);
-    ser.SetOnMessage([](WChannel *channel, void *read_data, int64_t read_size) {
-        if(read_size) {
-            // cout << "read len : " << read_size << "\n"; //  << (char *)read_data << endl;
-            channel->Send(read_data, read_size);
-        } else {
-            // cout << "recv 0 "
-            //         "del "
-            //      << channel << std::endl;
-            delete channel;
-            channel = nullptr;
-            // std::cout << "debug recv over " << endl;
-        }
-    });
     ser.AddAccepter({"0:0:0:0:0:0:0:0", 4000, 0});
 
 

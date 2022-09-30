@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <list>
 
-#include "WNetWorkUtils.h"
 #include "WNetWorkDef.h"
+#include "WNetWorkUtils.h"
 
 
 namespace wlb::network {
@@ -21,24 +21,27 @@ public:
 
     using user_data_type = UserData;
     using user_data_ptr  = user_data_type *;
-    struct hdle_data_t {
-        base_socket_type socket_;
-        user_data_ptr    user_data_;
-        uint8_t          events_;
+
+    struct hdle_option_t {
+        base_socket_type socket_;    // native socket
+        user_data_ptr    user_data_; // user data, void*
+        uint8_t          events_;    // KernelEventType
     };
-    using fd_list      = std::list<hdle_data_t *>;
-    using fd_list_item = typename fd_list::iterator;
+
+    using option_type      = hdle_option_t;
+    using option_list      = std::list<hdle_option_t *>;
+    using option_list_item = typename option_list::iterator;
 
     // call back
     using callback_type = void (*)(base_socket_type sock, user_data_ptr data);
 
-    callback_type read_ {nullptr};
+    callback_type read_{nullptr};
     callback_type write_{nullptr};
 
     // control
-    virtual fd_list_item NewSocket(base_socket_type socket, uint8_t events, user_data_ptr user_data = nullptr) = 0;
-    virtual void         ModifySocket(fd_list_item item)                                                       = 0;
-    virtual void         DelSocket(fd_list_item item)                                                          = 0;
+    virtual option_list_item NewSocket(option_type *option)      = 0;
+    virtual void             ModifySocket(option_list_item item) = 0;
+    virtual void             DelSocket(option_list_item item)    = 0;
 
     // thread control
     virtual void Start()  = 0;
@@ -49,7 +52,7 @@ public:
 
 class WBaseChannel;
 using event_handle_t = WEventHandle<WBaseChannel>;
-using event_handle_p = event_handle_t*;
+using event_handle_p = event_handle_t *;
 
 
 } // namespace wlb::network

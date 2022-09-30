@@ -54,10 +54,10 @@ private:
     void ChannelIn() final;
 
 private:
-    event_handle_p               handle_{nullptr};
-    event_handle_t::fd_list_item item_;
-    timerfd_t                    timer_fd_{-1};
-    bool                         active_{false};
+    event_handle_p                   handle_{nullptr};
+    event_handle_t::option_list_item item_;
+    timerfd_t                        timer_fd_{-1};
+    bool                             active_{false};
 };
 
 class WAccepterChannel : public ReadChannel {
@@ -76,53 +76,46 @@ private:
 
 class WChannel : public WBaseChannel {
 public:
-    explicit WChannel(base_socket_type socket, WEndPointInfo &remote_endpoint);
+    explicit WChannel(uint16_t buffer_size);
     ~WChannel() override;
     // nocopy
     WChannel(const WChannel &other)            = delete;
     WChannel &operator=(const WChannel &other) = delete;
 
-    void SetEventContext(event_context_p context);
+    class Listener {
+    public:
+        virtual void onChannelDisConnect()                             = 0;
+        virtual void onReceive(uint8_t *message, uint64_t message_len) = 0;
+        virtual void onError(uint64_t err_code)                        = 0;
+    };
 
-    void Send(void *send_message, uint64_t message_len);
+    void        Init(base_socket_type socket, const WEndPointInfo &remote_endpoint);
+    inline void SetListener(Listener *listener) { this->listener_ = listener; }
+    void        SetEventHandle(event_handle_p handle);
+    void        CloseChannel();
+
+    virtual void Send(void *send_message, uint64_t message_len);
 
 protected:
-    void ChannelIn();
-    void ChannelOut();
+    // can override
+    virtual void ChannelIn();
+    virtual void ChannelOut();
 
 private:
-    base_socket_type                         client_socket_{-1};
-    WEndPointInfo                            remote_endpoint_;
-    event_context_p                          event_context_{nullptr};
-    event_handle_t::fd_list_item             item_;
-
+    // native socket
+    base_socket_type                 client_socket_{-1};
+    WEndPointInfo                    remote_endpoint_;
+    event_handle_p                   event_handle_{nullptr};
+    event_handle_t::option_list_item option_item_;
+    // listener
+    Listener *listener_{nullptr};
+    // receive buffer
     uint8_t *recv_buf_{nullptr};
     uint64_t recv_buf_size_{0};
+    // send buffer
     uint8_t *send_buf_{nullptr};
     uint64_t send_buf_size_{0};
     uint64_t send_size_{0};
-};
-
-
-struct EventContext {
-    // accepter
-    // return true for accpet the connection
-    using accept_cb_t       = WChannel* (*)(base_socket_type socket, WEndPointInfo &endpoint);
-    using accept_error_cb_t = void (*)(int error_no); 
-    // consumer channel
-    using read_cb_t         = void (*)(WChannel* channel, void* read_data, int64_t read_size);
-    using read_error_cb_t   = void (*)(WChannel* Channel, int error_no);
-    using write_error_cb_t  = read_error_cb_t; 
-
-    accept_cb_t         onAccept{nullptr};
-    accept_error_cb_t   onAcceptError{nullptr};
-
-    read_cb_t           onRead{nullptr};
-    read_error_cb_t     onReadError{nullptr};
-    write_error_cb_t    onWriteError{nullptr};
-
-    uint64_t                    max_read_size_{0};
-    event_handle_t             *event_handle_{nullptr};
 };
 
 

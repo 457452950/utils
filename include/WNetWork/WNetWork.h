@@ -5,13 +5,13 @@
 #ifndef UTILS_DEMO_UTILS_INCLUDE_WNETWORK_WNETWORK_H_
 #define UTILS_DEMO_UTILS_INCLUDE_WNETWORK_WNETWORK_H_
 
-#include "WNetWorkUtils.h"
-#include "WNetWorkDef.h"
-#include "WEvent.h"
-#include "WSelect.h"
-#include "WEpoll.h"
 #include "WChannel.h"
+#include "WEpoll.h"
+#include "WEvent.h"
 #include "WNetFactory.h"
+#include "WNetWorkDef.h"
+#include "WNetWorkUtils.h"
+#include "WSelect.h"
 #include "WSingleTcpServer.h"
 
 #include "../WOS.h"
@@ -31,7 +31,8 @@ class WSelect;
 
 /* WEpoll.h */
 class WBaseEpoll;
-template<typename UserData>
+
+template <typename UserData>
 class WEpoll;
 
 
@@ -42,12 +43,11 @@ class WChannel;
 
 
 /* WNetFactory.h */
-class WNetFactory;
+class WChannelFactory;
 
 
-/* WsingleTcpServer.h */
+/* WSingleTcpServer.h */
 class WSingleTcpServer;
-
 
 
 } // namespace wlb::network
