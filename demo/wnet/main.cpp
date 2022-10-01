@@ -231,10 +231,12 @@ void test_tcpserver() {
     } else {
         cout << "connect ok" << endl;
         std::thread([&]() {
-            ::send(cli, "123123", 6, 0);
+            int len = ::send(cli, "123123", 6, 0);
+            cout << "send ok " << len << endl;
             char arr[1024];
-            ::recv(cli, arr, 1024, 0);
+            len = ::recv(cli, arr, 1024, 0);
             cout << "recv arr : " << arr << std::endl;
+            cout << "recv ok " << len << endl;
         }).detach();
     }
 
@@ -264,6 +266,7 @@ void test_myChannel() {
     WSingleTcpServer ser;
     ser.SetOnAccept(acc2_cb);
     ser.AddAccepter({"0:0:0:0:0:0:0:0", 4000, 0});
+    ser.SetSessionFactory(new MySessionFactory);
 
 
     auto cli = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
@@ -274,10 +277,16 @@ void test_myChannel() {
     } else {
         cout << "connect ok" << endl;
         std::thread([&]() {
-            ::send(cli, "123123", 6, 0);
+            int len = ::send(cli, "123123", 6, 0);
+            cout << "send ok " << len << endl;
             char arr[1024];
-            ::recv(cli, arr, 1024, 0);
-            cout << "recv arr : " << arr << std::endl;
+            len = ::recv(cli, arr, 1024, 0);
+            if(len > 0) {
+                cout << "recv arr : " << arr << std::endl;
+                cout << "recv ok " << len << endl;
+            } else {
+                cout << "recv error " << strerror(errno) << endl;
+            }
         }).detach();
     }
 

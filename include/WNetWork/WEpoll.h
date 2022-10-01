@@ -255,18 +255,18 @@ private:
 
         epoll_event *events;
 
-        // std::cout << "wepoll event loop start" << std::endl;
+        std::cout << "wepoll event loop start" << std::endl;
 
         while(this->active_) {
             int events_size = fd_count_;
-            // std::cout << "array len " << events_size << std::endl;
+            std::cout << "array len " << events_size << std::endl;
             events = new epoll_event[events_size];
 
             events_size = ep.GetEvents(events, events_size, -1);
-            // std::cout << "get events return " << events_size << std::endl;
+            std::cout << "get events return " << events_size << std::endl;
 
             if(events_size == -1) {
-                // std::cout << "error : " << strerror(errno) << std::endl;
+                std::cout << "error : " << strerror(errno) << std::endl;
                 break;
             } else if(events_size == 0) {
                 continue;
@@ -277,7 +277,7 @@ private:
             // }
 
             for(size_t i = 0; i < events_size; ++i) {
-                // std::cout << "events index " << i << std::endl;
+                std::cout << "events index " << i << std::endl;
 
                 uint32_t ev   = events[i].events;
                 auto    *data = (typename WEventHandle<UserData>::hdle_option_t *)events[i].data.ptr;
@@ -285,21 +285,23 @@ private:
                 base_socket_type sock = data->socket_;
                 uint8_t          eev  = data->events_;
 
-                // // std::cout << "out & " << data << std::endl;
-                // // std::cout << ev << " - - " << (int)eev << std::endl;
+                std::cout << "out & " << data << std::endl;
+                std::cout << ev << " - - " << (int)eev << std::endl;
 
-                // std::cout << "socket " << sock << std::endl;
+                std::cout << "socket " << sock << std::endl;
                 assert(sock > 0);
 
                 if(ev & EPOLLOUT && eev & KernelEventType::EV_OUT) {
                     if(this->write_) {
+                        std::cout << "write start" << std::endl;
                         this->write_(sock, data->user_data_);
                     }
                 }
                 if(ev & EPOLLIN && eev & KernelEventType::EV_IN) {
                     if(this->read_) {
+                        std::cout << "read start" << std::endl;
                         this->read_(sock, data->user_data_);
-                        // std::cout << "read over" << std::endl;
+                        std::cout << "read over" << std::endl;
                     }
                 }
             }

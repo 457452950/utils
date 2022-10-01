@@ -7,16 +7,16 @@
 namespace wlb::network {
 
 static auto handle_read_callback = [](base_socket_type sock, WBaseChannel *ch) {
-    // std::cout << "get channel call channel in [" << ch << "]" << std::endl;
+    std::cout << "get channel call channel in [" << ch << "]" << std::endl;
     ch->ChannelIn();
-    // std::cout << "get channel call channel in end" << std::endl;
+    std::cout << "get channel call channel in end" << std::endl;
 };
 
 static auto handle_write_callback = [](base_socket_type sock, WBaseChannel *ch) {
-    // std::cout << "get channel call channel out [" << ch << "]" << std::endl;
-    // std::cout << "handle_write_callback get channel call channel out" << std::endl;
+    std::cout << "get channel call channel out [" << ch << "]" << std::endl;
+    std::cout << "handle_write_callback get channel call channel out" << std::endl;
     ch->ChannelOut();
-    // std::cout << "handle_write_callback get channel call channel out end" << std::endl;
+    std::cout << "handle_write_callback get channel call channel out end" << std::endl;
 };
 
 WSingleTcpServer::WSingleTcpServer() {
