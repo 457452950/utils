@@ -7,6 +7,7 @@
 
 namespace wlb::network {
 
+
 class WBaseChannel {
 public:
     virtual ~WBaseChannel() {}
@@ -74,6 +75,21 @@ private:
     event_context_p  event_context_{nullptr};
 };
 
+
+/**
+ * 链接状态
+ */
+enum class WChannelState {
+    /**
+     * 链接关闭
+     */
+    CLOSE = 0,
+    /**
+     * 链接
+     */
+    CONNECT = 1,
+};
+
 class WChannel : public WBaseChannel {
 public:
     explicit WChannel(uint16_t buffer_size);
@@ -92,7 +108,7 @@ public:
     void        Init(base_socket_type socket, const WEndPointInfo &remote_endpoint);
     inline void SetListener(Listener *listener) { this->listener_ = listener; }
     void        SetEventHandle(event_handle_p handle);
-    void        CloseChannel();
+    void        CloseChannel(); // Async
 
     virtual void Send(void *send_message, uint64_t message_len);
 
@@ -101,8 +117,12 @@ protected:
     virtual void ChannelIn();
     virtual void ChannelOut();
 
+    void onChannelClose();
+    void onChannelError(uint64_t error_code);
+
 private:
     // native socket
+    WChannelState                    channelState_{WChannelState::CLOSE};
     base_socket_type                 client_socket_{-1};
     WEndPointInfo                    remote_endpoint_;
     event_handle_p                   event_handle_{nullptr};

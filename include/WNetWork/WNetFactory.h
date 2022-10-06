@@ -76,7 +76,7 @@ private:
  */
 class WSessionFactory {
 public:
-    virtual std::shared_ptr<WBaseSession> CreateSession(std::unique_ptr<WChannel> channel) = 0;
+    virtual void CreateSession(std::unique_ptr<WChannel> channel) = 0;
 
 public:
     WSessionFactory() {}

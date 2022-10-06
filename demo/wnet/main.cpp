@@ -8,7 +8,7 @@
 using namespace std;
 using namespace wlb::network;
 
-void handle_pipe(int singn) { cout << "singn" << endl; }
+void handle_pipe(int signal) { cout << "signal" << endl; }
 
 void test_ipv6();
 void test_wepoll();
@@ -277,7 +277,7 @@ void test_myChannel() {
     } else {
         cout << "connect ok" << endl;
         std::thread([&]() {
-            int len = ::send(cli, "123123", 6, 0);
+            int len = ::send(cli, "asdasd", 6, 0);
             cout << "send ok " << len << endl;
             char arr[1024];
             len = ::recv(cli, arr, 1024, 0);
@@ -285,8 +285,10 @@ void test_myChannel() {
                 cout << "recv arr : " << arr << std::endl;
                 cout << "recv ok " << len << endl;
             } else {
-                cout << "recv error " << strerror(errno) << endl;
+                int err = errno;
+                cout << "recv len == 0 error " << err << " " << strerror(err) << endl;
             }
+            close(cli);
         }).detach();
     }
 

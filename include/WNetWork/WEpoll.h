@@ -255,18 +255,18 @@ private:
 
         epoll_event *events;
 
-        std::cout << "wepoll event loop start" << std::endl;
+        std::cout << "WEpoll::EventLoop() wepoll event loop start" << std::endl;
 
         while(this->active_) {
             int events_size = fd_count_;
-            std::cout << "array len " << events_size << std::endl;
+            std::cout << "WEpoll::EventLoop() array len " << events_size << std::endl;
             events = new epoll_event[events_size];
 
             events_size = ep.GetEvents(events, events_size, -1);
-            std::cout << "get events return " << events_size << std::endl;
+            std::cout << "WEpoll::EventLoop() get events return " << events_size << std::endl;
 
             if(events_size == -1) {
-                std::cout << "error : " << strerror(errno) << std::endl;
+                std::cout << "WEpoll::EventLoop() error : " << strerror(errno) << std::endl;
                 break;
             } else if(events_size == 0) {
                 continue;
