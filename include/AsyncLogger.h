@@ -16,10 +16,17 @@
 #include <sys/stat.h>
 #include <thread>
 #include <unistd.h> // access()
+#include <unordered_set>
+#include <vector>
 
 #include "LoggerBase.h"
 #include "WSystem.h"
 
+
+// namespace LOG_TYPE {
+// const int8_t L_STDOUT = 1 << 0;
+// const int8_t L_FILE   = 1 << 1;
+// }
 
 // #define ERROR "ERROR"
 // #define WARN "WARN"
@@ -46,18 +53,23 @@ public:
 
     // 初始化
     static void Init(int8_t type, LOG_LEVEL level, char *fileName);
+    static void Init(int8_t type, LOG_LEVEL level, char *fileName, std::unordered_set<std::string> tags);
     static void Stop();
     static void Wait2Exit();
 
     static Logger   *getInstance();
     static LOG_LEVEL GetLogLevel();
+    static bool      UserTag();
+    static bool      ContainTag(const std::string& tag);
     void             Loop();
 
 private:
     // log config
-    static Logger *instance_;
-    LOG_LEVEL      log_level_{L_ERROR};
-    int8_t         log_type_{LOG_TYPE::L_STDOUT};
+    static Logger                  *instance_;
+    LOG_LEVEL                       log_level_{L_ERROR};
+    int8_t                          log_type_{LOG_TYPE::L_STDOUT};
+    bool                            use_tags_{false};
+    std::unordered_set<std::string> tags_;
 
     // file config
     char         *base_file_name_{nullptr};
@@ -72,7 +84,7 @@ private:
     std::mutex              mutex_;
     std::condition_variable con_variable_;
 
-    // Logger
+    // Logger helper
 public:
     LogHelper_ptr      Write(const char *level, const char *file, int lineNo, const char *_func);
     std::stringstream &GetStream() { return string_stream_; }
@@ -97,8 +109,9 @@ private:
     Logger *_log;
 };
 
-#define LOG(level)                                                                                                     \
-    if(Logger::getInstance() && Logger::GetLogLevel() <= (level))                                                      \
+#define LOG(level, tag)                                                                                                \
+    if (Logger::getInstance() && Logger::GetLogLevel() <= (level))                                                      \
+    if (!Logger::getInstance()->UserTag() || (Logger::getInstance()->UserTag() && Logger::ContainTag(tag)))                                                                                                                   \
     Logger::getInstance()->Write(#level, __FILENAME__, __LINE__, __FUNCTION__)->Get()
 
 } // namespace wlb::Log

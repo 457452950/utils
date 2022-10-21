@@ -126,4 +126,12 @@ void Logger::Init(int8_t type, LOG_LEVEL level, char *fileName) {
 
 LOG_LEVEL Logger::GetLogLevel() { return Logger::getInstance()->log_level_; }
 
+void Logger::Init(int8_t type, LOG_LEVEL level, char *fileName, std::unordered_set<std::string> tags) {
+    Logger::Init(type, level, fileName);
+    Logger::getInstance()->tags_ = std::move(tags);
+    Logger::getInstance()->use_tags_ = true;
+}
+bool Logger::UserTag() { return Logger::getInstance()->use_tags_; }
+bool Logger::ContainTag(const std::string &tag) { return Logger::getInstance()->tags_.count(tag) == 1; }
+
 } // namespace wlb::Log
