@@ -3,6 +3,7 @@
 #define WNETWORKDEF_H
 
 #include "../WOS.h"
+#include <cstdint>
 
 namespace wlb::network {
 

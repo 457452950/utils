@@ -10,6 +10,7 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 cmake-build-debug
+tags
 .idea/
 
 lib/liblogger.a
@@ -21,9 +22,12 @@ lib/libwnetwork.a
 lib/libwtimer.a
 lib/libwdebug.a
 lib/libwlb.a    
+lib/libwutils.a
 
 .vscode/
 build/*
 .cmake/
 build.ninja
-lib/libwutils.a
+demo/libevent/libevent_demo
+demo/wnet/wnet_demo
+demo/Log/log_demo
