@@ -1,8 +1,14 @@
+cmake_minimum_required(VERSION 3.10.2)
+project(util)
 MESSAGE("operation system is ${CMAKE_HOST_SYSTEM_NAME}")
 
 if(WIN32)
         message("not support windows!!!")
         add_definitions(-D OS_IS_WINDOWS)
+        set(WINDOWS 1)
+                
+        add_subdirectory(demo)
+
         return()
 endif()
 
@@ -17,9 +23,7 @@ if(UNIX)
         if(CMAKE_HOST_SYSTEM_NAME MATCHES "Linux")
                 message("Linux!!!")
                 add_definitions(-D OS_IS_LINUX)
-
-                cmake_minimum_required(VERSION 3.10.2)
-                project(util)
+                set(LINUX 1)
 
                 set(CMAKE_CXX_STANDARD 17)
                 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -g -Wall ")

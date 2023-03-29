@@ -21,10 +21,11 @@ using user_function_t = std::function<void(user_data_t)>;
 
 // 任务
 struct task {
-    user_function_t _function;
-    user_data_t     _userData;
     task(user_function_t user_function, user_data_t user_data)
             : _function(std::move(user_function)), _userData(user_data) {}
+
+    user_function_t _function;
+    user_data_t     _userData;
 };
 
 // 线程池
@@ -40,10 +41,11 @@ public:
 
     // lifetime
     // return true if the pool start success
-    bool Start(uint16_t threads_count);
-    inline void Stop() { this->is_active_ = false; }
-    void WaitToStop();  // Wait the pool return (block)
-    void Destroy();
+    bool        Start(uint16_t threads_count);
+    inline void Stop()          { this->is_active_ = false; }
+    // Wait the pool return (block)
+    void        WaitToStop();   
+    void        Destroy();
 
     // methods
     void AddTask(const user_function_t &function, user_data_t data);
