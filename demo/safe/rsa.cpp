@@ -7,6 +7,10 @@
 /*----------------------------------------------------------------------------
 This function uses Fermat's Theorem 100 times to test the primeness of a
 (large) positive integer.
+
+Fermat's Little Theorem：
+如果p是一个质数，而整数a不是p的倍数，则有
+a^(p-1)≡1(mod p)
 ----------------------------------------------------------------------------*/
 
 static bool IsPrime(const mpuint &p) {
@@ -36,7 +40,7 @@ This function generates a (large) prime.
 
 static void GeneratePrime(mpuint &p) {
     Random(p);
-    p.value[p.length - 1] |= 0x8000;
+    p.value[p.length - 1] |= 0x8000;    // |= 0b1000'0000'0000'0000
     p.value[0] |= 1;
     while(!IsPrime(p))
         p += 2;

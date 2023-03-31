@@ -6,7 +6,7 @@
 
 mpuint::mpuint(unsigned len) {
     length = len;
-    value  = new unsigned short[len];
+    value  = new unsigned short[len]{0};
 }
 
 mpuint::mpuint(const mpuint &n) {
@@ -213,16 +213,17 @@ bool mpuint::scan(const char *&s) {
     while(*t == ' ' || *t == '\t')
         t++;
     *this = 0;
-    while('0' <= *t && *t <= '9') {
+    while('0' <= *t && *t <= '9' && t - s < 4) {
         found = true;
         *this *= 10;
         *this += (unsigned short)(*t++ - '0');
     }
-    printf("value %ud\n", *this);
+    //printf("value %u\n", value[0]);
     s = t;
     return found;
 }
 
+// 进位
 void mpuint::shift(unsigned bit) {
     for(unsigned i = 0; i < length; i++) {
         unsigned long x = value[i] << 1 | bit;
@@ -272,13 +273,17 @@ void mpuint::operator%=(const mpuint &n) {
     Divide(dividend, n, quotient, *this);
 }
 
+// result = base ^ exponent % modulus
 void mpuint::Power(const mpuint &base, const mpuint &exponent, const mpuint &modulus, mpuint &result) {
     mpuint r(2 * base.length + 1);
     r            = 1;
+    // 当前数据段最高位是否为0
     bool     one = true;
     unsigned i   = exponent.length;
+
+    // 模运算满足分配律: (a*b)%c = (a%c) * (b%c)
     while(i-- != 0) {
-        unsigned bit = 1 << 15;
+        unsigned bit = 1 << 15; // 0b 1000'0000'0000'0000
         do {
             if(!one) {
                 mpuint n(r);
@@ -300,7 +305,7 @@ void mpuint::Power(const mpuint &base, const mpuint &exponent, const mpuint &mod
 void mpuint::dump() const {
     unsigned i;
     for(i = 0; i < length; i++)
-        printf(" %x", value[i]);
+        printf("%d", value[i]);
     putchar('\n');
 }
 

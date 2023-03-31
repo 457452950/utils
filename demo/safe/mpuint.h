@@ -1,4 +1,3 @@
-
 #ifndef H__MPUINT
 #define H__MPUINT
 
@@ -6,6 +5,7 @@ extern void numeric_overflow(void);
 
 class mpuint {
 private:
+    // ³ı£¬·µ»ØÓàÊı
     unsigned short remainder(unsigned short);
     void           shift(unsigned);
 
