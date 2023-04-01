@@ -5,11 +5,11 @@ if (LINUX)
     add_subdirectory(Log)
     add_subdirectory(wnet)
     add_subdirectory(libevent)
+    add_subdirectory(safe)
 endif()
 
 if (WINDOWS)
     message("demo for WINDOWS")
-    add_subdirectory(safe)
 endif()
 
 

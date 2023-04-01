@@ -31,3 +31,8 @@ build.ninja
 demo/libevent/libevent_demo
 demo/wnet/wnet_demo
 demo/Log/log_demo
+*.exe
+*.pdb
+/out/build/x64-Debug
+/.vs/utils
+/.vs
