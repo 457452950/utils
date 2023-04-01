@@ -5,7 +5,7 @@ extern void numeric_overflow(void);
 
 class mpuint {
 private:
-    // ³ý£¬·µ»ØÓàÊý
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     unsigned short remainder(unsigned short);
     void           shift(unsigned);
 
@@ -34,18 +34,18 @@ public:
     char       *edit(char *) const;
     bool        scan(const char *&);
     void        dump() const;
-    bool mpuint::operator==(const mpuint &n) const { return Compare(n) == 0; }
-    bool mpuint::operator!=(const mpuint &n) const { return Compare(n) != 0; }
-    bool mpuint::operator>(const mpuint &n) const { return Compare(n) > 0; }
-    bool mpuint::operator>=(const mpuint &n) const { return Compare(n) >= 0; }
-    bool mpuint::operator<(const mpuint &n) const { return Compare(n) < 0; }
-    bool mpuint::operator<=(const mpuint &n) const { return Compare(n) <= 0; }
-    bool mpuint::operator==(unsigned short n) const { return Compare(n) == 0; }
-    bool mpuint::operator!=(unsigned short n) const { return Compare(n) != 0; }
-    bool mpuint::operator>(unsigned short n) const { return Compare(n) > 0; }
-    bool mpuint::operator>=(unsigned short n) const { return Compare(n) >= 0; }
-    bool mpuint::operator<(unsigned short n) const { return Compare(n) < 0; }
-    bool mpuint::operator<=(unsigned short n) const { return Compare(n) <= 0; }
+    bool operator==(const mpuint &n) const { return Compare(n) == 0; }
+    bool operator!=(const mpuint &n) const { return Compare(n) != 0; }
+    bool operator>(const mpuint &n) const { return Compare(n) > 0; }
+    bool operator>=(const mpuint &n) const { return Compare(n) >= 0; }
+    bool operator<(const mpuint &n) const { return Compare(n) < 0; }
+    bool operator<=(const mpuint &n) const { return Compare(n) <= 0; }
+    bool operator==(unsigned short n) const { return Compare(n) == 0; }
+    bool operator!=(unsigned short n) const { return Compare(n) != 0; }
+    bool operator>(unsigned short n) const { return Compare(n) > 0; }
+    bool operator>=(unsigned short n) const { return Compare(n) >= 0; }
+    bool operator<(unsigned short n) const { return Compare(n) < 0; }
+    bool operator<=(unsigned short n) const { return Compare(n) <= 0; }
     static void  Power(const mpuint &, const mpuint &, const mpuint &, mpuint &);
 };
 

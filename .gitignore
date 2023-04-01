@@ -36,3 +36,4 @@ demo/Log/log_demo
 /out/build/x64-Debug
 /.vs/utils
 /.vs
+demo/safe/wsafe_demo

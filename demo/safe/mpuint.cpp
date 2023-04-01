@@ -1,6 +1,6 @@
-
+#include <iostream>
 #include <stdio.h>
-#include <process.h>
+// #include <process.h>
 
 #include "mpuint.h"
 
@@ -96,8 +96,12 @@ void mpuint::operator-=(unsigned short n) {
 }
 
 void mpuint::operator*=(const mpuint &n) {
+    // this->dump();
+    // std::cout << " * ";
+    // n.dump();
+
     unsigned        i;
-    unsigned short *multiplier = new unsigned short[length];
+    unsigned short *multiplier = new unsigned short[length]{0};
     for(i = 0; i < length; i++) {
         multiplier[i] = value[i];
         value[i]      = 0;
@@ -105,11 +109,14 @@ void mpuint::operator*=(const mpuint &n) {
     for(i = 0; i < length; i++) {
         unsigned j;
         for(j = 0; j < n.length; j++) {
-            unsigned long product = multiplier[i] * n.value[j];
+            unsigned long product = (unsigned long)multiplier[i] * n.value[j];
             unsigned      k       = i + j;
             while(product != 0) {
-                if(k >= length)
+                if(k >= length) {
+                    std::cout << "len:" << this->length << std::endl;
+                    this->dump();
                     numeric_overflow();
+                }
                 product += value[k];
                 value[k] = product;
                 product >>= 16;
@@ -117,6 +124,8 @@ void mpuint::operator*=(const mpuint &n) {
             }
         }
     }
+    // std::cout << " = ";
+    // this->dump();
     delete[] multiplier;
 }
 
@@ -218,12 +227,12 @@ bool mpuint::scan(const char *&s) {
         *this *= 10;
         *this += (unsigned short)(*t++ - '0');
     }
-    //printf("value %u\n", value[0]);
+    // printf("value %u\n", value[0]);
     s = t;
     return found;
 }
 
-// ½øÎ»
+// ï¿½ï¿½Î»
 void mpuint::shift(unsigned bit) {
     for(unsigned i = 0; i < length; i++) {
         unsigned long x = value[i] << 1 | bit;
@@ -277,11 +286,11 @@ void mpuint::operator%=(const mpuint &n) {
 void mpuint::Power(const mpuint &base, const mpuint &exponent, const mpuint &modulus, mpuint &result) {
     mpuint r(2 * base.length + 1);
     r            = 1;
-    // µ±Ç°Êý¾Ý¶Î×î¸ßÎ»ÊÇ·ñÎª0
+    // ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Ý¶ï¿½ï¿½ï¿½ï¿½Î»ï¿½Ç·ï¿½Îª0
     bool     one = true;
     unsigned i   = exponent.length;
 
-    // Ä£ÔËËãÂú×ã·ÖÅäÂÉ: (a*b)%c = (a%c) * (b%c)
+    // Ä£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½: (a*b)%c = (a%c) * (b%c)
     while(i-- != 0) {
         unsigned bit = 1 << 15; // 0b 1000'0000'0000'0000
         do {
@@ -305,8 +314,11 @@ void mpuint::Power(const mpuint &base, const mpuint &exponent, const mpuint &mod
 void mpuint::dump() const {
     unsigned i;
     for(i = 0; i < length; i++)
-        printf("%d", value[i]);
+        printf("%x", value[i]);
     putchar('\n');
 }
 
-void numeric_overflow(void) { abort(); }
+void numeric_overflow(void) { 
+    std::cout << "exit " << std::endl;
+    exit(-1); 
+}
