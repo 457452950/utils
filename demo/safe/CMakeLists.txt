@@ -15,3 +15,4 @@ add_executable(
     wsafe_demo
     main.cpp
 )
+target_link_libraries(wsafe_demo crypto)
