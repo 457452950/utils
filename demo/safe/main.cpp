@@ -25,7 +25,7 @@ void testRun();
 
 int main(int argc, char **argv) {
     WRSA rsa;
-    rsa.Init();
+    rsa.Init(2048);
 
     auto pubk = rsa.GetPublicKey();
     auto prik = rsa.GetPrivatecKey();
@@ -43,17 +43,37 @@ int main(int argc, char **argv) {
     cout << "prik2.ReadFromFormatFile ok" << endl;
     assert(prik3.ReadFromFormatFile("prikey2.pem", "123"));
     cout << "prik3.ReadFromFormatFile ok" << endl;
-
-    char text[] = "4186484156486";
+    
+    char text[] = "41864841564s23fsef65se41f65se1f56se1f51se1f5s1e56f1e6s51seg151s6g1s65g18656116515615611sd56f1e6r51eg561er6g1g65er1g56er1g65er1g";
     char pub_en[1024];
     char pri_de[1024];
 
     int res = pubk2.Encode((uint8_t*)text, strlen(text), (uint8_t*)pub_en);
     cout << "res : " << res << endl;
+
     res = prik2.Decode((uint8_t*)pub_en, (uint8_t*)pri_de);
     cout << "res : " << res << endl;
 
     cout << "after decode : " << pri_de << endl;
+    
+
+    res = prik2.Encode((uint8_t*)text, strlen(text), (uint8_t*)pub_en);
+    cout << "res : " << res << endl;
+
+    res = pubk2.Decode((uint8_t*)pub_en, (uint8_t*)pri_de);
+    cout << "res : " << res << endl;
+
+    cout << "after decode : " << pri_de << endl;
+
+    // auto now = Now();
+    // for (int i = 0; i < 100; ++i) {
+    //     int res = pubk2.Encode((uint8_t*)text, strlen(text), (uint8_t*)pub_en);
+    //     // cout << "res : " << res << endl;
+
+    //     res = prik2.Decode((uint8_t*)pub_en, (uint8_t*)pri_de);
+    //     // cout << "res : " << res << endl;
+    // }
+    // cout << "pass : " << Now() - now << endl;
 
     return 0;
 }

@@ -72,14 +72,19 @@ bool   WRSAPubKey::WriteFormatToFile(const std::string &path) {
 }
 int16_t WRSAPubKey::Encode(const uint8_t *input_str, int16_t str_len, uint8_t *output_str) {
     auto rsa_len = RSA_size(this->rsa_context_.get());
-    std::cout << "rsa_len : " << rsa_len << std::endl;
-    rsa_len -= 41;
+    // std::cout << "rsa_len : " << rsa_len << std::endl;
+    rsa_len -= 42;
     rsa_len = (rsa_len < str_len) ? rsa_len : str_len;
-    std::cout << "input_len : " << rsa_len << std::endl;
+    // std::cout << "input_len : " << rsa_len << std::endl;
     int16_t res = RSA_public_encrypt(rsa_len, input_str, output_str, this->rsa_context_.get(), RSA_PKCS1_OAEP_PADDING);
     return (res == -1) ? -1 : rsa_len;
 }
-int16_t WRSAPubKey::Decode(const uint8_t *input_str, uint8_t *output_str) { return 0; }
+int16_t WRSAPubKey::Decode(const uint8_t *input_str, uint8_t *output_str) { 
+    auto rsa_len = RSA_size(this->rsa_context_.get());
+    // std::cout << "input_len : " << rsa_len << std::endl;
+    int16_t res = RSA_public_decrypt(rsa_len, input_str, output_str, this->rsa_context_.get(), RSA_PKCS1_PADDING);
+    return res;
+}
 
 
 class WRSAPriKey {
@@ -100,6 +105,9 @@ public:
     bool ReadFromFormatFile(const std::string &filepath, const std::string &password);
     //
     int16_t Encode(const uint8_t *input_str, int16_t str_len, uint8_t *output_str);
+    /**
+     * if error return -1, else return the output message len
+    */
     int16_t Decode(const uint8_t *input_str, uint8_t *output_str);
 };
 WRSAPriKey::WRSAPriKey(RSA_ptr &key) : rsa_context_(std::move(key)) {}
@@ -192,13 +200,23 @@ bool WRSAPriKey::ReadFromFormatFile(const std::string &filepath, const std::stri
     return false;
 }
 
-int16_t WRSAPriKey::Encode(const uint8_t *input_str, int16_t str_len, uint8_t *output_str) { return 0; }
-int16_t WRSAPriKey::Decode(const uint8_t *input_str, uint8_t *output_str) {
-    auto rsa_len = RSA_size(this->rsa_context_.get()) * 8;
+int16_t WRSAPriKey::Encode(const uint8_t *input_str, int16_t str_len, uint8_t *output_str) {
+    auto rsa_len = RSA_size(this->rsa_context_.get());
     std::cout << "rsa_len : " << rsa_len << std::endl;
-    rsa_len -= 41;
+    rsa_len -= 11;
     rsa_len = (rsa_len < str_len) ? rsa_len : str_len;
     std::cout << "input_len : " << rsa_len << std::endl;
+    int16_t res = RSA_private_encrypt(rsa_len, input_str, output_str, this->rsa_context_.get(), RSA_PKCS1_PADDING);
+    
+    if (res == -1) {
+        std::cout << ERR_reason_error_string(ERR_get_error()) << endl;
+    }
+
+    return (res == -1) ? -1 : rsa_len;
+}
+int16_t WRSAPriKey::Decode(const uint8_t *input_str, uint8_t *output_str) {
+    auto rsa_len = RSA_size(this->rsa_context_.get());
+    // std::cout << "input_len : " << rsa_len << std::endl;
     int16_t res = RSA_private_decrypt(rsa_len, input_str, output_str, this->rsa_context_.get(), RSA_PKCS1_OAEP_PADDING);
     return res;
 }
