@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <cassert>
 
 #include <openssl/bio.h>
 #include <openssl/bn.h>
@@ -14,6 +15,7 @@
 
 using namespace std;
 
+#include "WRSA.h"
 
 auto Now() {
     return chrono::duration_cast<std::chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
@@ -22,57 +24,26 @@ auto Now() {
 void testRun();
 
 int main(int argc, char **argv) {
+    WRSA rsa;
+    rsa.Init();
 
-    testRun();
+    auto pubk = rsa.GetPublicKey();
+    auto prik = rsa.GetPrivatecKey();
+
+    pubk->WriteFormatToFile("pubkey.pem");
+    prik->WriteFormatToFile("prikey1.pem");
+    prik->WriteFormatToFile("prikey2.pem", "123");
+
+    WRSAPubKey pubk2;
+    WRSAPriKey prik2;
+    WRSAPriKey prik3;
+    assert(pubk2.ReadFromFormatFile("pubkey.pem"));
+    cout << "pubk2.ReadFromFormatFile ok" << endl;
+    assert(prik2.ReadFromFormatFile("prikey1.pem"));
+    cout << "prik2.ReadFromFormatFile ok" << endl;
+    assert(prik3.ReadFromFormatFile("prikey2.pem", "123"));
+    cout << "prik3.ReadFromFormatFile ok" << endl;
     return 0;
-}
-
-// int toFormatPriFile(RSA *pRSA)
-// {
-// 	BIO             *pBIO = NULL;
-// 	BUF_MEM         *pBMem = NULL;
-// 	int             iRV = 0,nLen = 0;
-
-// 	/* PEM编码 无密码 私钥文件*/
-// 	pBIO = BIO_new_file("priKey.pem", "w");
-// 	if (!pBIO)
-// 	{
-// 		printf("not pwd priKey.der pBIO error");
-// 		goto free_all;
-// 	}
-// 	iRV = PEM_write_bio_RSAPrivateKey(pBIO, pRSA, NULL, NULL, 0, NULL, NULL);
-// 	if (iRV != 1) {
-// 		printf("not pwd priKey.der error");
-// 		goto free_all;
-// 	}
-// free_all:
-// 	BIO_free(pBIO);
-// 	return 0;
-// }
-int toFormatPriFile(RSA *pRSA)
-{
-	BIO             *pBIO = NULL;
-	BUF_MEM         *pBMem = NULL;
-	int             iRV = 0,nLen = 0;
-
-	/* DER编码 无密码 私钥文件*/
-	pBIO = BIO_new_file("priKey.der", "w");
-	if (!pBIO)
-	{
-		printf("priKey.der pBIO error");
-		goto free_all;
-	}
-
-	iRV = i2d_RSAPrivateKey_bio(pBIO, pRSA);// 功能与i2d_RSAPrivateKey_bio_fp相同
-	if (iRV != 1)
-	{
-		printf("priKey.der error");
-		goto free_all;
-	}
-
-free_all:
-	BIO_free(pBIO);
-	return 0;
 }
 
 
@@ -114,8 +85,6 @@ void testRun() {
 
     pub_rsa = RSAPublicKey_dup(rsa);
     pri_rsa = RSAPrivateKey_dup(rsa);
-
-    toFormatPriFile(pri_rsa);
 
     /**
      *
