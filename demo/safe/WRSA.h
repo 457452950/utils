@@ -22,8 +22,16 @@ private:
     RSA_ptr rsa_context_;
 
 public:
+    int8_t GetRSASize();
+    //
     bool WriteFormatToFile(const std::string &path);
     bool ReadFromFormatFile(const std::string &filepath);
+    //
+    /**
+     *  if error return -1, else return the encode message len
+     */
+    int16_t Encode(const uint8_t *input_str, int16_t str_len, uint8_t *output_str);
+    int16_t Decode(const uint8_t *input_str, uint8_t *output_str);
 };
 WRSAPubKey::WRSAPubKey() : rsa_context_(nullptr, RSA_free) {}
 bool WRSAPubKey::ReadFromFormatFile(const std::string &filepath) {
@@ -44,7 +52,8 @@ bool WRSAPubKey::ReadFromFormatFile(const std::string &filepath) {
     return false;
 }
 WRSAPubKey::WRSAPubKey(RSA_ptr &key) : rsa_context_(std::move(key)) {}
-bool WRSAPubKey::WriteFormatToFile(const std::string &path) {
+int8_t WRSAPubKey::GetRSASize() { return RSA_size(this->rsa_context_.get()); }
+bool   WRSAPubKey::WriteFormatToFile(const std::string &path) {
     BIO *pBIO = nullptr;
     int  iRV  = 0;
 
@@ -61,6 +70,16 @@ bool WRSAPubKey::WriteFormatToFile(const std::string &path) {
     BIO_free(pBIO);
     return true;
 }
+int16_t WRSAPubKey::Encode(const uint8_t *input_str, int16_t str_len, uint8_t *output_str) {
+    auto rsa_len = RSA_size(this->rsa_context_.get());
+    std::cout << "rsa_len : " << rsa_len << std::endl;
+    rsa_len -= 41;
+    rsa_len = (rsa_len < str_len) ? rsa_len : str_len;
+    std::cout << "input_len : " << rsa_len << std::endl;
+    int16_t res = RSA_public_encrypt(rsa_len, input_str, output_str, this->rsa_context_.get(), RSA_PKCS1_OAEP_PADDING);
+    return (res == -1) ? -1 : rsa_len;
+}
+int16_t WRSAPubKey::Decode(const uint8_t *input_str, uint8_t *output_str) { return 0; }
 
 
 class WRSAPriKey {
@@ -73,13 +92,19 @@ private:
     RSA_ptr rsa_context_;
 
 public:
+    int8_t GetRSASize();
+    //
     bool WriteFormatToFile(const std::string &path);
     bool WriteFormatToFile(const std::string &path, const std::string &password);
     bool ReadFromFormatFile(const std::string &filepath);
     bool ReadFromFormatFile(const std::string &filepath, const std::string &password);
+    //
+    int16_t Encode(const uint8_t *input_str, int16_t str_len, uint8_t *output_str);
+    int16_t Decode(const uint8_t *input_str, uint8_t *output_str);
 };
 WRSAPriKey::WRSAPriKey(RSA_ptr &key) : rsa_context_(std::move(key)) {}
-bool WRSAPriKey::WriteFormatToFile(const std::string &path) {
+int8_t WRSAPriKey::GetRSASize() { return RSA_size(this->rsa_context_.get()); }
+bool   WRSAPriKey::WriteFormatToFile(const std::string &path) {
     BIO *pBIO = nullptr;
     int  iRV  = 0;
 
@@ -167,6 +192,17 @@ bool WRSAPriKey::ReadFromFormatFile(const std::string &filepath, const std::stri
     return false;
 }
 
+int16_t WRSAPriKey::Encode(const uint8_t *input_str, int16_t str_len, uint8_t *output_str) { return 0; }
+int16_t WRSAPriKey::Decode(const uint8_t *input_str, uint8_t *output_str) {
+    auto rsa_len = RSA_size(this->rsa_context_.get()) * 8;
+    std::cout << "rsa_len : " << rsa_len << std::endl;
+    rsa_len -= 41;
+    rsa_len = (rsa_len < str_len) ? rsa_len : str_len;
+    std::cout << "input_len : " << rsa_len << std::endl;
+    int16_t res = RSA_private_decrypt(rsa_len, input_str, output_str, this->rsa_context_.get(), RSA_PKCS1_OAEP_PADDING);
+    return res;
+}
+
 
 class WRSA {
 public:
@@ -199,6 +235,8 @@ bool WRSA::Init(const int bits, unsigned int e) {
         return false;
     }
 
+    auto rsa_len = RSA_size(this->rsa_context_.get());
+    std::cout << "rsa_len : " << rsa_len * 8 << std::endl;
     BN_free(E);
     return true;
 }

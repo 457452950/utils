@@ -43,6 +43,18 @@ int main(int argc, char **argv) {
     cout << "prik2.ReadFromFormatFile ok" << endl;
     assert(prik3.ReadFromFormatFile("prikey2.pem", "123"));
     cout << "prik3.ReadFromFormatFile ok" << endl;
+
+    char text[] = "4186484156486";
+    char pub_en[1024];
+    char pri_de[1024];
+
+    int res = pubk2.Encode((uint8_t*)text, strlen(text), (uint8_t*)pub_en);
+    cout << "res : " << res << endl;
+    res = prik2.Decode((uint8_t*)pub_en, (uint8_t*)pri_de);
+    cout << "res : " << res << endl;
+
+    cout << "after decode : " << pri_de << endl;
+
     return 0;
 }
 
