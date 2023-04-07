@@ -1,28 +1,28 @@
 #pragma once
 
-#include <queue>
-#include <utility>
-#include <vector>
-#include <thread>
+#include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <mutex>
-#include <condition_variable>
-#include <atomic>
+#include <queue>
+#include <thread>
+#include <utility>
+#include <vector>
 
 namespace wlb {
 
 // 任务回调函数参数类型
 using user_data_t = union _user_data_t {
     [[maybe_unused]] long long interger;
-    [[maybe_unused]] void      *ptr{nullptr};
+    [[maybe_unused]] void *    ptr{nullptr};
 };
 // 任务回调函数类型
 using user_function_t = std::function<void(user_data_t)>;
 
 // 任务
 struct task {
-    task(user_function_t user_function, user_data_t user_data)
-            : _function(std::move(user_function)), _userData(user_data) {}
+    task(user_function_t user_function, user_data_t user_data) :
+        _function(std::move(user_function)), _userData(user_data) {}
 
     user_function_t _function;
     user_data_t     _userData;
@@ -30,7 +30,7 @@ struct task {
 
 // 线程池
 class WThreadPool {
-    using task_list = std::queue<task>;             // 任务队列格式
+    using task_list   = std::queue<task>;           // 任务队列格式
     using thread_list = std::vector<std::thread *>; // 线程队列
 public:
     WThreadPool() = default;
@@ -42,30 +42,24 @@ public:
     // lifetime
     // return true if the pool start success
     bool        Start(uint16_t threads_count);
-    inline void Stop()          { this->is_active_ = false; }
+    inline void Stop() { this->is_active_ = false; }
     // Wait the pool return (block)
-    void        WaitToStop();   
-    void        Destroy();
+    void WaitToStop();
+    void Destroy();
 
     // methods
     void AddTask(const user_function_t &function, user_data_t data);
 
 private:
-    void ConsumerThread();      // 消费者线程
+    void ConsumerThread(); // 消费者线程
 
 private:
-    std::atomic_bool        is_active_{false};// 运行
-    uint16_t                threads_count_{1};  // 线程数量
-    thread_list             threads_;           // 线程
-    task_list               tasks_;             // 任务列表
-    std::mutex              mutex_;             // 锁
-    std::condition_variable condition_;         // 条件变量
+    std::atomic_bool        is_active_{false}; // 运行
+    uint16_t                threads_count_{1}; // 线程数量
+    thread_list             threads_;          // 线程
+    task_list               tasks_;            // 任务列表
+    std::mutex              mutex_;            // 锁
+    std::condition_variable condition_;        // 条件变量
 };
 
-}
-
-
-
-
-
-
+} // namespace wlb
