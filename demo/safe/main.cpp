@@ -16,6 +16,7 @@
 using namespace std;
 
 #include "WRSA.h"
+#include "fileSystem.h"
 
 auto Now() {
     return chrono::duration_cast<std::chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
@@ -24,6 +25,9 @@ auto Now() {
 void testRun();
 
 int main(int argc, char **argv) {
+    test();
+
+
     WRSA rsa;
     rsa.Init(2048);
 
@@ -65,15 +69,17 @@ int main(int argc, char **argv) {
 
     cout << "after decode : " << pri_de << endl;
 
-    // auto now = Now();
-    // for (int i = 0; i < 100; ++i) {
-    //     int res = pubk2.Encode((uint8_t*)text, strlen(text), (uint8_t*)pub_en);
-    //     // cout << "res : " << res << endl;
+    auto now = Now();
+    for (int i = 0; i < 100; ++i) {
+        int res = pubk2.Encode((uint8_t*)text, strlen(text), (uint8_t*)pub_en);
+        // cout << "res : " << res << endl;
 
-    //     res = prik2.Decode((uint8_t*)pub_en, (uint8_t*)pri_de);
-    //     // cout << "res : " << res << endl;
-    // }
-    // cout << "pass : " << Now() - now << endl;
+        res = prik2.Decode((uint8_t*)pub_en, (uint8_t*)pri_de);
+        // cout << "res : " << res << endl;
+    }
+    now = Now() - now;
+    cout << "pass : " <<  now << endl;
+    cout << "pass : " << 100 * strlen(text) / now * 1000 << endl;
 
     return 0;
 }
