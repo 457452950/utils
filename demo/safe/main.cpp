@@ -16,7 +16,6 @@
 using namespace std;
 
 #include "ssl/WRSA.h"
-#include "fileSystem.h"
 
 auto Now() {
     return chrono::duration_cast<std::chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
@@ -25,9 +24,6 @@ auto Now() {
 void testRun();
 
 int main(int argc, char **argv) {
-    test();
-
-
     WRSA rsa;
     rsa.Init(2048);
 
