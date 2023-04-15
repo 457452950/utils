@@ -28,13 +28,10 @@ lib/libwutils.a
 build/*
 .cmake/
 build.ninja
-demo/libevent/libevent_demo
-demo/wnet/wnet_demo
-demo/Log/log_demo
-demo/safe/wsafe_demo
 *.exe
 *.pdb
 /out/build/x64-Debug
 /.vs/utils
 /.vs
 *.pem
+demo/bin/
