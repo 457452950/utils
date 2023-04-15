@@ -6,8 +6,11 @@
 namespace wlb {
 
 // TODO:修改API
-// 环形内存
-// not thread safe
+
+/**
+ * 环形内存
+ * not thread safe
+*/
 class RingBuffer {
 public:
     explicit RingBuffer();

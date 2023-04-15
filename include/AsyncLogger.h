@@ -57,22 +57,22 @@ public:
     static void Stop();
     static void Wait2Exit();
 
-    static Logger   *getInstance();
+    static Logger *  getInstance();
     static LOG_LEVEL GetLogLevel();
     static bool      UserTag();
-    static bool      ContainTag(const std::string& tag);
+    static bool      ContainTag(const std::string &tag);
     void             Loop();
 
 private:
     // log config
-    static Logger                  *instance_;
+    static Logger *                 instance_;
     LOG_LEVEL                       log_level_{L_ERROR};
     int8_t                          log_type_{LOG_TYPE::L_STDOUT};
     bool                            use_tags_{false};
     std::unordered_set<std::string> tags_;
 
     // file config
-    char         *base_file_name_{nullptr};
+    char *        base_file_name_{nullptr};
     const int64_t max_file_size_  = 100 * 1024 * 1024; // 10MB
     const int8_t  max_check_times = 10;
     int8_t        check_times_{0};
@@ -80,7 +80,7 @@ private:
     // async
     std::ofstream           file_stream_;
     bool                    running_{false};
-    std::thread            *thread_{nullptr};
+    std::thread *           thread_{nullptr};
     std::mutex              mutex_;
     std::condition_variable con_variable_;
 
@@ -110,8 +110,8 @@ private:
 };
 
 #define LOG(level, tag)                                                                                                \
-    if (Logger::getInstance() && Logger::GetLogLevel() <= (level))                                                      \
-    if (!Logger::getInstance()->UserTag() || (Logger::getInstance()->UserTag() && Logger::ContainTag(tag)))                                                                                                                   \
+    if(Logger::getInstance() && Logger::GetLogLevel() <= (level))                                                      \
+        if(!Logger::getInstance()->UserTag() || (Logger::getInstance()->UserTag() && Logger::ContainTag(tag)))         \
     Logger::getInstance()->Write(#level, __FILENAME__, __LINE__, __FUNCTION__)->Get()
 
 } // namespace wlb::Log
