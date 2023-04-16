@@ -1,4 +1,6 @@
 #pragma once
+#ifndef UTILS_WTHREAD_POOL_H
+#define UTILS_WTHREAD_POOL_H
 
 #include <atomic>
 #include <condition_variable>
@@ -14,7 +16,7 @@ namespace wlb {
 // 任务回调函数参数类型
 using user_data_t = union _user_data_t {
     [[maybe_unused]] long long interger;
-    [[maybe_unused]] void *    ptr{nullptr};
+    [[maybe_unused]] void     *ptr{nullptr};
 };
 // 任务回调函数类型
 using user_function_t = std::function<void(user_data_t)>;
@@ -36,7 +38,7 @@ public:
     WThreadPool() = default;
     ~WThreadPool() { this->Destroy(); }
     // no copyable
-    WThreadPool(const WThreadPool &) = delete;
+    WThreadPool(const WThreadPool &)            = delete;
     WThreadPool &operator=(const WThreadPool &) = delete;
 
     // lifetime
@@ -63,3 +65,5 @@ private:
 };
 
 } // namespace wlb
+
+#endif // UTILS_WTHREAD_POOL_H

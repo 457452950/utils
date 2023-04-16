@@ -1,4 +1,7 @@
 #pragma once
+#ifndef UTILS_LIB_MYSQL_H
+#define UTILS_LIB_MYSQL_H
+                                                  
 #include <string>
 #include <memory>
 #include <vector>
@@ -126,4 +129,4 @@ private:
 } // namespace wlb
 
 
-
+#endif // UTILS_LIB_MYSQL_H

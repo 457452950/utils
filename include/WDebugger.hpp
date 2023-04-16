@@ -1,4 +1,6 @@
 #pragma once
+#ifndef UTILS_WDEBUGGER_H
+#define UTILS_WDEBUGGER_H
 
 #include <atomic>
 #include <iostream>
@@ -120,3 +122,5 @@ private:
 [[maybe_unused]] extern WTimeDebugger time_debug;
 
 } // namespace wlb::debug
+
+#endif //UTILS_WDEBUGGER_H

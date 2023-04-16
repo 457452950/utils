@@ -1,4 +1,7 @@
 #pragma once
+#ifndef UTILS_REDIS_CLIENT_INTERFACE_H
+#define UTILS_REDIS_CLIENT_INTERFACE_H
+
 #include <cstring>
 #include <string>
 #include <mutex>
@@ -74,4 +77,4 @@ IRedisClient* GetRedisClient();
 
 }
 
-
+#endif //UTILS_REDIS_CLIENT_INTERFACE_H

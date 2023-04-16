@@ -1,4 +1,6 @@
 #pragma once
+#ifndef UTILS_WNETWORK_UTILS_H
+#define UTILS_WNETWORK_UTILS_H
 
 #include <arpa/inet.h> // inet_ntop inet_pton
 #include <cerrno>
@@ -97,3 +99,6 @@ struct WEndPointInfo {
 };
 
 } // namespace wlb::network
+
+
+#endif //UTILS_WNETWORK_UTILS_H

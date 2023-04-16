@@ -1,4 +1,6 @@
 #pragma once
+#ifndef UTILS_WEPOLL_H
+#define UTILS_WEPOLL_H
 
 #include <atomic>
 #include <cassert>
@@ -320,3 +322,5 @@ private:
 
 
 } // namespace wlb::network
+
+#endif //UTILS_WEPOLL_H

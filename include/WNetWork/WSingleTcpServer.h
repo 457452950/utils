@@ -1,4 +1,6 @@
 #pragma once
+#ifndef UTILS_WSINGLE_TCPSERVER_H
+#define UTILS_WSINGLE_TCPSERVER_H
 
 #include <vector>
 
@@ -16,7 +18,7 @@ public:
     WSingleTcpServer(const WSingleTcpServer &other)            = delete;
     WSingleTcpServer &operator=(const WSingleTcpServer &other) = delete;
 
-    // class lifetime
+    // class lifetimeUTILS_WSINGLE_TCPSERVER_H
     // bool Init();
     // void Close();
     // thread lifetime
@@ -43,3 +45,5 @@ private:
 };
 
 } // namespace wlb::network
+
+#endif //UTILS_WSINGLE_TCPSERVER_H

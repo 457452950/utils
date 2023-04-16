@@ -1,4 +1,6 @@
 #pragma once
+#ifndef UTILS_WLIST_H
+#define UTILS_WLIST_H
 
 #include <new>
 #include <cstdint>
@@ -216,4 +218,6 @@ void WList<T>::DestroyAllNodes() {
 };
 
 }   // namespace wlb
+
+#endif // UTILS_WLIST_H
 

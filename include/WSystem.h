@@ -1,5 +1,8 @@
 #pragma once
-#include "string"
+#ifndef UTILS_WSYSTEM_H
+#define UTILS_WSYSTEM_H
+
+#include <string>
 
 #include <sys/stat.h> // mkdir
 #include <unistd.h>   // access
@@ -13,3 +16,5 @@ void GetCurrentTimeFormat(char *buff, int max_len); // 获取当前格式化时�
 
 
 } // namespace wlb
+
+#endif //UTILS_WSYSTEM_H

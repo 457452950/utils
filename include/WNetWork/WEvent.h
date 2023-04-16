@@ -1,4 +1,6 @@
 #pragma once
+#ifndef UTILS_WEVENT_H
+#define UTILS_WEVENT_H
 
 #include <cstdint>
 #include <list>
@@ -56,3 +58,6 @@ using event_handle_p = event_handle_t *;
 
 
 } // namespace wlb::network
+
+
+#endif // UTILS_WEVENT_H

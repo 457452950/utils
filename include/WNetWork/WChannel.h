@@ -1,4 +1,6 @@
 #pragma once
+#ifndef UTILS_WCHANNEL_H
+#define UTILS_WCHANNEL_H
 
 #include "WEpoll.h"
 #include "WEvent.h"
@@ -140,3 +142,6 @@ private:
 
 
 } // namespace wlb::network
+
+
+#endif //UTILS_WCHANNEL_H

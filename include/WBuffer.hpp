@@ -1,3 +1,7 @@
+#pragma once
+#ifndef UTILS_WBUFFER_H
+#define UTILS_WBUFFER_H
+
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -55,3 +59,6 @@ protected:
 };
 
 } // namespace wlb
+
+
+#endif // UTILS_WBUFFER_H

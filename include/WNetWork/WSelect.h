@@ -1,4 +1,6 @@
 #pragma once
+#ifndef UTILS_WSELECT_H
+#define UTILS_WSELECT_H
 
 #include "WEvent.h"
 #include "WNetWorkUtils.h"
@@ -178,3 +180,6 @@ private:
 
 
 } // namespace wlb::network
+
+
+#endif //UTILS_WSELECT_H

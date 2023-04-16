@@ -2,8 +2,8 @@
 // Created by wang on 22-5-5.
 //
 #pragma once
-#ifndef UTILS_DEMO_UTILS_INCLUDE_WNETWORK_WNETWORK_H_
-#define UTILS_DEMO_UTILS_INCLUDE_WNETWORK_WNETWORK_H_
+#ifndef UTILS_WNETWORK_H
+#define UTILS_WNETWORK_H
 
 #include "WChannel.h"
 #include "WEpoll.h"
@@ -52,4 +52,4 @@ class WSingleTcpServer;
 
 } // namespace wlb::network
 
-#endif // UTILS_DEMO_UTILS_INCLUDE_WNETWORK_WNETWORK_H_
+#endif // UTILS_WNETWORK_H

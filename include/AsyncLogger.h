@@ -2,8 +2,8 @@
 // Created by wlb on 2021/9/17.
 //
 
-#ifndef MYSERVICE_ASYNCLOGGER_H
-#define MYSERVICE_ASYNCLOGGER_H
+#ifndef UTILS_ASYNCLOGGER_H
+#define UTILS_ASYNCLOGGER_H
 
 #include <condition_variable>
 #include <cstring>
@@ -123,4 +123,4 @@ private:
  *
  *    func() { LOG(xxx); }
  */
-#endif // MYSERVICE_ASYNCLOGGER_H
+#endif // UTILS_ASYNCLOGGER_H

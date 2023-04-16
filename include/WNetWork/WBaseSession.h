@@ -1,5 +1,6 @@
 #pragma once
-#ifndef _UTILS_WBASESESSION_H
+#ifndef UTILS_WBASESESSION_H
+#define UTILS_WBASESESSION_H
 
 #include <memory>
 
@@ -18,4 +19,4 @@ protected:
 
 } // namespace wlb::network
 
-#endif
+#endif // UTILS_WBASESESSION_H

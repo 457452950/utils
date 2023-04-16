@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __JSONFILEREADER
-#define __JSONFILEREADER
+#ifndef UTILS_JSONFILEREADER_H
+#define UTILS_JSONFILEREADER_H
 
 #include <iostream>
 #include <fstream>
@@ -43,7 +43,7 @@ private:
 
 }
 
-#endif // !__JSONFILEREADER
+#endif // !UTILS_JSONFILEREADER_H
 
 
 

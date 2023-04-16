@@ -1,6 +1,6 @@
 #pragma once 
-#ifndef WNETWORKDEF_H
-#define WNETWORKDEF_H
+#ifndef UTILS_WNETWORK_DEF_H
+#define UTILS_WNETWORK_DEF_H
 
 #include "../WOS.h"
 #include <cstdint>
@@ -36,7 +36,7 @@ using event_context_p = event_context_t *;
 
 
 
-#endif
+#endif // UTILS_WNETWORK_DEF_H
 
 
 

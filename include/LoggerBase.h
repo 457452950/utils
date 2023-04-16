@@ -1,4 +1,6 @@
 #pragma once
+#ifndef UTILS_LOGGER_BASE_H
+#define UTILS_LOGGER_BASE_H 
 
 #include <atomic>
 #include <condition_variable>
@@ -40,3 +42,5 @@ enum LOG_LEVEL : uint8_t {
 
 } // namespace Log
 } // namespace wlb
+
+#endif // UTILS_LOGGER_BASE_H

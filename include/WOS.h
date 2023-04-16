@@ -1,4 +1,6 @@
 #pragma once
+#ifndef UTILS_WOS_H
+#define UTILS_WOS_H
 
 // Windows环境
 #if defined(_WIN32) || defined(WIN32) || defined(__WIN32__) && not defined(OS_IS_WINDOWS)
@@ -14,3 +16,5 @@
 #define OS_IS_UNIX 1
 
 #endif
+
+#endif //UTILS_WOS_H
