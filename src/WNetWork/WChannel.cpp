@@ -84,10 +84,10 @@ WAccepterChannel::~WAccepterChannel() {
 }
 
 void WAccepterChannel::ChannelIn() {
-    std::cout << "accpet channel in" << std::endl;
+    // std::cout << "accpet channel in" << std::endl;
 
     WEndPointInfo ei;
-    auto          cli = wlb::network::Accept(this->listen_socket_, &ei, local_endpoint_.isv4);
+    auto          cli = wlb::network::Accept(this->listen_socket_, &ei);
 
     assert(event_context_);
     assert(event_context_->channel_factory_);
@@ -96,18 +96,18 @@ void WAccepterChannel::ChannelIn() {
     if(cli <= 0) {
         event_context_->onAcceptError(errno);
     } else {
-        std::cout << "accepts not null and call " << std::endl;
+        // std::cout << "accepts not null and call " << std::endl;
         bool isAccept = event_context_->onAccept(cli, ei);
         if(isAccept) {
-            std::cout << "accept !!" << std::endl;
+            // std::cout << "accept !!" << std::endl;
             auto newChannel = event_context_->channel_factory_->CreateChannel();
             newChannel->Init(cli, ei);
             newChannel->SetEventHandle(event_context_->event_handle_);
 
-            std::cout << "accept new session" << std::endl;
+            // std::cout << "accept new session" << std::endl;
             event_context_->session_factory_->CreateSession(std::move(newChannel));
 
-            std::cout << "accept over" << std::endl;
+            // std::cout << "accept over" << std::endl;
         }
     }
 }
@@ -126,14 +126,14 @@ WChannel::WChannel(uint16_t buffer_size) {
 
 WChannel::~WChannel() {
     DEBUGRM("WChannel");
-    std::cout << "~WChannel" << std::endl;
+    // std::cout << "~WChannel" << std::endl;
 
     if(event_handle_ != nullptr) {
-        this->event_handle_->DelSocket(this->option_item_);
+        // this->event_handle_->DelSocket(this->option_item_);
     }
 
     if(this->client_socket_) {
-        ::close(this->client_socket_);
+        // ::close(this->client_socket_);
         this->client_socket_ = -1;
     }
     if(this->recv_buf_) {
@@ -160,14 +160,14 @@ void WChannel::ChannelIn() {
     assert(this->event_handle_);
     assert(this->recv_buf_size_);
 
-    std::cout << "WChannel ChannelIn this& " << this << std::endl;
+    // std::cout << "WChannel ChannelIn this& " << this << std::endl;
 
     ssize_t recv_len = 0;
     recv_len         = ::recv(this->client_socket_, this->recv_buf_, this->recv_buf_size_, 0);
-    std::cout << "WChannel::ChannelIn() channel in recv " << recv_len << std::endl;
+    // std::cout << "WChannel::ChannelIn() channel in recv " << recv_len << std::endl;
 
     if(this->listener_ == nullptr) {
-        std::cout << "WChannel::ChannelIn() listener is nullptr." << std::endl;
+        // std::cout << "WChannel::ChannelIn() listener is nullptr." << std::endl;
         return;
     }
 
@@ -179,18 +179,18 @@ void WChannel::ChannelIn() {
         this->onChannelClose();
     } else {
         this->listener_->onReceive(this->recv_buf_, recv_len);
-        std::cout << "WChannel in on read end " << std::endl;
+        // std::cout << "WChannel in on read end " << std::endl;
     }
-    std::cout << "WChannel in end " << std::endl;
+    // std::cout << "WChannel in end " << std::endl;
 }
 
 void WChannel::ChannelOut() {
-    std::cout << "WChannel::ChannelOut " << std::endl;
+    // std::cout << "WChannel::ChannelOut " << std::endl;
 
     assert(this->event_handle_);
     auto send_len = ::send(this->client_socket_, send_buf_, send_size_, 0);
-    std::cout << "WChannel::ChannelOut send message : " << (char *)send_buf_ << std::endl;
-    std::cout << "WChannel::ChannelOut send len: " << send_len << std::endl;
+    // std::cout << "WChannel::ChannelOut send message : " << (char *)send_buf_ << std::endl;
+    // std::cout << "WChannel::ChannelOut send len: " << send_len << std::endl;
 
     if(send_len == -1) {
         if(this->listener_)
@@ -237,24 +237,25 @@ void WChannel::Send(void *send_message, uint64_t message_len) {
     ::memcpy(this->send_buf_, (uint8_t *)send_message, message_len);
     this->send_size_ += message_len;
 
-    std::cout << "send message : " << (char *)send_buf_ << std::endl;
+    // std::cout << "send message : " << (char *)send_buf_ << std::endl;
 
     (*option_item_)->events_ |= KernelEventType::EV_OUT;
-    std::cout << "WChannel Send & " << (*option_item_)->user_data_ << std::endl;
+    // std::cout << "WChannel Send & " << (*option_item_)->user_data_ << std::endl;
     if(event_handle_ != nullptr) {
         event_handle_->ModifySocket(option_item_);
     }
 }
 
 void WChannel::CloseChannel() {
-    std::cout << "WChannel::CloseChannel()" << std::endl;
+    // std::cout << "WChannel::CloseChannel()" << std::endl;
     ::shutdown(this->client_socket_, SHUT_RDWR);
 }
 void WChannel::onChannelClose() {
-    std::cout << "WChannel::onChannelClose()" << std::endl;
-    this->listener_->onChannelDisConnect();
+    // std::cout << "WChannel::onChannelClose()" << std::endl;
+    // std::cout << "WChannel::onChannelClose() DelSocket" << std::endl;
     this->event_handle_->DelSocket(option_item_);
     close(this->client_socket_);
+    this->listener_->onChannelDisConnect();
 }
 void WChannel::onChannelError(uint64_t error_code) {
     this->listener_->onError(error_code);

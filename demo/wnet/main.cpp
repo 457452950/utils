@@ -51,13 +51,13 @@ void test_ipv6() {
     res      = ConnectToHost(cli, "0:0:0:0:0:0:0:1", 4000, 0);
 
     if(!res) {
-        cout << "connect error : " << strerror(errno) << endl;
+        cout << "[test_ipv6]connect error : " << strerror(errno) << endl;
     } else {
         cout << "connect ok" << endl;
     }
 
     WEndPointInfo en;
-    res = Accept(sock, &en, false);
+    res = Accept(sock, &en);
 
     if(res == -1) {
         cout << "Accept error : " << strerror(errno) << endl;
@@ -65,7 +65,8 @@ void test_ipv6() {
         cout << "Accept ok" << endl;
     }
 
-    cout << "client : ip " << en.ip_address << " port:" << en.port << endl;
+    auto info = WEndPointInfo::Dump(en);
+    cout << "client : ip " << std::get<0>(info) << " port:" << std::get<1>(info) << endl;
 }
 
 struct test_s {
@@ -77,7 +78,7 @@ auto r_cb = [](base_socket_type sock, WSelect<test_s>::user_data_ptr data) {
     cout << "in" << sock << endl;
 
     WEndPointInfo en;
-    int           res = Accept(sock, &en, false);
+    int           res = Accept(sock, &en);
 
     if(res == -1) {
         cout << "Accept error : " << strerror(errno) << endl;
@@ -86,7 +87,8 @@ auto r_cb = [](base_socket_type sock, WSelect<test_s>::user_data_ptr data) {
         cout << "Accept ok" << endl;
     }
 
-    cout << "client : ip " << en.ip_address << " port:" << en.port << endl;
+    auto info = WEndPointInfo::Dump(en);
+    cout << "client : ip " << std::get<0>(info) << " port:" << std::get<1>(info) << endl;
 
     auto t = (test_s *)data;
     t->f(t->n);
@@ -124,7 +126,7 @@ void test_wepoll() {
     res      = ConnectToHost(cli, "0:0:0:0:0:0:0:1", 4000, 0);
 
     if(!res) {
-        cout << "connect error : " << strerror(errno) << endl;
+        cout << "[test_wepoll]connect error : " << strerror(errno) << endl;
     } else {
         cout << "connect ok" << endl;
     }
@@ -136,7 +138,7 @@ void test_wepoll() {
 
 auto in_cb = [](base_socket_type sock, WBaseChannel *data) {
     auto *ch = (ReadChannel *)data;
-    cout << "get channel call channel in" << std::endl;
+    // cout << "get channel call channel in" << std::endl;
     ch->ChannelIn();
 };
 
@@ -146,7 +148,9 @@ WSelect<WBaseChannel> sl;
 WChannel             *ch;
 
 auto ac_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> bool {
-    cout << "recv : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
+    auto info = WEndPointInfo::Dump(endpoint);
+
+    cout << "recv : " << socket << " info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
     // ch = new WChannel(socket, endpoint);
     return true;
 };
@@ -166,7 +170,7 @@ void test_channel() {
     auto sock = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
     SetSocketReuseAddr(sock);
     SetSocketReusePort(sock);
-    WEndPointInfo local_ed = {"0:0:0:0:0:0:0:0", 4000, 0};
+    WEndPointInfo local_ed = *WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 4000, 0);
     int           res      = Bind(sock, local_ed);
 
     if(!res) {
@@ -188,7 +192,7 @@ void test_channel() {
     res      = ConnectToHost(cli, "0:0:0:0:0:0:0:1", 4000, 0);
 
     if(!res) {
-        cout << "connect error : " << strerror(errno) << endl;
+        cout << "[test_channel]connect error : " << strerror(errno) << endl;
     } else {
         cout << "connect ok" << endl;
         ::send(cli, "123123", 6, 0);
@@ -220,14 +224,14 @@ void test_tcpserver() {
 
     WSingleTcpServer ser;
     ser.SetOnAccept(acc_cb);
-    ser.AddAccepter({"0:0:0:0:0:0:0:0", 4000, 0});
+    ser.AddAccepter(*WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 4000, 0));
 
 
     auto cli = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
     auto res = ConnectToHost(cli, "0:0:0:0:0:0:0:1", 4000, 0);
 
     if(!res) {
-        cout << "connect error : " << strerror(errno) << endl;
+        cout << "[test_tcpserver]connect error : " << strerror(errno) << endl;
     } else {
         cout << "connect ok" << endl;
         std::thread([&]() {
@@ -265,15 +269,18 @@ void test_myChannel() {
 
     WSingleTcpServer ser;
     ser.SetOnAccept(acc2_cb);
-    ser.AddAccepter({"0:0:0:0:0:0:0:0", 4000, 0});
+    bool ok = ser.AddAccepter(*WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 4000, false));
+    if (!ok) {
+        cout << "[test_myChannel]AddAccepter error : " << strerror(errno) << endl;
+    }
     ser.SetSessionFactory(new MySessionFactory);
 
 
     auto cli = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
-    auto res = ConnectToHost(cli, "0:0:0:0:0:0:0:1", 4000, 0);
+    auto res = ConnectToHost(cli, "0:0:0:0:0:0:0:1", 4000, false);
 
     if(!res) {
-        cout << "connect error : " << strerror(errno) << endl;
+        cout << "[test_myChannel]connect error : " << strerror(errno) << endl;
     } else {
         cout << "connect ok" << endl;
         std::thread([&]() {

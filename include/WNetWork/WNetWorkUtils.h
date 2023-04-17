@@ -14,6 +14,7 @@
 #include <sys/socket.h>
 #include <sys/timerfd.h>
 #include <unistd.h>
+#include <tuple>
 
 #include "../WOS.h"
 
@@ -54,8 +55,8 @@ base_socket_type MakeUdpV4Socket();
 bool IpAddrToString(in_addr addr, std::string *buf);
 bool IpAddrToString(in6_addr addr, std::string *buf);
 
-bool StringToIpAddress(const std::string &ip_str, in_addr *addr);
-bool StringToIpAddress(const std::string &ip_str, in6_addr *addr);
+bool IPStringToAddress(const std::string &ip_str, in_addr *addr);
+bool IPStringToAddress(const std::string &ip_str, in6_addr *addr);
 
 bool HtoNS(uint16_t host_num, uint16_t *net_num);
 bool NtoHS(uint16_t net_num, uint16_t *host_num);
@@ -70,8 +71,7 @@ bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo);
 base_socket_type MakeListenedSocket(const WEndPointInfo &info, enum AF_PROTOL protol);
 
 // return -1 if fail
-base_socket_type Accept(base_socket_type socket, WEndPointInfo *info, bool isv4 = true);
-base_socket_type AcceptV4(base_socket_type socket, WEndPointInfo *info);
+base_socket_type Accept(base_socket_type socket, WEndPointInfo *info);
 
 bool ConnectToHost(base_socket_type socket, const std::string &host, uint16_t port, bool isv4 = true);
 bool ConnectToHost(base_socket_type socket, const WEndPointInfo &info);
@@ -86,19 +86,33 @@ bool SetSocketKeepAlive(base_socket_type socket);
 bool SetTcpSocketNoDelay(base_socket_type socket);
 
 // IP + port + isv4
-struct WEndPointInfo {
-    std::string ip_address;
-    uint16_t    port;
-    bool        isv4;
-    WEndPointInfo(const std::string &_address = "", uint16_t _port = 0, bool _isv4 = true);
+// struct WEndPointInfo {
+//     std::string ip_address;
+//     uint16_t    port;
+//     bool        isv4;
+//     WEndPointInfo(const std::string &_address = "", uint16_t _port = 0, bool _isv4 = true);
 
-    static WEndPointInfo FromNet(const sockaddr_in &net);
-    static WEndPointInfo FromNet(const sockaddr_in6 &net);
-    bool                 ToNet4(sockaddr_in *_sockaddr_in);
-    bool                 ToNet6(sockaddr_in6 *_socketaddr_in6);
+//     static WEndPointInfo FromNet(const sockaddr_in &net);
+//     static WEndPointInfo FromNet(const sockaddr_in6 &net);
+//     bool                 ToNet4(sockaddr_in *_sockaddr_in);
+//     bool                 ToNet6(sockaddr_in6 *_socketaddr_in6);
+// };
+
+// IP + port + isv4
+struct WEndPointInfo {
+    union ip_addr {
+        sockaddr_in  addr4;
+        sockaddr_in6 addr6;
+    };
+
+    ip_addr addr{0};
+    AF_FAMILY family;
+
+    static WEndPointInfo* MakeWEndPointInfo(const std::string& address, uint16_t port = 0, bool isv4 = true);
+    static std::tuple<std::string, uint16_t> Dump(const WEndPointInfo&);
 };
 
 } // namespace wlb::network
 
 
-#endif //UTILS_WNETWORK_UTILS_H
+#endif // UTILS_WNETWORK_UTILS_H

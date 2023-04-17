@@ -7,16 +7,16 @@
 namespace wlb::network {
 
 static auto handle_read_callback = [](base_socket_type sock, WBaseChannel *ch) {
-    std::cout << "get channel call channel in [" << ch << "]" << std::endl;
+    // std::cout << "get channel call channel in [" << ch << "]" << std::endl;
     ch->ChannelIn();
-    std::cout << "get channel call channel in end" << std::endl;
+    // std::cout << "get channel call channel in end" << std::endl;
 };
 
 static auto handle_write_callback = [](base_socket_type sock, WBaseChannel *ch) {
-    std::cout << "get channel call channel out [" << ch << "]" << std::endl;
-    std::cout << "handle_write_callback get channel call channel out" << std::endl;
+    // std::cout << "get channel call channel out [" << ch << "]" << std::endl;
+    // std::cout << "handle_write_callback get channel call channel out" << std::endl;
     ch->ChannelOut();
-    std::cout << "handle_write_callback get channel call channel out end" << std::endl;
+    // std::cout << "handle_write_callback get channel call channel out end" << std::endl;
 };
 
 WSingleTcpServer::WSingleTcpServer() {
@@ -42,18 +42,24 @@ void WSingleTcpServer::Join() { this->contex_.event_handle_->Join(); }
 void WSingleTcpServer::Detach() { this->contex_.event_handle_->Detach(); }
 
 bool WSingleTcpServer::AddAccepter(const std::string &IpAddress, uint16_t port, bool isv4) {
-    this->AddAccepter({IpAddress, port, isv4});
+    auto info = WEndPointInfo::MakeWEndPointInfo(IpAddress, port, isv4);
+    if(info == nullptr) {
+        return false;
+    }
+
+    this->AddAccepter(*info);
 }
 
 bool WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) {
     auto l = -1;
-    if(local_info.isv4) {
+    if(local_info.family == AF_FAMILY::INET) {
         l = MakeSocket(AF_FAMILY::INET, AF_PROTOL::TCP);
     } else {
         l = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
     }
 
     if(l == -1) {
+        // std::cout << "WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) MakeSocket err " << std::endl;
         return false;
     }
 
@@ -61,13 +67,21 @@ bool WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) {
     SetSocketReusePort(l);
     SetSocketNoBlock(l);
 
-    Bind(l, local_info);
-    listen(l, 1024);
+    auto ok = Bind(l, local_info);
+    if(!ok) {
+        // std::cout << "WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) Bind err " << std::endl;
+        return false;
+    }
 
-    assert(l != -1);
+    int res = listen(l, 1024);
+    if(res != 0) {
+        // std::cout << "WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) listen err " << std::endl;
+        return false;
+    }
 
     auto *a = new WAccepterChannel(l, local_info, &this->contex_);
     accepters_.push_back(a);
+    return true;
 }
 
 void WSingleTcpServer::SetChannelFactory(WChannelFactory *factory) {

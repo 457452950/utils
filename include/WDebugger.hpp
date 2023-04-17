@@ -39,7 +39,7 @@ public:
         this->_timer->OnTime = []() {
             // std::cout << "on time" << std::endl;
             for(auto &item : debugger->_memberMap) {
-                std::cout << item.first << " : " << item.second << std::endl;
+                // std::cout << item.first << " : " << item.second << std::endl;
             }
         };
         this->_isActive = true;
@@ -104,7 +104,7 @@ public:
 
     void tick() {
         int64_t now = this->GetTime();
-        std::cout << now - this->_stamp << std::endl;
+        // std::cout << now - this->_stamp << std::endl;
         this->_stamp = now;
     }
 

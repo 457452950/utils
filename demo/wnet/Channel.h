@@ -15,7 +15,7 @@ public:
 
     void ChannelIn() override {
         WChannel::ChannelIn();
-        std::cout << "MyChannel::ChannelIn" << std::endl;
+        // std::cout << "MyChannel::ChannelIn" << std::endl;
     }
 };
 
@@ -30,24 +30,25 @@ public:
 public:
     MySession(Listener *listener) : listener_(listener) {}
     ~MySession() {}
+
     void init(std::unique_ptr<WChannel> channel) {
         this->channel_ = std::move(channel);
         this->channel_->SetListener(this);
-
-        this->listener_->onSessionClose(this);
     }
 
 private:
     void onChannelDisConnect() override {
-        std::cout << "MySession::onChannelDisConnect" << std::endl;
+        // std::cout << "MySession::onChannelDisConnect" << std::endl;
         this->listener_->onSessionClose(this);
     }
     void onReceive(uint8_t *message, uint64_t message_len) override {
         channel_->Send(message, message_len);
-        std::cout << "MySession::onReceive " << std::string((char *)message, message_len) << std::endl;
-        channel_->CloseChannel();
+        // std::cout << "MySession::onReceive " << std::string((char *)message, message_len) << std::endl;
+        // channel_->CloseChannel();
     }
-    void onError(uint64_t err_code) override { std::cout << "MySession::onError " << err_code << std::endl; }
+    void onError(uint64_t err_code) override {
+        // std::cout << "MySession::onError " << err_code << std::endl;
+    }
 
     Listener *listener_{nullptr};
 };
@@ -59,7 +60,10 @@ public:
         return instance;
     }
     void onNewSession(MySession *session) override { set_.insert(session); }
-    void onSessionClose(MySession *session) override { set_.erase(session); }
+    void onSessionClose(MySession *session) override {
+        set_.erase(session);
+        delete session;
+    }
 
 private:
     SessionManager() {}
@@ -72,6 +76,7 @@ class MySessionFactory : public WSessionFactory {
 public:
     void CreateSession(std::unique_ptr<WChannel> channel) override {
         auto newSession = new MySession(SessionManager::getInstance());
+        // std::cout << "MySessionFactory::CreateSession" << std::endl;
         newSession->init(std::move(channel));
     }
 };

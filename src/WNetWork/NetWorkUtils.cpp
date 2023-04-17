@@ -1,5 +1,5 @@
-#include <iostream>
 #include "WNetWork/WNetWorkUtils.h"
+#include <iostream>
 
 namespace wlb::network {
 
@@ -63,15 +63,16 @@ bool IpAddrToString(in6_addr addr, std::string *buf) {
     }
 }
 
-bool StringToIpAddress(const std::string &ip_str, in_addr *addr) {
-    if(::inet_pton(AF_INET, ip_str.c_str(), (void *)&addr) == 1) {
+bool IPStringToAddress(const std::string &ip_str, in_addr *addr) {
+    if(::inet_pton(AF_INET, ip_str.c_str(), (void *)addr) == 1) {
         return true;
     }
     return false;
 }
 
-bool StringToIpAddress(const std::string &ip_str, in6_addr *addr) {
-    if(::inet_pton(AF_INET6, ip_str.c_str(), (void *)&addr) == 1) {
+bool IPStringToAddress(const std::string &ip_str, in6_addr *addr) {
+    std::cout << "IPStringToAddress " << ip_str << std::endl;
+    if(::inet_pton(AF_INET6, ip_str.c_str(), (void *)addr) == 1) {
         return true;
     }
     return false;
@@ -93,7 +94,7 @@ bool MakeSockAddr_in(const std::string &ip_address, uint16_t port, sockaddr_in *
 
     HtoNS(port, &h_port);
 
-    if(!StringToIpAddress(ip_address, &h_addr)) {
+    if(!IPStringToAddress(ip_address, &h_addr)) {
         return false;
     }
 
@@ -108,7 +109,7 @@ bool MakeSockAddr_in6(const std::string &ip_address, uint16_t port, sockaddr_in6
 
     HtoNS(port, &h_port);
 
-    if(!StringToIpAddress(ip_address, &h_addr)) {
+    if(!IPStringToAddress(ip_address, &h_addr)) {
         return false;
     }
 
@@ -147,16 +148,22 @@ bool Bind(base_socket_type socket, const std::string &host, uint16_t port, bool 
 }
 
 bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo) {
-    return Bind(socket, serverInfo.ip_address, serverInfo.port, serverInfo.isv4);
+
+    const auto _size = serverInfo.family == AF_FAMILY::INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
+
+    int32_t ok = ::bind(socket, (struct sockaddr *)&(serverInfo.addr), _size);
+    if(ok == 0) {
+        return true;
+    }
+
+
+    return false;
 }
 
 
 base_socket_type MakeListenedSocket(const WEndPointInfo &info, enum AF_PROTOL protol) {
     base_socket_type listen_sock = 0;
-    auto             fami        = AF_FAMILY::INET;
-    if(!info.isv4) {
-        fami = AF_FAMILY::INET6;
-    }
+    auto             fami        = info.family;
 
     listen_sock = MakeSocket(fami, protol);
     if(listen_sock == -1) {
@@ -170,43 +177,25 @@ base_socket_type MakeListenedSocket(const WEndPointInfo &info, enum AF_PROTOL pr
         }
     }
 
-close_sock:
     close(listen_sock);
     return -1;
 }
 
-base_socket_type Accept(base_socket_type socket, WEndPointInfo *info, bool isv4) {
-    if(isv4) {
-        sockaddr_in client_info{};
-        socklen_t   len = sizeof(client_info);
+base_socket_type Accept(base_socket_type socket, WEndPointInfo *info) {
+    socklen_t len = 0;
 
-        base_socket_type clientsock = ::accept(socket, (struct sockaddr *)&client_info, &len);
-        if(clientsock < 0) {
-            return -1;
-        }
-
-        *info = WEndPointInfo::FromNet(client_info);
-
-        return clientsock;
-    } else {
-        sockaddr_in6 client_info{};
-        socklen_t    len = sizeof(client_info);
-
-        base_socket_type clientsock = ::accept(socket, (struct sockaddr *)&client_info, &len);
-        if(clientsock < 0) {
-            return -1;
-        }
-
-        *info = WEndPointInfo::FromNet(client_info);
-
-        return clientsock;
+    base_socket_type clientsock = ::accept(socket, (struct sockaddr *)&info->addr, &len);
+    if(clientsock < 0) {
+        return -1;
     }
+    // clang-format off
+    info->family = 
+        len == sizeof(sockaddr_in) ? 
+        AF_FAMILY::INET : AF_FAMILY::INET6;
+    // clang-format on
 
-    return -1;
+    return clientsock;
 }
-
-base_socket_type AcceptV4(base_socket_type socket, WEndPointInfo *info) { return Accept(socket, info, true); }
-base_socket_type AcceptV6(base_socket_type socket, WEndPointInfo *info) { return Accept(socket, info, false); }
 
 bool ConnectToHost(base_socket_type socket, const std::string &host, uint16_t port, bool isv4) {
     if(isv4) {
@@ -229,7 +218,12 @@ bool ConnectToHost(base_socket_type socket, const std::string &host, uint16_t po
     return false;
 }
 bool ConnectToHost(base_socket_type socket, const WEndPointInfo &info) {
-    return ConnectToHost(socket, info.ip_address, info.port, info.isv4);
+    const auto _size = info.family == AF_FAMILY::INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
+    if(::connect(socket, (sockaddr *)&info.addr, _size) == 0) {
+        return true;
+    }
+
+    return false;
 }
 
 bool SetSocketNoBlock(base_socket_type socket) {
@@ -272,63 +266,68 @@ bool SetTcpSocketNoDelay(base_socket_type socket) {
     return false;
 }
 
-WEndPointInfo::WEndPointInfo(const std::string &_address, uint16_t _port, bool _isv4) :
-    ip_address(_address), port(_port), isv4(_isv4) {}
+WEndPointInfo *WEndPointInfo::MakeWEndPointInfo(const std::string &address, uint16_t port, bool isv4) {
+    auto ep    = new WEndPointInfo();
+    ep->family = isv4 ? AF_FAMILY::INET : AF_FAMILY::INET6;
+    bool ok    = false;
 
-WEndPointInfo WEndPointInfo::FromNet(const sockaddr_in &net) {
-    WEndPointInfo info;
-    if(!IpAddrToString(net.sin_addr, &info.ip_address)) {
-        return info;
+    switch(ep->family) {
+    case AF_FAMILY::INET:
+        ok = MakeSockAddr_in(address, port, &ep->addr.addr4);
+        if(!ok) {
+            goto err;
+        }
+        break;
+    case AF_FAMILY::INET6:
+        ok = MakeSockAddr_in6(address, port, &ep->addr.addr6);
+        if(!ok) {
+            goto err;
+        }
+        break;
+
+    default:
+        // never achieve
+        goto err;
+        break;
     }
-    wlb::network::NtoHS(net.sin_port, &info.port);
-    info.isv4 = true;
-    return info;
+
+    return ep;
+err:
+    delete ep;
+    return nullptr;
 }
-WEndPointInfo WEndPointInfo::FromNet(const sockaddr_in6 &net) {
-    WEndPointInfo info;
-    if(!IpAddrToString(net.sin6_addr, &info.ip_address)) {
-        return info;
+
+std::tuple<std::string, uint16_t> WEndPointInfo::Dump(const WEndPointInfo &info) {
+    std::string s;
+    uint16_t    p;
+    bool        ok = false;
+
+    if(info.family == AF_FAMILY::INET) {
+        ok = IpAddrToString(info.addr.addr4.sin_addr, &s);
+        if(!ok) {
+            goto err;
+        }
+
+        ok = NtoHS(info.addr.addr4.sin_port, &p);
+        if(!ok) {
+            goto err;
+        }
+    } else {
+        ok = IpAddrToString(info.addr.addr6.sin6_addr, &s);
+        if(!ok) {
+            goto err;
+        }
+        ok = NtoHS(info.addr.addr6.sin6_port, &p);
+        if(!ok) {
+            goto err;
+        }
     }
-    wlb::network::NtoHS(net.sin6_port, &info.port);
-    info.isv4 = false;
-    return info;
+
+    return std::make_tuple(s, p);
+
+err:
+    return std::make_tuple<std::string, uint16_t>("", 0);
 }
 
-bool WEndPointInfo::ToNet4(sockaddr_in *_sockaddr_in) {
-    if(!this->isv4) {
-        return false;
-    }
-
-    _sockaddr_in->sin_family = AF_INET;
-    uint16_t h_port          = 0;
-    in_addr  h_addr{};
-
-    HtoNS(this->port, &h_port);
-    if(!StringToIpAddress(this->ip_address, &h_addr)) {
-        return false;
-    }
-
-    _sockaddr_in->sin_port = h_port;
-    _sockaddr_in->sin_addr = h_addr;
-    return true;
-}
-bool WEndPointInfo::ToNet6(sockaddr_in6 *_sockaddr_in6) {
-    if(this->isv4) {
-        return false;
-    }
-
-    _sockaddr_in6->sin6_family = AF_INET6;
-    uint16_t h_port            = 0;
-    in6_addr h_addr{};
-
-    HtoNS(this->port, &h_port);
-    if(!StringToIpAddress(this->ip_address, &h_addr)) {
-        return false;
-    }
-
-    _sockaddr_in6->sin6_port = h_port;
-    _sockaddr_in6->sin6_addr = h_addr;
-    return true;
-}
 
 } // namespace wlb::network

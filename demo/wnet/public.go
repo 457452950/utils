@@ -51,7 +51,7 @@ func testTcp() {
 			}
 		}(socket)
 
-		fmt.Print("connect\n")
+		fmt.Print("new connect\n")
 
 		// fmt.Println("start f")
 		for {
@@ -61,7 +61,7 @@ func testTcp() {
 				fmt.Println("发送数据失败，err: ", err)
 				syscall.Exit(-1)
 			} else {
-				//fmt.Println("send len:", n)
+				// fmt.Println("send len:", n)
 			}
 			data := make([]byte, 0)
 
@@ -73,7 +73,7 @@ func testTcp() {
 					syscall.Exit(-1)
 					return
 				} else {
-					//fmt.Println("recv len ", n)
+					// fmt.Println("recv len ", n)
 				}
 				//fmt.Println("recv data[", string(tmp), "]")
 				data = append(data, tmp[:n]...)
