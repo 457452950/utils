@@ -2,19 +2,22 @@
 #ifndef UTILS_WNETWORK_UTILS_H
 #define UTILS_WNETWORK_UTILS_H
 
-#include <arpa/inet.h> // inet_ntop inet_pton
 #include <cerrno>
 #include <cstdint>
 #include <cstring> // strerror
 #include <exception>
 #include <fcntl.h> // fcntl
-#include <netinet/in.h>
-#include <netinet/tcp.h> // tcp_nodelay
 #include <string>
+#include <tuple>
+#include <unistd.h>
+#include <unordered_map> //std::hash
+
 #include <sys/socket.h>
 #include <sys/timerfd.h>
-#include <unistd.h>
-#include <tuple>
+
+#include <arpa/inet.h> // inet_ntop inet_pton
+#include <netinet/in.h>
+#include <netinet/tcp.h> // tcp_nodelay
 
 #include "../WOS.h"
 
@@ -22,8 +25,8 @@
 namespace wlb::network {
 
 
-enum class AF_FAMILY { INET = AF_INET, INET6 = AF_INET6 };
-enum class AF_PROTOL { TCP = IPPROTO_TCP, UDP = IPPROTO_UDP };
+enum AF_FAMILY { INET = AF_INET, INET6 = AF_INET6 };
+enum AF_PROTOL { TCP = IPPROTO_TCP, UDP = IPPROTO_UDP };
 
 struct WEndPointInfo;
 using base_socket_type = int32_t;
@@ -100,19 +103,111 @@ bool SetTcpSocketNoDelay(base_socket_type socket);
 
 // IP + port + isv4
 struct WEndPointInfo {
-    union ip_addr {
-        sockaddr_in  addr4;
-        sockaddr_in6 addr6;
-    };
+    // union ip_addr {
+    //     sockaddr_in  addr4;
+    //     sockaddr_in6 addr6;
+    // };
 
-    ip_addr addr{0};
-    AF_FAMILY family;
+    // ip_addr   addr{0};
 
-    static WEndPointInfo* MakeWEndPointInfo(const std::string& address, uint16_t port = 0, bool isv4 = true);
-    static std::tuple<std::string, uint16_t> Dump(const WEndPointInfo&);
+    static WEndPointInfo *MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family);
+    static std::tuple<std::string, uint16_t> Dump(const WEndPointInfo &);
+
+    bool                  Assign(const std::string &address, uint16_t port, AF_FAMILY family);
+    bool                  Assign(const sockaddr& sock, AF_FAMILY family);
+    static WEndPointInfo *Emplace(const sockaddr *addr, AF_FAMILY family);
+
+    const sockaddr *GetAddr() const { return &addr_; }
+    AF_FAMILY       GetFamily() const { return family_; }
+    auto GetSockSize() const { return family_ == AF_FAMILY::INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6); }
+
+private:
+    AF_FAMILY family_;
+    sockaddr  addr_;
+
+private:
+    /*
+             * Hash for IPv4
+             *
+             0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+             +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+             |              PORT             |             IP                |
+             +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+             |              IP               |                           |F|P|
+             +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+             *
+             * Hash for IPv6
+             *
+             0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+             +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+             |              PORT             | IP[0] ^  IP[1] ^ IP[2] ^ IP[3]|
+             +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+             |IP[0] ^  IP[1] ^ IP[2] ^ IP[3] |          IP[0] >> 16      |F|P|
+             +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+             */
+    void SetHash() {
+
+        switch(this->family_) {
+        case AF_INET: {
+            auto *SockAddrIn = reinterpret_cast<const struct sockaddr_in *>(&this->addr_);
+
+            const uint64_t address = ntohl(SockAddrIn->sin_addr.s_addr);
+            const uint64_t port    = (ntohs(SockAddrIn->sin_port));
+
+            this->hash = port << 48;
+            this->hash |= address << 16;
+            this->hash |= 0x0000; // AF_INET.
+
+            break;
+        }
+
+        case AF_INET6: {
+            auto *sockAddrIn6 = reinterpret_cast<const struct sockaddr_in6 *>(&this->addr_);
+            auto *a           = reinterpret_cast<const uint32_t *>(std::addressof(sockAddrIn6->sin6_addr));
+
+            const auto     address1 = a[0] ^ a[1] ^ a[2] ^ a[3];
+            const auto     address2 = a[0];
+            const uint64_t port     = ntohs(sockAddrIn6->sin6_port);
+
+            this->hash = port << 48;
+            this->hash |= static_cast<uint64_t>(address1) << 16;
+            this->hash |= address2 >> 16 & 0xFFFC;
+            this->hash |= 0x0002; // AF_INET6.
+
+            break;
+        }
+        }
+
+        // note:no safed protocol
+        // Override least significant bit with protocol information:
+        // - If UDP, start with 0.
+        // - If TCP, start with 1.
+        // if (this->protocol == AF_PROTOL::UDP)
+        // {
+        // 	this->hash |= 0x0000;
+        // }
+        // else
+        // {
+        // 	this->hash |= 0x0001;
+        // }
+    }
+
+public:
+    uint64_t hash{0u};
+    bool operator==(const WEndPointInfo& other) const noexcept {
+        return this->hash == other.hash;
+    }
 };
+
 
 } // namespace wlb::network
 
+namespace std {
+template <>
+class hash<wlb::network::WEndPointInfo>  {
+public:
+    size_t operator()(const wlb::network::WEndPointInfo &it) const noexcept { return it.hash; }
+};
+} // namespace std
 
 #endif // UTILS_WNETWORK_UTILS_H

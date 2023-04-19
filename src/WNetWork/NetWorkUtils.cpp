@@ -149,13 +149,10 @@ bool Bind(base_socket_type socket, const std::string &host, uint16_t port, bool 
 
 bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo) {
 
-    const auto _size = serverInfo.family == AF_FAMILY::INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
-
-    int32_t ok = ::bind(socket, (struct sockaddr *)&(serverInfo.addr), _size);
+    auto ok = ::bind(socket, serverInfo.GetAddr(), serverInfo.GetSockSize());
     if(ok == 0) {
         return true;
     }
-
 
     return false;
 }
@@ -163,7 +160,7 @@ bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo) {
 
 base_socket_type MakeListenedSocket(const WEndPointInfo &info, enum AF_PROTOL protol) {
     base_socket_type listen_sock = 0;
-    auto             fami        = info.family;
+    auto             fami        = info.GetFamily();
 
     listen_sock = MakeSocket(fami, protol);
     if(listen_sock == -1) {
@@ -184,14 +181,15 @@ base_socket_type MakeListenedSocket(const WEndPointInfo &info, enum AF_PROTOL pr
 base_socket_type Accept(base_socket_type socket, WEndPointInfo *info) {
     socklen_t len = 0;
 
-    base_socket_type clientsock = ::accept(socket, (struct sockaddr *)&info->addr, &len);
+    sockaddr         temp;
+    base_socket_type clientsock = ::accept(socket, &temp, &len);
     if(clientsock < 0) {
         return -1;
     }
     // clang-format off
-    info->family = 
+    info->Assign(temp, 
         len == sizeof(sockaddr_in) ? 
-        AF_FAMILY::INET : AF_FAMILY::INET6;
+        AF_FAMILY::INET : AF_FAMILY::INET6);
     // clang-format on
 
     return clientsock;
@@ -218,8 +216,8 @@ bool ConnectToHost(base_socket_type socket, const std::string &host, uint16_t po
     return false;
 }
 bool ConnectToHost(base_socket_type socket, const WEndPointInfo &info) {
-    const auto _size = info.family == AF_FAMILY::INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
-    if(::connect(socket, (sockaddr *)&info.addr, _size) == 0) {
+    const auto _size = info.GetFamily() == AF_FAMILY::INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
+    if(::connect(socket, info.GetAddr(), _size) == 0) {
         return true;
     }
 
@@ -266,20 +264,66 @@ bool SetTcpSocketNoDelay(base_socket_type socket) {
     return false;
 }
 
-WEndPointInfo *WEndPointInfo::MakeWEndPointInfo(const std::string &address, uint16_t port, bool isv4) {
-    auto ep    = new WEndPointInfo();
-    ep->family = isv4 ? AF_FAMILY::INET : AF_FAMILY::INET6;
-    bool ok    = false;
+WEndPointInfo *WEndPointInfo::MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family) {
+    auto ep = new WEndPointInfo();
 
-    switch(ep->family) {
+    if(ep->Assign(address, port, family)) {
+        return ep;
+    }
+
+    delete ep;
+    return nullptr;
+}
+
+std::tuple<std::string, uint16_t> WEndPointInfo::Dump(const WEndPointInfo &info) {
+    std::string s;
+    uint16_t    p;
+    bool        ok = false;
+
+    if(info.family_ == AF_FAMILY::INET) {
+        auto *SockAddrIn = reinterpret_cast<const struct sockaddr_in *>(&info.addr_);
+
+        ok = IpAddrToString(SockAddrIn->sin_addr, &s);
+        if(!ok) {
+            goto err;
+        }
+
+        ok = NtoHS(SockAddrIn->sin_port, &p);
+        if(!ok) {
+            goto err;
+        }
+    } else {
+        auto *sockAddrIn6 = reinterpret_cast<const struct sockaddr_in6 *>(&info.addr_);
+
+        ok = IpAddrToString(sockAddrIn6->sin6_addr, &s);
+        if(!ok) {
+            goto err;
+        }
+        ok = NtoHS(sockAddrIn6->sin6_port, &p);
+        if(!ok) {
+            goto err;
+        }
+    }
+
+    return std::make_tuple(s, p);
+
+err:
+    return std::make_tuple<std::string, uint16_t>("error", 0);
+}
+
+bool WEndPointInfo::Assign(const std::string &address, uint16_t port, AF_FAMILY family) {
+    this->family_ = family;
+    bool ok       = false;
+
+    switch(this->family_) {
     case AF_FAMILY::INET:
-        ok = MakeSockAddr_in(address, port, &ep->addr.addr4);
+        ok = MakeSockAddr_in(address, port, (sockaddr_in *)&this->addr_);
         if(!ok) {
             goto err;
         }
         break;
     case AF_FAMILY::INET6:
-        ok = MakeSockAddr_in6(address, port, &ep->addr.addr6);
+        ok = MakeSockAddr_in6(address, port, (sockaddr_in6 *)&this->addr_);
         if(!ok) {
             goto err;
         }
@@ -291,43 +335,17 @@ WEndPointInfo *WEndPointInfo::MakeWEndPointInfo(const std::string &address, uint
         break;
     }
 
-    return ep;
+    this->SetHash();
+    return true;
 err:
-    delete ep;
-    return nullptr;
+    return false;
 }
 
-std::tuple<std::string, uint16_t> WEndPointInfo::Dump(const WEndPointInfo &info) {
-    std::string s;
-    uint16_t    p;
-    bool        ok = false;
-
-    if(info.family == AF_FAMILY::INET) {
-        ok = IpAddrToString(info.addr.addr4.sin_addr, &s);
-        if(!ok) {
-            goto err;
-        }
-
-        ok = NtoHS(info.addr.addr4.sin_port, &p);
-        if(!ok) {
-            goto err;
-        }
-    } else {
-        ok = IpAddrToString(info.addr.addr6.sin6_addr, &s);
-        if(!ok) {
-            goto err;
-        }
-        ok = NtoHS(info.addr.addr6.sin6_port, &p);
-        if(!ok) {
-            goto err;
-        }
-    }
-
-    return std::make_tuple(s, p);
-
-err:
-    return std::make_tuple<std::string, uint16_t>("", 0);
+WEndPointInfo *WEndPointInfo::Emplace(const sockaddr *addr, AF_FAMILY family) {
+    auto info     = new WEndPointInfo();
+    info->addr_   = *addr;
+    info->family_ = family;
+    info->SetHash();
+    return info;
 }
-
-
 } // namespace wlb::network

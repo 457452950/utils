@@ -134,7 +134,7 @@ WChannel::~WChannel() {
 
     if(this->client_socket_) {
         // ::close(this->client_socket_);
-        this->client_socket_ = -1;
+        this->client_socket_ = 0;
     }
     if(this->recv_buf_) {
         DELADD;

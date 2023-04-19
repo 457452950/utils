@@ -170,7 +170,7 @@ void test_channel() {
     auto sock = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
     SetSocketReuseAddr(sock);
     SetSocketReusePort(sock);
-    WEndPointInfo local_ed = *WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 4000, 0);
+    WEndPointInfo local_ed = *WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 4000, AF_FAMILY::INET6);
     int           res      = Bind(sock, local_ed);
 
     if(!res) {
@@ -224,7 +224,7 @@ void test_tcpserver() {
 
     WSingleTcpServer ser;
     ser.SetOnAccept(acc_cb);
-    ser.AddAccepter(*WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 4000, 0));
+    ser.AddAccepter(*WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 4000, AF_FAMILY::INET6));
 
 
     auto cli = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
@@ -269,7 +269,7 @@ void test_myChannel() {
 
     WSingleTcpServer ser;
     ser.SetOnAccept(acc2_cb);
-    bool ok = ser.AddAccepter(*WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 4000, false));
+    bool ok = ser.AddAccepter(*WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 4000, wlb::network::AF_FAMILY::INET6));
     if (!ok) {
         cout << "[test_myChannel]AddAccepter error : " << strerror(errno) << endl;
     }

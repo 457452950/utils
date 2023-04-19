@@ -42,7 +42,8 @@ void WSingleTcpServer::Join() { this->contex_.event_handle_->Join(); }
 void WSingleTcpServer::Detach() { this->contex_.event_handle_->Detach(); }
 
 bool WSingleTcpServer::AddAccepter(const std::string &IpAddress, uint16_t port, bool isv4) {
-    auto info = WEndPointInfo::MakeWEndPointInfo(IpAddress, port, isv4);
+    auto info = WEndPointInfo::MakeWEndPointInfo(
+            IpAddress, port, isv4 ? wlb::network::AF_FAMILY::INET : wlb::network::AF_FAMILY::INET6);
     if(info == nullptr) {
         return false;
     }
@@ -52,7 +53,7 @@ bool WSingleTcpServer::AddAccepter(const std::string &IpAddress, uint16_t port, 
 
 bool WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) {
     auto l = -1;
-    if(local_info.family == AF_FAMILY::INET) {
+    if(local_info.GetFamily() == AF_FAMILY::INET) {
         l = MakeSocket(AF_FAMILY::INET, AF_PROTOL::TCP);
     } else {
         l = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
