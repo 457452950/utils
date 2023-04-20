@@ -71,7 +71,8 @@ bool MakeSockAddr_in6(const std::string &ip_address, uint16_t port, sockaddr_in6
 bool Bind(base_socket_type socket, const std::string &host, uint16_t port, bool isv4 = true);
 bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo);
 
-base_socket_type MakeListenedSocket(const WEndPointInfo &info, enum AF_PROTOL protol);
+base_socket_type MakeBindedSocket(const WEndPointInfo &info);
+base_socket_type MakeListenedSocket(const WEndPointInfo &info);
 
 // return -1 if fail
 base_socket_type Accept(base_socket_type socket, WEndPointInfo *info);

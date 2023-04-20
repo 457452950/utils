@@ -158,11 +158,28 @@ bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo) {
 }
 
 
-base_socket_type MakeListenedSocket(const WEndPointInfo &info, enum AF_PROTOL protol) {
+base_socket_type MakeBindedSocket(const WEndPointInfo &info) {
     base_socket_type listen_sock = 0;
     auto             fami        = info.GetFamily();
 
-    listen_sock = MakeSocket(fami, protol);
+    listen_sock = MakeSocket(fami, AF_PROTOL::UDP);
+    if(listen_sock == -1) {
+        std::cout << "make listened socket : make socket failed" << strerror(errno) << std::endl;
+        return listen_sock;
+    }
+
+    if(Bind(listen_sock, info)) {
+        return listen_sock;
+    }
+    close(listen_sock);
+    return -1;
+}
+
+base_socket_type MakeListenedSocket(const WEndPointInfo &info) {
+    base_socket_type listen_sock = 0;
+    auto             fami        = info.GetFamily();
+
+    listen_sock = MakeSocket(fami, AF_PROTOL::TCP);
     if(listen_sock == -1) {
         std::cout << "make listened socket : make socket failed" << strerror(errno) << std::endl;
         return listen_sock;
@@ -341,6 +358,12 @@ err:
     return false;
 }
 
+bool WEndPointInfo::Assign(const sockaddr &addr, AF_FAMILY family) { 
+    this->addr_ = addr;
+    this->family_ = family;
+    this->SetHash();
+    return true;
+ }
 WEndPointInfo *WEndPointInfo::Emplace(const sockaddr *addr, AF_FAMILY family) {
     auto info     = new WEndPointInfo();
     info->addr_   = *addr;
