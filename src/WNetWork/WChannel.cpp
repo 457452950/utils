@@ -11,22 +11,26 @@ namespace wlb::network {
 
 using namespace debug;
 
-WTimer::WTimer(event_handle_p handle) : handle_(handle) {
-    this->timer_fd_ = CreateNewTimerfd();
+/********************************************
+ * Timer
+ *********************************************/
+WTimer::WTimer(event_handle_p handle) {
+    this->handler_ = event_handler_t::CreateHandler(CreateNewTimerfd(), this, handle);
+    this->handler_->SetEvents(HandlerEventType::EV_IN);
     DEBUGADD("WTimer");
 }
 WTimer::~WTimer() {
     DEBUGRM("WTimer");
     this->Stop();
-    if(this->timer_fd_) {
-        ::close(this->timer_fd_);
-        this->timer_fd_ = 0;
+    if(this->handler_) {
+        delete this->handler_;
+        this->handler_ = nullptr;
     }
 }
 
 void WTimer::ChannelIn() {
     uint64_t exp = 0;
-    ::read(this->timer_fd_, &exp, sizeof(exp));
+    ::read(this->handler_->socket_, &exp, sizeof(exp));
     if(OnTime) {
         OnTime();
     }
@@ -34,7 +38,6 @@ void WTimer::ChannelIn() {
 
 bool WTimer::Start(long time_value, long interval) {
     assert(!this->active_);
-    assert(this->OnTime);
 
     struct itimerspec next_time {
         0
@@ -43,12 +46,11 @@ bool WTimer::Start(long time_value, long interval) {
     next_time.it_value.tv_nsec    = (time_value % 1000L) * 1000'000L;
     next_time.it_interval.tv_sec  = interval / 1000L;
     next_time.it_interval.tv_nsec = (interval % 1000L) * 1000'000L;
-    if(!SetTimerTime(this->timer_fd_, SetTimeFlag::REL, &next_time)) {
+    if(!SetTimerTime(this->handler_->socket_, SetTimeFlag::REL, &next_time)) {
         return false;
     }
 
-    item_ = this->handle_->NewSocket(new event_handle_t::option_type{
-            .socket_ = this->timer_fd_, .user_data_ = this, .events_ = KernelEventType::EV_IN});
+    this->handler_->Enable();
 
     this->active_ = true;
 
@@ -57,113 +59,234 @@ bool WTimer::Start(long time_value, long interval) {
 
 void WTimer::Stop() {
     if(this->active_) {
-        this->handle_->DelSocket(item_);
+        this->handler_->DisEnable();
         this->active_ = false;
     }
 }
 
 
-WAccepterChannel::WAccepterChannel(base_socket_type socket, const WEndPointInfo &endpoint, event_context_p context) {
-    this->listen_socket_  = socket;
+/***********************************************************
+ * WAccepterChannel
+ ************************************************************/
+
+WAccepterChannel::WAccepterChannel(const WEndPointInfo &endpoint, event_handle_p handle) {
     this->local_endpoint_ = endpoint;
-    this->event_context_  = context;
-
-    assert(context->event_handle_);
-    assert(this->listen_socket_ != -1);
-
-    context->event_handle_->NewSocket(new event_handle_t::option_type{
-            .socket_ = this->listen_socket_, .user_data_ = this, .events_ = KernelEventType::EV_IN});
+    
+    auto socket    = MakeListenedSocket(local_endpoint_);
+    this->handler_ = event_handler_t::CreateHandler(socket, this, handle);
+    this->handler_->SetEvents(HandlerEventType::EV_IN);
+    this->handler_->Enable();
 }
 
 WAccepterChannel::~WAccepterChannel() {
-    if(this->listen_socket_) {
-        ::close(this->listen_socket_);
-        this->listen_socket_ = 0;
+    if(this->handler_) {
+        if(this->handler_->IsEnable())
+            this->handler_->DisEnable();
+
+        delete this->handler_;
+        this->handler_ = nullptr;
     }
-    this->event_context_ = nullptr;
 }
 
 void WAccepterChannel::ChannelIn() {
     // std::cout << "accpet channel in" << std::endl;
 
     WEndPointInfo ei;
-    auto          cli = wlb::network::Accept(this->listen_socket_, &ei);
+    auto          cli = wlb::network::Accept4(this->handler_->socket_, &ei, SOCK_NONBLOCK);
 
-    assert(event_context_);
-    assert(event_context_->channel_factory_);
-    assert(event_context_->session_factory_);
-
-    if(cli <= 0) {
-        event_context_->onAcceptError(errno);
+    if(cli <= 0) { // error
+        if(OnError) {
+            OnError(ErrorToString(GetError()));
+        }
     } else {
-        // std::cout << "accepts not null and call " << std::endl;
-        bool isAccept = event_context_->onAccept(cli, ei);
-        if(isAccept) {
-            // std::cout << "accept !!" << std::endl;
-            auto newChannel = event_context_->channel_factory_->CreateChannel();
-            newChannel->Init(cli, ei);
-            newChannel->SetEventHandle(event_context_->event_handle_);
+        if(!OnAccept) {
+            return;
+        }
 
-            // std::cout << "accept new session" << std::endl;
-            event_context_->session_factory_->CreateSession(std::move(newChannel));
+        auto handler = event_handler_t::CreateHandler(cli, nullptr, this->handler_->handle_);
 
-            // std::cout << "accept over" << std::endl;
+        auto channel = OnAccept(local_endpoint_, ei, handler);
+        if(channel != nullptr) { // accept
+            handler->user_data_ = channel;
+        } else {
+            // not accept
+            ::close(cli);
         }
     }
 }
 
-WChannel::WChannel(uint16_t buffer_size) {
+/***********************************************************
+ * WUDPChannel
+ ************************************************************/
+
+WUDPChannel::WUDPChannel(const WEndPointInfo &endpoint, event_handle_p handle) {
+    auto socket = MakeBindedSocket(local_endpoint_);
+
+    this->handler_ = event_handler_t::CreateHandler(socket, this, handle);
+    this->handler_->SetEvents(HandlerEventType::EV_IN | HandlerEventType::EV_OUT);
+    this->handler_->Enable();
+
+    this->local_endpoint_ = endpoint;
+}
+
+WUDPChannel::~WUDPChannel() {
+    if(this->handler_) {
+        if(this->handler_->IsEnable())
+            this->handler_->DisEnable();
+
+        delete this->handler_;
+        this->handler_ = nullptr;
+    }
+}
+
+static constexpr int MAX_UDP_BUFFER_LEN = 1500;
+
+void WUDPChannel::ChannelIn() {
+    // std::cout << "accpet channel in" << std::endl;
+
+    WEndPointInfo ei;
+    uint8_t       buf[MAX_UDP_BUFFER_LEN];
+
+    auto recv_len = wlb::network::RecvFrom(this->handler_->socket_, buf, MAX_UDP_BUFFER_LEN, &ei);
+
+    if(recv_len <= 0) { // error
+        if(OnError) {
+            OnError(ErrorToString(GetError()));
+        }
+    } else {
+        if(!OnMessage) {
+            return;
+        }
+
+        OnMessage(local_endpoint_, ei, buf, recv_len, this->handler_);
+    }
+}
+
+void WUDPChannel::ChannelOut() {
+
+}
+
+/***********************************************************
+ * WChannel
+ ************************************************************/
+
+WChannel::WChannel(WEndPointInfo local, WEndPointInfo remote, event_handler_p h) :
+    local_endpoint_(local), remote_endpoint_(remote), event_handler_(h) {
     DEBUGADD("WChannel");
 
-    this->recv_buf_size_ = buffer_size;
-    this->recv_buf_      = new uint8_t[this->recv_buf_size_]{};
-    NEWADD;
+    assert(this->event_handler_);
 
-    this->send_buf_size_ = buffer_size;
-    this->send_buf_      = new uint8_t[this->send_buf_size_]{};
-    NEWADD;
+    this->event_handler_->SetEvents(HandlerEventType::EV_IN | HandlerEventType::EV_OUT);
+    this->event_handler_->Enable();
 }
 
 WChannel::~WChannel() {
     DEBUGRM("WChannel");
     // std::cout << "~WChannel" << std::endl;
 
-    if(event_handle_ != nullptr) {
-        // this->event_handle_->DelSocket(this->option_item_);
+    if(event_handler_ != nullptr) {
+        delete event_handler_;
+        event_handler_ = nullptr;
+    }
+    this->FreeRecvBuffer();
+    this->FreeSendBuffer();
+}
+
+bool WChannel::Init() { return true; }
+
+void WChannel::ShutDown(int how) {
+    // std::cout << "WChannel::ShutDown()" << std::endl;
+
+    assert(how >= SHUT_RD);
+    assert(how <= SHUT_RDWR);
+
+    ::shutdown(this->event_handler_->socket_, how);
+}
+
+void WChannel::CloseChannel() {}
+
+void WChannel::Send(uint8_t *send_message, uint64_t message_len) {
+    assert(message_len <= MAX_CHANNEL_SEND_SIZE);
+
+    // has buf
+    if (send_len_ > 0) {
+
     }
 
-    if(this->client_socket_) {
-        // ::close(this->client_socket_);
-        this->client_socket_ = 0;
+    // try to send
+    // auto res = ::send()
+
+}
+
+void WChannel::SetRecvBufferMaxSize(uint64_t size) {
+    assert(size <= MAX_CHANNEL_RECV_BUFFER_SIZE);
+
+    if(this->recv_buf_size_ == size) {
+        return;
     }
+
+    // event state has changed
+    // 0 -> newsize  or  oldsize -> 0
+    // if(this->recv_buf_size_ * size == 0) {
+    //     if(this->recv_buf_size_ > 0) { // 0 -> newsize
+    //         this->event_handler_->SetEvents(this->event_handler_->GetEvents() | HandlerEventType::EV_IN);
+    //         this->event_handler_->Enable();
+    //     } else { // oldsize -> 0
+    //         auto events = this->event_handler_->GetEvents();
+    //         events &= (!HandlerEventType::EV_IN);
+
+    //         // neither EV_IN and EV_OUT
+    //         this->event_handler_->SetEvents(this->event_handler_->GetEvents() | HandlerEventType::EV_IN);
+    //         if(events = 0) {
+    //             this->event_handler_->DisEnable();
+    //         }
+    //     }
+    // }
+
+    this->FreeSendBuffer();
+    this->recv_buf_size_ = size;
+    if(this->recv_buf_size_ > 0) {
+        this->recv_buf_ = new uint8_t[this->recv_buf_size_]{0};
+    }
+}
+void WChannel::SetSendBufferMaxSize(uint64_t size) {
+    assert(size <= MAX_CHANNEL_SEND_BUFFER_SIZE);
+
+    if(this->send_buf_size_ == size) {
+        return;
+    }
+
+    this->FreeSendBuffer();
+    this->send_buf_size_ = size;
+    if(this->send_buf_size_ > 0) {
+        this->send_buf_ = new uint8_t[this->send_buf_size_]{0};
+    }
+}
+
+void WChannel::FreeRecvBuffer() {
     if(this->recv_buf_) {
         DELADD;
         delete[] this->recv_buf_;
         this->recv_buf_ = nullptr;
     }
+}
+
+void WChannel::FreeSendBuffer() {
     if(this->send_buf_) {
         DELADD;
         delete[] this->send_buf_;
         this->send_buf_ = nullptr;
     }
-
-    event_handle_ = nullptr;
 }
-
-void WChannel::Init(base_socket_type socket, const WEndPointInfo &remote_endpoint) {
-    this->client_socket_   = socket;
-    this->remote_endpoint_ = remote_endpoint;
-}
-
 
 void WChannel::ChannelIn() {
-    assert(this->event_handle_);
+    assert(this->event_handler_);
     assert(this->recv_buf_size_);
 
     // std::cout << "WChannel ChannelIn this& " << this << std::endl;
 
     ssize_t recv_len = 0;
-    recv_len         = ::recv(this->client_socket_, this->recv_buf_, this->recv_buf_size_, 0);
+    // recv_len         = ::recv(this->client_socket_, this->recv_buf_, this->recv_buf_size_, 0);
     // std::cout << "WChannel::ChannelIn() channel in recv " << recv_len << std::endl;
 
     if(this->listener_ == nullptr) {
@@ -187,78 +310,37 @@ void WChannel::ChannelIn() {
 void WChannel::ChannelOut() {
     // std::cout << "WChannel::ChannelOut " << std::endl;
 
-    assert(this->event_handle_);
-    auto send_len = ::send(this->client_socket_, send_buf_, send_size_, 0);
+    assert(this->event_handler_);
+    // auto send_len = ::send(this->client_socket_, send_buf_, send_size_, 0);
     // std::cout << "WChannel::ChannelOut send message : " << (char *)send_buf_ << std::endl;
     // std::cout << "WChannel::ChannelOut send len: " << send_len << std::endl;
 
-    if(send_len == -1) {
-        if(this->listener_)
-            this->onChannelError(errno);
-    } else if(send_len == 0) {
-        this->onChannelClose();
-    } else {
-        if(send_len == send_size_) {
-            // send all, over
-            (*option_item_)->events_ &= (~KernelEventType::EV_OUT);
-            event_handle_->ModifySocket(option_item_);
-        } else {
-            ::memcpy(send_buf_, send_buf_ + send_len, send_size_ - send_len);
-        }
-        send_size_ -= send_len;
-    }
+    // if(send_len == -1) {
+    //     if(this->listener_)
+    //         this->onChannelError(errno);
+    // } else if(send_len == 0) {
+    //     this->onChannelClose();
+    // } else {
+    //     if(send_len == send_size_) {
+    //         // send all, over
+    //         (*option_item_)->events_ &= (~HandlerEventType::EV_OUT);
+    //         event_handle_->ModifySocket(option_item_);
+    //     } else {
+    //         ::memcpy(send_buf_, send_buf_ + send_len, send_size_ - send_len);
+    //     }
+    //     send_size_ -= send_len;
+    // }
 }
 
-void WChannel::SetEventHandle(event_handle_p handle) {
-    this->event_handle_ = handle;
-
-    if(this->event_handle_ != nullptr) {
-        option_item_ = event_handle_->NewSocket(new event_handle_t::option_type{
-                .socket_ = this->client_socket_, .user_data_ = this, .events_ = KernelEventType::EV_IN});
-    } else {
-        //
-    }
-}
-
-void WChannel::Send(void *send_message, uint64_t message_len) {
-    // std::cout << "wchannel send" << std::endl;
-    if(this->send_size_ + message_len > send_buf_size_) {
-        if(this->listener_)
-            // TODO:错误码
-            // over size
-            this->onChannelError(-1);
-        else {
-            std::cout << "no write error callback " << std::endl;
-        }
-    }
-
-    assert(this->send_buf_);
-
-    ::memcpy(this->send_buf_, (uint8_t *)send_message, message_len);
-    this->send_size_ += message_len;
-
-    // std::cout << "send message : " << (char *)send_buf_ << std::endl;
-
-    (*option_item_)->events_ |= KernelEventType::EV_OUT;
-    // std::cout << "WChannel Send & " << (*option_item_)->user_data_ << std::endl;
-    if(event_handle_ != nullptr) {
-        event_handle_->ModifySocket(option_item_);
-    }
-}
-
-void WChannel::CloseChannel() {
-    // std::cout << "WChannel::CloseChannel()" << std::endl;
-    ::shutdown(this->client_socket_, SHUT_RDWR);
-}
 void WChannel::onChannelClose() {
     // std::cout << "WChannel::onChannelClose()" << std::endl;
     // std::cout << "WChannel::onChannelClose() DelSocket" << std::endl;
-    this->event_handle_->DelSocket(option_item_);
-    close(this->client_socket_);
+//     this->event_handle_->DelSocket(option_item_);
+//     close(this->client_socket_);
     this->listener_->onChannelDisConnect();
 }
 void WChannel::onChannelError(uint64_t error_code) {
-    this->listener_->onError(error_code);
+    // this->listener_->onError(error_code);
     std::cout << "error " << strerror(errno) << std::endl;
 }
 

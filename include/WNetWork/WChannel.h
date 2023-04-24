@@ -2,9 +2,14 @@
 #ifndef UTILS_WCHANNEL_H
 #define UTILS_WCHANNEL_H
 
+#include <memory>
+
+
 #include "WEpoll.h"
 #include "WEvent.h"
+#include "WNetWorkDef.h"
 #include "WSelect.h"
+#include "stdIOVec.h"
 
 
 namespace wlb::network {
@@ -12,7 +17,12 @@ namespace wlb::network {
 
 class WBaseChannel {
 public:
+    WBaseChannel() {}
     virtual ~WBaseChannel() {}
+
+    // nocopy
+    WBaseChannel(const WBaseChannel &other)            = delete;
+    WBaseChannel &operator=(const WBaseChannel &other) = delete;
 
     virtual void ChannelIn()  = 0;
     virtual void ChannelOut() = 0;
@@ -39,42 +49,72 @@ private:
 
 /* Impl */
 
+/***********************************************************
+ * WTimer
+ ************************************************************/
 class WTimer : public ReadChannel {
 public:
     explicit WTimer(event_handle_p handle);
     ~WTimer() override;
 
-    typedef void (*on_time_cb_t)(void);
-    on_time_cb_t OnTime{nullptr};
+    std::function<void()> OnTime;
 
-    // time_value 初次启动的计时时长，单位为ms, interval循环定时器定时时长，单次定时器设置为0,默认采用相对时间
+    // time_value 初次启动的计时时长，单位为ms,
+    // interval循环定时器定时时长，单次定时器设置为0,默认采用相对时间
     bool Start(long time_value, long interval = 0);
     void Stop();
     // 定时器是否活跃，即是否已完成定时任务
-    inline bool IsActive() const { return this->active_; }
+    bool IsActive() const { return this->active_; }
 
 private:
     void ChannelIn() final;
 
 private:
-    event_handle_p                   handle_{nullptr};
-    event_handle_t::option_list_item item_;
-    timerfd_t                        timer_fd_{-1};
-    bool                             active_{false};
+    event_handler_p handler_{nullptr};
+    bool            active_{false};
 };
 
+/***********************************************************
+ * WAccepterChannel
+ ************************************************************/
+class WChannel;
 class WAccepterChannel : public ReadChannel {
 public:
-    explicit WAccepterChannel(base_socket_type socket, const WEndPointInfo &local_endpoint, event_context_p context);
+    explicit WAccepterChannel(const WEndPointInfo &local_endpoint, event_handle_p handle);
     ~WAccepterChannel() override;
+
+    std::function<WBaseChannel *(WEndPointInfo, WEndPointInfo, event_handler_p)> OnAccept;
+    std::function<void(const char *)>                                            OnError;
 
 private:
     void ChannelIn() final;
 
 private:
-    base_socket_type listen_socket_{-1};
-    WEndPointInfo    local_endpoint_;
-    event_context_p  event_context_{nullptr};
+    event_handler_p handler_{nullptr};
+    WEndPointInfo   local_endpoint_;
+};
+
+/***********************************************************
+ * WUDPChannel
+ ************************************************************/
+class WUDPChannel : public WBaseChannel {
+public:
+    explicit WUDPChannel(const WEndPointInfo &local_endpoint, event_handle_p handle);
+    ~WUDPChannel() override;
+
+    std::function<void(WEndPointInfo, WEndPointInfo, uint8_t *, uint32_t, event_handler_p)> OnMessage;
+    std::function<void(const char *)>                                                       OnError;
+
+    // TODO:Send
+    //
+
+private:
+    void ChannelIn() final;
+    void ChannelOut() final;
+
+private:
+    event_handler_p handler_{nullptr};
+    WEndPointInfo   local_endpoint_;
 };
 
 
@@ -94,54 +134,64 @@ enum class WChannelState {
 
 class WChannel : public WBaseChannel {
 public:
-    explicit WChannel(uint16_t buffer_size);
+    explicit WChannel(WEndPointInfo, WEndPointInfo, event_handler_p);
     ~WChannel() override;
-    // nocopy
-    WChannel(const WChannel &other)            = delete;
-    WChannel &operator=(const WChannel &other) = delete;
 
-    class Listener {
-    public:
-        virtual void onChannelDisConnect()                             = 0;
-        virtual void onReceive(uint8_t *message, uint64_t message_len) = 0;
-        virtual void onError(uint64_t err_code)                        = 0;
-    };
+    bool Init();
+    void ShutDown(int how); // Async
+    void CloseChannel();    // Sync
 
-    void        Init(base_socket_type socket, const WEndPointInfo &remote_endpoint);
-    inline void SetListener(Listener *listener) { this->listener_ = listener; }
-    void        SetEventHandle(event_handle_p handle);
-    void        CloseChannel(); // Async
-
-    virtual void Send(void *send_message, uint64_t message_len);
+    virtual void Send(uint8_t *send_message, uint64_t message_len);
 
 protected:
-    // can override
-    virtual void ChannelIn();
-    virtual void ChannelOut();
+    WChannelState   channelState_{WChannelState::CLOSE};
+    WEndPointInfo   local_endpoint_;
+    WEndPointInfo   remote_endpoint_;
+    event_handler_p event_handler_{nullptr};
 
-    void onChannelClose();
-    void onChannelError(uint64_t error_code);
+    // listener
+public:
+    class Listener {
+    public:
+        virtual void onChannelConnect()                                = 0;
+        virtual void onChannelDisConnect()                             = 0;
+        virtual void onReceive(uint8_t *message, uint64_t message_len) = 0;
+        virtual void onError(const char *err_message)                  = 0;
+    };
+
+    inline void SetListener(Listener *listener) { this->listener_ = listener; }
+
+protected:
+    Listener *listener_{nullptr};
+
+    // buffer
+public:
+    uint64_t GetRecvBufferSize() const { return recv_buf_size_; }
+    uint64_t GetSendBufferSize() const { return send_buf_size_; }
+    void     SetRecvBufferMaxSize(uint64_t);
+    void     SetSendBufferMaxSize(uint64_t);
 
 private:
-    // native socket
-    WChannelState                    channelState_{WChannelState::CLOSE};
-    base_socket_type                 client_socket_{-1};
-    WEndPointInfo                    remote_endpoint_;
-    event_handle_p                   event_handle_{nullptr};
-    event_handle_t::option_list_item option_item_;
-    // listener
-    Listener *listener_{nullptr};
+    void FreeRecvBuffer();
+    void FreeSendBuffer();
     // receive buffer
     uint8_t *recv_buf_{nullptr};
     uint64_t recv_buf_size_{0};
     // send buffer
     uint8_t *send_buf_{nullptr};
     uint64_t send_buf_size_{0};
-    uint64_t send_size_{0};
+    uint64_t send_len_{0}; // 发送的字节长度
+
+protected:
+    // can override
+    void ChannelIn() override;
+    void ChannelOut() override;
+    void onChannelClose();
+    void onChannelError(uint64_t error_code);
 };
 
 
 } // namespace wlb::network
 
 
-#endif //UTILS_WCHANNEL_H
+#endif // UTILS_WCHANNEL_H

@@ -24,6 +24,8 @@
 
 namespace wlb::network {
 
+int   GetError();
+char *ErrorToString(int error);
 
 enum AF_FAMILY { INET = AF_INET, INET6 = AF_INET6 };
 enum AF_PROTOL { TCP = IPPROTO_TCP, UDP = IPPROTO_UDP };
@@ -55,6 +57,11 @@ base_socket_type MakeSocket(enum AF_FAMILY family, enum AF_PROTOL protol);
 base_socket_type MakeTcpV4Socket();
 base_socket_type MakeUdpV4Socket();
 
+
+/***************************************************
+ * IP Port Utils
+ ****************************************************/
+
 bool IpAddrToString(in_addr addr, std::string *buf);
 bool IpAddrToString(in6_addr addr, std::string *buf);
 
@@ -74,11 +81,25 @@ bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo);
 base_socket_type MakeBindedSocket(const WEndPointInfo &info);
 base_socket_type MakeListenedSocket(const WEndPointInfo &info);
 
+/***************************************************
+ * TCP Utils
+ ****************************************************/
 // return -1 if fail
 base_socket_type Accept(base_socket_type socket, WEndPointInfo *info);
+base_socket_type Accept4(base_socket_type socket, WEndPointInfo *info, int flags);
 
 bool ConnectToHost(base_socket_type socket, const std::string &host, uint16_t port, bool isv4 = true);
 bool ConnectToHost(base_socket_type socket, const WEndPointInfo &info);
+
+/***************************************************
+ * UDP Utils
+ ****************************************************/
+
+int32_t RecvFrom(base_socket_type socket, uint8_t *buf, uint32_t buf_len, WEndPointInfo *info);
+
+/***************************************************
+ * Socket Utils
+ ****************************************************/
 
 // socket function
 bool SetSocketNoBlock(base_socket_type socket);
@@ -102,29 +123,27 @@ bool SetTcpSocketNoDelay(base_socket_type socket);
 //     bool                 ToNet6(sockaddr_in6 *_socketaddr_in6);
 // };
 
-// IP + port + isv4
-struct WEndPointInfo {
-    // union ip_addr {
-    //     sockaddr_in  addr4;
-    //     sockaddr_in6 addr6;
-    // };
 
-    // ip_addr   addr{0};
+// IP + port + family
+struct WEndPointInfo {
 
     static WEndPointInfo *MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family);
-    static std::tuple<std::string, uint16_t> Dump(const WEndPointInfo &);
 
     bool                  Assign(const std::string &address, uint16_t port, AF_FAMILY family);
-    bool                  Assign(const sockaddr& sock, AF_FAMILY family);
+    bool                  Assign(const sockaddr *sock, AF_FAMILY family);
     static WEndPointInfo *Emplace(const sockaddr *addr, AF_FAMILY family);
 
-    const sockaddr *GetAddr() const { return &addr_; }
+    const sockaddr *GetAddr() const { return (sockaddr *)&addr_; }
     AF_FAMILY       GetFamily() const { return family_; }
-    auto GetSockSize() const { return family_ == AF_FAMILY::INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6); }
+    unsigned long   GetSockSize() const {
+        return family_ == AF_FAMILY::INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
+    }
+    
+    static std::tuple<std::string, uint16_t> Dump(const WEndPointInfo &);
 
 private:
     AF_FAMILY family_;
-    sockaddr  addr_;
+    uint8_t   addr_[sizeof(sockaddr_in6)];
 
 private:
     /*
@@ -195,9 +214,7 @@ private:
 
 public:
     uint64_t hash{0u};
-    bool operator==(const WEndPointInfo& other) const noexcept {
-        return this->hash == other.hash;
-    }
+    bool     operator==(const WEndPointInfo &other) const noexcept { return this->hash == other.hash; }
 };
 
 
@@ -205,7 +222,7 @@ public:
 
 namespace std {
 template <>
-class hash<wlb::network::WEndPointInfo>  {
+class hash<wlb::network::WEndPointInfo> {
 public:
     size_t operator()(const wlb::network::WEndPointInfo &it) const noexcept { return it.hash; }
 };

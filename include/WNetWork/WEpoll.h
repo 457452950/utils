@@ -144,183 +144,188 @@ public:
     WBaseEpoll(const WBaseEpoll &other)            = delete;
     WBaseEpoll &operator=(const WBaseEpoll &other) = delete;
 
-    bool    Init();
-    void    Close();
-    int16_t GetErrorNo();
+    bool Init();
+    void Close();
 
     bool AddSocket(base_socket_type socket, uint32_t events);
     bool AddSocket(base_socket_type socket, uint32_t events, epoll_data_t data);
     bool ModifySocket(base_socket_type socket, uint32_t events);
     bool ModifySocket(base_socket_type socket, uint32_t events, epoll_data_t data);
-    void RemoveSocket(base_socket_type socket);
+    bool RemoveSocket(base_socket_type socket);
 
 
     int32_t GetEvents(epoll_event *events, int32_t events_size, int32_t timeout = 0);
 
 protected:
     epoll_type epoll_fd_{-1};
-    int16_t    errno_{-1};
 };
 
 
 template <typename UserData>
 class WEpoll final : public WEventHandle<UserData> {
 public:
-    WEpoll() {
-        if(!ep.Init()) {
-            std::cerr << "epoll init failed!" << std::endl;
-        }
-    }
-    ~WEpoll() {
-        this->Join();
+    WEpoll();
+    ~WEpoll();
 
-        if(this->work_thread_ != nullptr) {
-            delete this->work_thread_;
-            this->work_thread_ = nullptr;
-        }
+    using WEventHandler = typename WEventHandle<UserData>::WEventHandler;
 
-        while(!this->option_list_.empty()) {
-            delete this->option_list_.front();
-            this->option_list_.pop_front();
-        }
-    }
 
     // control
-    typename WEventHandle<UserData>::option_list_item
-    NewSocket(typename WEventHandle<UserData>::option_type *option) override {
-        assert(option != nullptr);
+    bool AddSocket(WEventHandler *handler) override;
+    bool ModifySocket(WEventHandler *handler) override;
+    void DelSocket(WEventHandler *handler) override;
 
-        uint32_t     ev = 0;
-        epoll_data_t d{0};
-
-        if(option->events_ & KernelEventType::EV_IN) {
-            ev |= EPOLLIN;
-        }
-        if(option->events_ & KernelEventType::EV_OUT) {
-            ev |= EPOLLOUT;
-        }
-
-        d.ptr = (void *)option;
-
-        // // std::cout << "in evetns " << (int)ed->events_ << " - " << (int)events << " =" << std::endl;
-        // std::cout << "in ed & " << ed << std::endl;
-        // std::cout << "WEpoll::NewSocket new hdle_option_t & " << d.ptr << std::endl;
-
-        if(!ep.AddSocket(option->socket_, ev, d)) {
-            return this->option_list_.end();
-        }
-
-        ++this->fd_count_;
-
-        this->option_list_.push_front(option);
-        return this->option_list_.begin();
-    }
-    void ModifySocket(typename WEventHandle<UserData>::option_list_item item) override {
-        uint32_t     ev     = 0;
-        uint8_t      events = (*item)->events_;
-        epoll_data_t d{0};
-
-        if(events & KernelEventType::EV_IN) {
-            ev |= EPOLLIN;
-        }
-        if(events & KernelEventType::EV_OUT) {
-            ev |= EPOLLOUT;
-        }
-
-        d.ptr = (*item);
-
-        ep.ModifySocket((*item)->socket_, ev, d);
-    }
-    void DelSocket(typename WEventHandle<UserData>::option_list_item item) override {
-        --this->fd_count_;
-        this->ep.RemoveSocket((*item)->socket_);
-        delete *item;
-        *item = nullptr;
-        this->option_list_.erase(item);
-    }
-
-    // thread control
-    void Start() override {
-        this->active_      = true;
-        this->work_thread_ = new std::thread(&WEpoll::EventLoop, this);
-    }
-    void Detach() override { this->work_thread_->detach(); }
-    void Stop() override { this->active_ = false; }
-    void Join() override {
-        if(this->work_thread_ && this->work_thread_->joinable()) {
-            this->work_thread_->join();
-        }
-    }
+    bool Init();
+    void Loop() override;
+    void Stop() override;
 
 private:
-    void EventLoop() {
-
-        epoll_event *events;
-
-        // std::cout << "WEpoll::EventLoop() wepoll event loop start" << std::endl;
-
-        while(this->active_) {
-            int events_size = fd_count_;
-            // std::cout << "WEpoll::EventLoop() array len " << events_size << std::endl;
-            events = new epoll_event[events_size];
-
-            events_size = ep.GetEvents(events, events_size, -1);
-            // std::cout << "WEpoll::EventLoop() get events return " << events_size << std::endl;
-
-            if(events_size == -1) {
-                // std::cout << "WEpoll::EventLoop() error : " << strerror(errno) << std::endl;
-                break;
-            } else if(events_size == 0) {
-                continue;
-            }
-
-            // for(auto i : this->option_list_) {
-            //     // std::cout << i->socket_ << std::endl;
-            // }
-
-            for(size_t i = 0; i < events_size; ++i) {
-                // std::cout << "events index " << i << std::endl;
-
-                uint32_t ev   = events[i].events;
-                auto    *data = (typename WEventHandle<UserData>::hdle_option_t *)events[i].data.ptr;
-                assert(data);
-                base_socket_type sock = data->socket_;
-                uint8_t          eev  = data->events_;
-
-                // std::cout << "out & " << data << std::endl;
-                // std::cout << ev << " - - " << (int)eev << std::endl;
-
-                // std::cout << "socket " << sock << std::endl;
-                assert(sock > 0);
-
-                if(ev & EPOLLOUT && eev & KernelEventType::EV_OUT) {
-                    if(this->write_) {
-                        // std::cout << "write start" << std::endl;
-                        this->write_(sock, data->user_data_);
-                    }
-                }
-                if(ev & EPOLLIN && eev & KernelEventType::EV_IN) {
-                    if(this->read_) {
-                        // std::cout << "read start" << std::endl;
-                        this->read_(sock, data->user_data_);
-                        // std::cout << "read over" << std::endl;
-                    }
-                }
-            }
-
-            delete[] events;
-        }
-    }
+    static uint32_t ParseToEpollEvent(uint8_t events);
+    void     EventLoop();
 
 private:
-    WBaseEpoll                                   ep;
-    typename WEventHandle<UserData>::option_list option_list_;
-    uint32_t                                     fd_count_{0};
-    bool                                         active_{false};
-    std::thread                                 *work_thread_{nullptr};
+    WBaseEpoll   ep;
+    uint32_t     fd_count_{0};
+    bool         active_{false};
 };
+
+
+template <typename UserData>
+WEpoll<UserData>::WEpoll() {}
+
+template <typename UserData>
+WEpoll<UserData>::~WEpoll() {
+    this->Stop();
+}
+
+
+template <typename UserData>
+bool WEpoll<UserData>::Init() {
+    // DONE: 独立出Init函数
+    if(!ep.Init()) {
+        // std::cerr << "epoll init failed!" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+
+template <typename UserData>
+bool WEpoll<UserData>::AddSocket(WEventHandler *handler) {
+    epoll_data_t ep_data{0};
+
+    ep_data.ptr = handler;
+    auto ev     = this->ParseToEpollEvent(handler->GetEvents());
+
+    if(!ep.AddSocket(handler->socket_, ev, ep_data)) {
+        return false;
+    }
+
+    ++this->fd_count_;
+
+    return true;
+}
+
+template <typename UserData>
+bool WEpoll<UserData>::ModifySocket(WEventHandler *handler) {
+    epoll_data_t ep_data{0};
+
+    ep_data.ptr = handler->user_data_;
+    auto ev     = this->ParseToEpollEvent(handler->GetEvents());
+
+    return ep.ModifySocket(handler->socket_, ev, ep_data);
+}
+
+template <typename UserData>
+void WEpoll<UserData>::DelSocket(WEventHandler *handler) {
+
+    if(!this->ep.RemoveSocket(handler->socket_)) {
+        return;
+    }
+
+    --this->fd_count_;
+}
+
+template <typename UserData>
+void WEpoll<UserData>::Loop() {
+    this->active_ = true;
+    this->EventLoop();
+}
+
+template <typename UserData>
+inline void WEpoll<UserData>::Stop() {
+    this->active_ = false;
+}
+
+template <typename UserData>
+uint32_t WEpoll<UserData>::ParseToEpollEvent(uint8_t events) {
+    uint32_t ev = 0;
+    if(events & HandlerEventType::EV_IN) {
+        ev |= EPOLLIN;
+    }
+    if(events & HandlerEventType::EV_OUT) {
+        ev |= EPOLLOUT;
+    }
+    return ev;
+}
+
+
+template <typename UserData>
+void WEpoll<UserData>::EventLoop() {
+
+    epoll_event *events;
+
+    while(this->active_) {
+        int events_size = fd_count_;
+        events          = new epoll_event[events_size];
+
+        events_size = ep.GetEvents(events, events_size, -1);
+
+        if(!this->active_) {
+            delete events;
+            break;
+        }
+
+        if(events_size == -1) {
+            break;
+        } else if(events_size == 0) {
+            // TODO:add timeout event
+            continue;
+        }
+
+        for(size_t i = 0; i < events_size; ++i) {
+
+            if(!this->active_) {
+                delete events;
+                break;
+            }
+
+            uint32_t ev   = events[i].events;
+            auto    *data = (typename WEventHandle<UserData>::WEventHandler *)events[i].data.ptr;
+
+            assert(data);
+            base_socket_type sock = data->socket_;
+            uint8_t          eev  = data->GetEvents();
+
+            assert(sock > 0);
+
+            if(ev & EPOLLOUT && eev & HandlerEventType::EV_OUT) {
+                if(this->write_) {
+                    this->write_(sock, data->user_data_);
+                }
+            }
+            if(ev & EPOLLIN && eev & HandlerEventType::EV_IN) {
+                if(this->read_) {
+                    this->read_(sock, data->user_data_);
+                }
+            }
+        }
+
+        delete[] events;
+    }
+}
 
 
 } // namespace wlb::network
 
-#endif //UTILS_WEPOLL_H
+#endif // UTILS_WEPOLL_H

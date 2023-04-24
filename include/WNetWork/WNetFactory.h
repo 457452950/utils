@@ -59,7 +59,9 @@ inline event_handle_p CreateNetHandle(HandleType type) {
  */
 class WChannelFactory {
 public:
-    virtual std::unique_ptr<WChannel> CreateChannel() { return std::make_unique<WChannel>(this->buffer_size_); };
+    virtual std::unique_ptr<WChannel> CreateChannel(){
+            // return std::make_unique<WChannel>(this->buffer_size_);
+    };
 
     void SetChannelBufferSize(uint16_t size) noexcept { this->buffer_size_ = size; }
 

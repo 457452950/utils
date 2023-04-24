@@ -72,6 +72,11 @@ int32_t EpollGetEvents(epoll_type epoll, struct epoll_event *events, int32_t eve
 
 void CloseEpoll(epoll_type epoll) { ::close(epoll); }
 
+
+/*************************************************
+ * base epoll 
+**************************************************/
+
 WBaseEpoll::WBaseEpoll() { DEBUGADD("WBaseEpoll"); }
 WBaseEpoll::~WBaseEpoll() {
     this->Close();
@@ -81,7 +86,6 @@ WBaseEpoll::~WBaseEpoll() {
 bool WBaseEpoll::Init() {
     this->epoll_fd_ = CreateNewEpollFd();
     if(this->epoll_fd_ == -1) {
-        this->errno_ = errno;
         return false;
     }
     return true;
@@ -99,7 +103,6 @@ bool WBaseEpoll::AddSocket(base_socket_type socket, uint32_t events) {
     assert(events > 0);
 
     if(!EpollAddSocket(this->epoll_fd_, socket, events)) {
-        this->errno_ = errno;
         return false;
     }
     return true;
@@ -109,7 +112,6 @@ bool WBaseEpoll::ModifySocket(base_socket_type socket, uint32_t events) {
     assert(socket != -1);
 
     if(!EpollModifySocket(this->epoll_fd_, socket, events)) {
-        this->errno_ = errno;
         return false;
     }
     return true;
@@ -119,11 +121,7 @@ bool WBaseEpoll::AddSocket(base_socket_type socket, uint32_t events, epoll_data_
     assert(socket != -1);
     assert(events > 0);
 
-    // std::cout << "WBaseEpoll::AddSocket in & " << data.ptr << std::endl;
-    // std::cout << "WBaseEpoll::AddSocket socket : " << socket << std::endl;
-
     if(!EpollAddSocket(this->epoll_fd_, socket, events, data)) {
-        this->errno_ = errno;
         return false;
     }
     return true;
@@ -134,32 +132,28 @@ bool WBaseEpoll::ModifySocket(base_socket_type socket, uint32_t events, epoll_da
     assert(events > 0);
 
     if(!EpollModifySocket(this->epoll_fd_, socket, events, data)) {
-        this->errno_ = errno;
         return false;
     }
     return true;
 }
 
-void WBaseEpoll::RemoveSocket(base_socket_type socket) {
+bool WBaseEpoll::RemoveSocket(base_socket_type socket) {
     assert(socket != -1);
 
-    if(!EpollRemoveSocket(this->epoll_fd_, socket)) {
-        this->errno_ = errno;
-    }
+    return EpollRemoveSocket(this->epoll_fd_, socket);
 }
 
 int32_t WBaseEpoll::GetEvents(epoll_event *events, int32_t events_size, int32_t timeout) {
     auto res = EpollGetEvents(this->epoll_fd_, events, events_size, timeout);
-    if(res == -1) {
-        this->errno_ = errno;
-        return -1;
-    }
+    // if(res == -1) {
+    //     return -1;
+    // }
     return res;
 }
-int16_t WBaseEpoll::GetErrorNo() {
-    int16_t e    = this->errno_;
-    this->errno_ = -1;
-    return e;
-}
+
+
+
+
+
 
 } // namespace wlb::network

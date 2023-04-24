@@ -1,7 +1,12 @@
 #include "WNetWork/WNetWorkUtils.h"
+#include <cassert>
 #include <iostream>
 
 namespace wlb::network {
+
+
+int   GetError() { return errno; }
+char *ErrorToString(int error) { return strerror(error); }
 
 timerfd_t CreateNewTimerfd() {
     // return ::timerfd_create(CLOCK_REALTIME_ALARM, TFD_NONBLOCK | TFD_CLOEXEC);
@@ -107,9 +112,13 @@ bool MakeSockAddr_in6(const std::string &ip_address, uint16_t port, sockaddr_in6
     uint16_t h_port   = 0;
     in6_addr h_addr{};
 
-    HtoNS(port, &h_port);
+    if(!HtoNS(port, &h_port)) {
+        std::cout << "MakeSockAddr_in6 HtoNS" << std::endl;
+        return false;
+    }
 
     if(!IPStringToAddress(ip_address, &h_addr)) {
+        std::cout << "MakeSockAddr_in6 IPStringToAddress err" << std::endl;
         return false;
     }
 
@@ -138,6 +147,8 @@ bool Bind(base_socket_type socket, const std::string &host, uint16_t port, bool 
             return false;
         }
 
+        std::cout << "Bind " << host << " : " << port << " " << sizeof(ei) << std::endl;
+
         int32_t ok = ::bind(socket, (struct sockaddr *)&(ei), sizeof(ei));
         if(ok == 0) {
             return true;
@@ -148,6 +159,9 @@ bool Bind(base_socket_type socket, const std::string &host, uint16_t port, bool 
 }
 
 bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo) {
+
+    auto t = WEndPointInfo::Dump(serverInfo);
+    std::cout << "Bind " << std::get<0>(t) << " : " << std::get<1>(t) << " " << serverInfo.GetSockSize() << std::endl;
 
     auto ok = ::bind(socket, serverInfo.GetAddr(), serverInfo.GetSockSize());
     if(ok == 0) {
@@ -181,7 +195,7 @@ base_socket_type MakeListenedSocket(const WEndPointInfo &info) {
 
     listen_sock = MakeSocket(fami, AF_PROTOL::TCP);
     if(listen_sock == -1) {
-        std::cout << "make listened socket : make socket failed" << strerror(errno) << std::endl;
+        std::cout << "make listened socket : make socket failed " << strerror(errno) << std::endl;
         return listen_sock;
     }
 
@@ -196,15 +210,30 @@ base_socket_type MakeListenedSocket(const WEndPointInfo &info) {
 }
 
 base_socket_type Accept(base_socket_type socket, WEndPointInfo *info) {
-    socklen_t len = 0;
-
-    sockaddr         temp;
-    base_socket_type clientsock = ::accept(socket, &temp, &len);
+    socklen_t        len = 0;
+    sockaddr_in6     temp;
+    base_socket_type clientsock = ::accept(socket, (sockaddr *)&temp, &len);
     if(clientsock < 0) {
         return -1;
     }
     // clang-format off
-    info->Assign(temp, 
+    info->Assign((sockaddr*)&temp, 
+        len == sizeof(sockaddr_in) ? 
+        AF_FAMILY::INET : AF_FAMILY::INET6);
+    // clang-format on
+
+    return clientsock;
+}
+
+base_socket_type Accept4(base_socket_type socket, WEndPointInfo *info, int flags) {
+    socklen_t        len = 0;
+    sockaddr_in6     temp;
+    base_socket_type clientsock = ::accept4(socket, (sockaddr *)&temp, &len, flags);
+    if(clientsock < 0) {
+        return -1;
+    }
+    // clang-format off
+    info->Assign((sockaddr*)&temp, 
         len == sizeof(sockaddr_in) ? 
         AF_FAMILY::INET : AF_FAMILY::INET6);
     // clang-format on
@@ -241,6 +270,30 @@ bool ConnectToHost(base_socket_type socket, const WEndPointInfo &info) {
     return false;
 }
 
+/***************************************************
+ * UDP Utils
+ ****************************************************/
+
+int32_t RecvFrom(base_socket_type socket, uint8_t *buf, uint32_t buf_len, WEndPointInfo* info) { 
+    socklen_t        len = 0;
+    sockaddr_in6     temp;
+    auto recv_len = ::recvfrom(socket, buf, buf_len, 0, (sockaddr *)&temp, &len); 
+    if(recv_len < 0) {
+        return -1;
+    }
+
+    // clang-format off
+    info->Assign((sockaddr*)&temp, 
+        len == sizeof(sockaddr_in) ? 
+        AF_FAMILY::INET : AF_FAMILY::INET6);
+    // clang-format on
+
+    return recv_len;
+}
+
+/***************************************************
+ * Socket Utils
+ ****************************************************/
 bool SetSocketNoBlock(base_socket_type socket) {
     if(::fcntl(socket, F_SETFL, ::fcntl(socket, F_GETFL, 0) | O_NONBLOCK) == -1) {
         return false;
@@ -336,18 +389,21 @@ bool WEndPointInfo::Assign(const std::string &address, uint16_t port, AF_FAMILY 
     case AF_FAMILY::INET:
         ok = MakeSockAddr_in(address, port, (sockaddr_in *)&this->addr_);
         if(!ok) {
+            std::cout << "MakeSockAddr_in falied" << std::endl;
             goto err;
         }
         break;
     case AF_FAMILY::INET6:
         ok = MakeSockAddr_in6(address, port, (sockaddr_in6 *)&this->addr_);
         if(!ok) {
+            std::cout << "MakeSockAddr_in6 falied" << std::endl;
             goto err;
         }
         break;
 
     default:
         // never achieve
+        std::cout << "never achieve" << std::endl;
         goto err;
         break;
     }
@@ -358,16 +414,39 @@ err:
     return false;
 }
 
-bool WEndPointInfo::Assign(const sockaddr &addr, AF_FAMILY family) { 
-    this->addr_ = addr;
+bool WEndPointInfo::Assign(const sockaddr *addr, AF_FAMILY family) {
     this->family_ = family;
+
+    switch(this->family_) {
+    case AF_INET:
+        memcpy(this->addr_, addr, sizeof(sockaddr_in));
+        break;
+    case AF_INET6:
+        memcpy(this->addr_, addr, sizeof(sockaddr_in6));
+    default:
+        assert("never acheive");
+        break;
+    }
+
     this->SetHash();
     return true;
- }
+}
+
 WEndPointInfo *WEndPointInfo::Emplace(const sockaddr *addr, AF_FAMILY family) {
     auto info     = new WEndPointInfo();
-    info->addr_   = *addr;
     info->family_ = family;
+
+    switch(info->family_) {
+    case AF_INET:
+        memcpy(info->addr_, addr, sizeof(sockaddr_in));
+        break;
+    case AF_INET6:
+        memcpy(info->addr_, addr, sizeof(sockaddr_in6));
+    default:
+        assert("never acheive");
+        break;
+    }
+
     info->SetHash();
     return info;
 }

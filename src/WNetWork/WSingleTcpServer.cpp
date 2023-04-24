@@ -37,9 +37,12 @@ WSingleTcpServer::~WSingleTcpServer() {
     }
 }
 
-void WSingleTcpServer::Start() { this->contex_.event_handle_->Start(); }
-void WSingleTcpServer::Join() { this->contex_.event_handle_->Join(); }
-void WSingleTcpServer::Detach() { this->contex_.event_handle_->Detach(); }
+void WSingleTcpServer::Start() { // this->contex_.event_handle_->Start(); 
+}
+void WSingleTcpServer::Join() { // this->contex_.event_handle_->Join(); 
+}
+void WSingleTcpServer::Detach() { // this->contex_.event_handle_->Detach(); 
+}
 
 bool WSingleTcpServer::AddAccepter(const std::string &IpAddress, uint16_t port, bool isv4) {
     auto info = WEndPointInfo::MakeWEndPointInfo(
@@ -60,7 +63,7 @@ bool WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) {
     }
 
     if(l == -1) {
-        // std::cout << "WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) MakeSocket err " << std::endl;
+        std::cout << "WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) MakeSocket err " << std::endl;
         return false;
     }
 
@@ -70,18 +73,22 @@ bool WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) {
 
     auto ok = Bind(l, local_info);
     if(!ok) {
-        // std::cout << "WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) Bind err " << std::endl;
+        std::cout << "WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) Bind err " << std::endl;
         return false;
+    } else {
+        std::cout << "WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) Bind ok " << std::endl;
     }
 
     int res = listen(l, 1024);
     if(res != 0) {
-        // std::cout << "WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) listen err " << std::endl;
+        std::cout << "WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) listen err " << std::endl;
         return false;
+    } else {
+        std::cout << "WSingleTcpServer::AddAccepter(const WEndPointInfo &local_info) listen ok " << std::endl;
     }
 
-    auto *a = new WAccepterChannel(l, local_info, &this->contex_);
-    accepters_.push_back(a);
+    // auto *a = new WAccepterChannel(l, local_info, &this->contex_);
+    // accepters_.push_back(a);
     return true;
 }
 

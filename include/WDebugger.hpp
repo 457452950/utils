@@ -45,13 +45,13 @@ public:
         this->_isActive = true;
         this->_timer->Start(timeout, timeout);
 
-        debuggerHandle->Start();
+        // debuggerHandle->Start();
         // debuggerHandle->Detach();
         return true;
     };
     inline bool IsActive() const { return this->_isActive; }
     void        Destroy() {
-               debuggerHandle->Join();
+            //    debuggerHandle->Join();
                delete this->_timer;
                this->_timer = nullptr;
     };
