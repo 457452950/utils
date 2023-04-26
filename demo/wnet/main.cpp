@@ -17,7 +17,8 @@ void test_preadv_pwritev();
 void test_iovec();
 void test_ipv6();
 void test_wepoll();
-void test_channel();
+void test_tcpchannel();
+void test_udpchannel();
 void test_tcpserver();
 void test_myChannel();
 
@@ -52,11 +53,15 @@ int main() {
     // test_ipv6();
     // test_wepoll();
 
-    test_channel();
+    // test_tcpchannel();
+    test_udpchannel();
     // test_tcpserver();
     // test_myChannel();
 }
 
+/**
+ * test_preadv_pwritev
+ */
 void test_preadv_pwritev() {
 
     auto sock = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
@@ -167,6 +172,9 @@ void test_preadv_pwritev() {
     }
 }
 
+/**
+ * test_iovec
+ */
 void test_iovec() {
 
     auto sock = MakeSocket(AF_FAMILY::INET, AF_PROTOL::TCP);
@@ -286,6 +294,9 @@ void test_iovec() {
     ::close(sock);
 }
 
+/**
+ * test_ipv6
+ */
 void test_ipv6() {
 
     auto sock = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
@@ -327,6 +338,10 @@ void test_ipv6() {
     cout << "client : ip " << std::get<0>(info) << " port:" << std::get<1>(info) << endl;
 }
 
+
+/**
+ * test_wepoll
+ */
 struct test_s {
     std::function<void(int)> f;
     int                      n;
@@ -351,7 +366,6 @@ auto r_cb = [](base_socket_type sock, WSelect<test_s>::user_data_ptr data) {
     auto t = (test_s *)data;
     t->f(t->n);
 };
-
 
 void test_wepoll() {
     cout << "test wepoll " << endl;
@@ -398,6 +412,9 @@ void test_wepoll() {
 }
 
 
+/**
+ * test_tcpchannel
+ */
 auto in_cb = [](base_socket_type sock, WBaseChannel *data) {
     auto *ch = (ReadChannel *)data;
     // cout << "get channel call channel in" << std::endl;
@@ -420,10 +437,12 @@ public:
         ch->Send(message, message_len);
         ch->Send(message, message_len);
         ch->Send(message, message_len);
+        ch->Send(message, message_len);
+        ch->Send(message, message_len);
+        ch->Send(message, message_len);
+        ch->Send(message, message_len);
     }
-    virtual void onError(const char *err_message) {
-        std::cout << err_message << endl;
-    }
+    virtual void onError(const char *err_message) { std::cout << err_message << endl; }
 
 private:
     WChannel *ch;
@@ -440,7 +459,7 @@ auto ac_cb = [](WEndPointInfo local, WEndPointInfo remote, event_handler_p handl
     return ch;
 };
 
-void test_channel() {
+void test_tcpchannel() {
     cout << "test channel " << endl;
 
     WEpoll<WBaseChannel> ep;
@@ -457,7 +476,7 @@ void test_channel() {
     bool res = ConnectToHost(cli, "0:0:0:0:0:0:0:1", 4000, 0);
 
     if(!res) {
-        cout << "[test_channel]connect error : " << strerror(errno) << endl;
+        cout << "[test_tcpchannel]connect error : " << strerror(errno) << endl;
         return;
     } else {
         cout << "connect ok" << endl;
@@ -474,7 +493,8 @@ void test_channel() {
             // clang-format off
             cout 
                 // << "cli recv :" << std::string(buf, l) 
-                << " total : " << total << endl;
+                << " total : " << total 
+                << endl;
             // clang-format on
         }
     });
@@ -486,12 +506,12 @@ void test_channel() {
         //                 .count()
         //      << " ontime!!!" << endl;
         static int i = 0;
-        
-        ::send(cli, "hehellollohellohellohellohellohellohellohellohellohellohellohello", 66, 0);
-        ::send(cli, "hehellollohellohellohellohellohellohellohellohellohellohellohello", 66, 0);
-        ::send(cli, "hehellollohellohellohellohellohellohellohellohellohellohellohello", 66, 0);
+
+        ::send(cli, "hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73, 0);
+        ::send(cli, "hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73, 0);
+        ::send(cli, "hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73, 0);
         ++i;
-        if (i == 10000)
+        if(i == 10000)
             t.Stop();
     };
     t.Start(100, 1);
@@ -500,6 +520,81 @@ void test_channel() {
     thr.join();
 }
 
+/**
+ * test_udpchannel
+ */
+void test_udpchannel() {
+    WEpoll<WBaseChannel> ep;
+    ep.Init();
+    ep.read_  = in_cb;
+    ep.write_ = out_cb;
+
+    WEndPointInfo srv_ed;
+    // srv_ed.Assign("::1", 4000, AF_FAMILY::INET6);
+    srv_ed.Assign("192.168.101.2", 4000, AF_FAMILY::INET);
+    auto [ip, port] = WEndPointInfo::Dump(srv_ed);
+    cout << "[" << ip << ":" << port << "]" << std::endl;
+
+
+    WEndPointInfo cli_ed;
+    // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
+    cli_ed.Assign("192.168.101.2", 4001, AF_FAMILY::INET);
+    auto cli = MakeBindedSocket(cli_ed);
+
+    auto udp_srv = new WUDPChannel(srv_ed, &ep);
+
+    auto onmsg = [&](const wlb::network::WEndPointInfo &local,
+                     const wlb::network::WEndPointInfo &remote,
+                     const uint8_t                     *msg,
+                     uint32_t                           msg_len,
+                     wlb::network::event_handler_p      h) {
+        auto [lip, lport] = WEndPointInfo::Dump(local);
+        auto [rip, rport] = WEndPointInfo::Dump(remote);
+
+        fprintf(stdout,
+                "remote[%s:%d] --> local[%s:%d] msg:[%s] len:%d\n",
+                rip.c_str(),
+                rport,
+                lip.c_str(),
+                lport,
+                (char *)msg,
+                msg_len);
+        std::cout.flush();
+
+        udp_srv->SendTo(msg, msg_len, cli_ed);
+    };
+    auto onerr = [](const char *msg) { cout << "[test_udpchannel]onerr err : " << msg << endl; };
+
+    udp_srv->OnMessage = onmsg;
+    udp_srv->OnError   = onerr;
+
+    std::thread th1([&]() { ep.Loop(); });
+
+    std::thread th2([&]() {
+        char send_msg[] = "afsafsfsfagrtgtbgfbstrbsrbrtbrbstrgbtrbsfdsvbfsdsvbsrtbv";
+
+        sendto(cli, send_msg, strlen(send_msg), 0, srv_ed.GetAddr(), srv_ed.GetSockSize());
+
+        WEndPointInfo srv_;
+        char          cli_buf[1500] = {0};
+
+        auto len = RecvFrom(cli, (uint8_t *)cli_buf, 1500, &srv_);
+        if(len <= 0) {
+            std::cout << "cli recv from err " << ErrorToString(GetError()) << endl;
+        } else {
+            auto [ip, port] = WEndPointInfo::Dump(srv_);
+            cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
+        }
+    });
+    th1.join();
+
+    delete udp_srv;
+}
+
+
+/**
+ * test_tcpserver
+ */
 // auto acc_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> bool {
 //     // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
 

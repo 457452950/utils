@@ -143,7 +143,7 @@ struct WEndPointInfo {
 
 private:
     AF_FAMILY family_;
-    uint8_t   addr_[sizeof(sockaddr_in6)];
+    uint8_t   addr_[sizeof(sockaddr_in6)]{0};
 
 private:
     /*

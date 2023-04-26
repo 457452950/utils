@@ -34,8 +34,8 @@ base_socket_type MakeUdpV4Socket() { return MakeSocket(AF_FAMILY::INET, AF_PROTO
 
 bool IpAddrToString(in_addr addr_, std::string *buf) {
     try {
-        int32_t _len = 30;
-        char   *_buf = new char[_len];
+        constexpr int32_t _len = 50;
+        char             *_buf = new char[_len]{0};
         if(::inet_ntop((int)AF_FAMILY::INET, (void *)&addr_, _buf, _len) == nullptr) {
             buf->clear();
             return false;
@@ -52,8 +52,8 @@ bool IpAddrToString(in_addr addr_, std::string *buf) {
 
 bool IpAddrToString(in6_addr addr, std::string *buf) {
     try {
-        int32_t _len = 50;
-        char   *_buf = new char[_len];
+        constexpr int32_t _len = 100;
+        char             *_buf = new char[_len];
         if(::inet_ntop((int)AF_FAMILY::INET6, (void *)&addr, _buf, _len) == nullptr) {
             buf->clear();
             return false;
@@ -76,7 +76,7 @@ bool IPStringToAddress(const std::string &ip_str, in_addr *addr) {
 }
 
 bool IPStringToAddress(const std::string &ip_str, in6_addr *addr) {
-    std::cout << "IPStringToAddress " << ip_str << std::endl;
+    std::cout << "IPv6StringToAddress " << ip_str << std::endl;
     if(::inet_pton(AF_INET6, ip_str.c_str(), (void *)addr) == 1) {
         return true;
     }
@@ -100,6 +100,7 @@ bool MakeSockAddr_in(const std::string &ip_address, uint16_t port, sockaddr_in *
     HtoNS(port, &h_port);
 
     if(!IPStringToAddress(ip_address, &h_addr)) {
+        std::cout << "MakeSockAddr_in fail " << ip_address << std::endl;
         return false;
     }
 
@@ -113,12 +114,12 @@ bool MakeSockAddr_in6(const std::string &ip_address, uint16_t port, sockaddr_in6
     in6_addr h_addr{};
 
     if(!HtoNS(port, &h_port)) {
-        std::cout << "MakeSockAddr_in6 HtoNS" << std::endl;
+        std::cout << "MakeSockAddr_in6 HtoNS " << std::endl;
         return false;
     }
 
     if(!IPStringToAddress(ip_address, &h_addr)) {
-        std::cout << "MakeSockAddr_in6 IPStringToAddress err" << std::endl;
+        std::cout << "MakeSockAddr_in6 IPStringToAddress err " << std::endl;
         return false;
     }
 
@@ -173,19 +174,28 @@ bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo) {
 
 
 base_socket_type MakeBindedSocket(const WEndPointInfo &info) {
-    base_socket_type listen_sock = 0;
-    auto             fami        = info.GetFamily();
+    base_socket_type bind_sock = 0;
+    auto             fami      = info.GetFamily();
 
-    listen_sock = MakeSocket(fami, AF_PROTOL::UDP);
-    if(listen_sock == -1) {
-        std::cout << "make listened socket : make socket failed" << strerror(errno) << std::endl;
-        return listen_sock;
+    auto [ip, port] = WEndPointInfo::Dump(info);
+
+    bind_sock = MakeSocket(fami, AF_PROTOL::UDP);
+    if(bind_sock == -1) {
+        std::cout << "MakeBindedSocket : make [" << ip << ":" << port << "] socket failed " << strerror(errno)
+                  << std::endl;
+        return bind_sock;
     }
 
-    if(Bind(listen_sock, info)) {
-        return listen_sock;
+    // SetSocketNoBlock(bind_sock);
+    SetSocketReuseAddr(bind_sock);
+    SetSocketReusePort(bind_sock);
+
+    if(Bind(bind_sock, info)) {
+        return bind_sock;
     }
-    close(listen_sock);
+    
+    std::cout << "MakeBindedSocket : Bind [" << ip << ":" << port << "] failed " << strerror(errno) << std::endl;
+    close(bind_sock);
     return -1;
 }
 
@@ -277,10 +287,10 @@ bool ConnectToHost(base_socket_type socket, const WEndPointInfo &info) {
  * UDP Utils
  ****************************************************/
 
-int32_t RecvFrom(base_socket_type socket, uint8_t *buf, uint32_t buf_len, WEndPointInfo* info) { 
-    socklen_t        len = 0;
-    sockaddr_in6     temp;
-    auto recv_len = ::recvfrom(socket, buf, buf_len, 0, (sockaddr *)&temp, &len); 
+int32_t RecvFrom(base_socket_type socket, uint8_t *buf, uint32_t buf_len, WEndPointInfo *info) {
+    socklen_t    len = 0;
+    sockaddr_in6 temp{0};
+    auto         recv_len = ::recvfrom(socket, buf, buf_len, 0, (sockaddr *)&temp, &len);
     if(recv_len < 0) {
         return -1;
     }
@@ -390,6 +400,7 @@ bool WEndPointInfo::Assign(const std::string &address, uint16_t port, AF_FAMILY 
 
     switch(this->family_) {
     case AF_FAMILY::INET:
+        // std::cout << "MakeSockAddr_in " << address << ":" << port << " family " << family << std::endl;
         ok = MakeSockAddr_in(address, port, (sockaddr_in *)&this->addr_);
         if(!ok) {
             std::cout << "MakeSockAddr_in falied" << std::endl;

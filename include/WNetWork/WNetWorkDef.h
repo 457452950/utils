@@ -26,9 +26,13 @@ const auto default_handle_type = HandleType::SELECT;
 #endif
 
 
-#define MAX_CHANNEL_SEND_SIZE 100 * 1024       // 10k
+#define MAX_CHANNEL_SEND_SIZE 100 * 1024        // 10k
 #define MAX_CHANNEL_RECV_BUFFER_SIZE 100 * 1024 // 8k
 #define MAX_CHANNEL_SEND_BUFFER_SIZE 100 * 1024 // 8k
+
+#define MAX_LAN_UDP_PACKAGE_LEN 1472
+#define MAX_WAN_UDP_PACKAGE_LEN 548
+#define MAX_UDP_BUFFER_LEN 1500
 
 
 struct EventContext;
