@@ -539,7 +539,11 @@ void test_udpchannel() {
     WEndPointInfo cli_ed;
     // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
     cli_ed.Assign("192.168.101.2", 4001, AF_FAMILY::INET);
-    auto cli = MakeBindedSocket(cli_ed);
+    auto          cli = MakeBindedSocket(cli_ed);
+    WEndPointInfo cli2_ed;
+    // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
+    cli2_ed.Assign("192.168.101.2", 4002, AF_FAMILY::INET);
+    auto cli2 = MakeBindedSocket(cli2_ed);
 
     auto udp_srv = new WUDPChannel(srv_ed, &ep);
 
