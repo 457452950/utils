@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <iostream>
 #include <list>
 
 #include "WNetWorkDef.h"
@@ -68,9 +69,9 @@ public:
     void SetEvents(uint8_t events);
     auto GetEvents();
 
-    static WEventHandler*
+    static WEventHandler *
     CreateHandler(base_socket_type socket, user_data_ptr user_data, WEventHandle<UserData> *handle);
-    
+
     ~WEventHandler();
 };
 
@@ -83,12 +84,14 @@ inline void WEventHandle<UserData>::WEventHandler::Enable() {
     if(enable_) {
         return;
     }
+    this->enable_ = true;
     this->handle_->AddSocket(this);
 }
 
 template <typename UserData>
 inline void WEventHandle<UserData>::WEventHandler::DisEnable() {
     if(!enable_) {
+        std::cout << "WEventHandle<UserData>::WEventHandler::DisEnable is not enable now " << std::endl;
         return;
     }
     this->handle_->DelSocket(this);

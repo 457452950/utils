@@ -199,6 +199,9 @@ base_socket_type MakeListenedSocket(const WEndPointInfo &info) {
         return listen_sock;
     }
 
+    SetSocketReuseAddr(listen_sock);
+    SetSocketReusePort(listen_sock);
+
     if(Bind(listen_sock, info)) {
         if(::listen(listen_sock, 1024) == 0) {
             return listen_sock;

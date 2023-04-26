@@ -141,7 +141,7 @@ public:
     void ShutDown(int how); // Async
     void CloseChannel();    // Sync
 
-    virtual void Send(uint8_t *send_message, uint64_t message_len);
+    virtual void Send(const uint8_t *send_message, uint32_t message_len);
 
 protected:
     WChannelState   channelState_{WChannelState::CLOSE};
@@ -155,7 +155,7 @@ public:
     public:
         virtual void onChannelConnect()                                = 0;
         virtual void onChannelDisConnect()                             = 0;
-        virtual void onReceive(uint8_t *message, uint64_t message_len) = 0;
+        virtual void onReceive(const uint8_t *message, uint64_t message_len) = 0;
         virtual void onError(const char *err_message)                  = 0;
     };
 
@@ -166,21 +166,20 @@ protected:
 
     // buffer
 public:
-    uint64_t GetRecvBufferSize() const { return recv_buf_size_; }
-    uint64_t GetSendBufferSize() const { return send_buf_size_; }
-    void     SetRecvBufferMaxSize(uint64_t);
-    void     SetSendBufferMaxSize(uint64_t);
+    uint64_t GetRecvBufferSize() const { return max_recv_buf_size_; }
+    uint64_t GetSendBufferSize() const { return max_send_buf_size_; }
+    void     SetRecvBufferMaxSize(int page_count, int page_size);
+    void     SetSendBufferMaxSize(int page_count, int page_size);
 
 private:
     void FreeRecvBuffer();
     void FreeSendBuffer();
     // receive buffer
-    uint8_t *recv_buf_{nullptr};
-    uint64_t recv_buf_size_{0};
+    IOVec    recv_buf;
+    uint64_t max_recv_buf_size_{0};
     // send buffer
-    uint8_t *send_buf_{nullptr};
-    uint64_t send_buf_size_{0};
-    uint64_t send_len_{0}; // 发送的字节长度
+    IOVec    send_buf;
+    uint64_t max_send_buf_size_{0};
 
 protected:
     // can override

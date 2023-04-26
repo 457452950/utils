@@ -26,9 +26,9 @@ const auto default_handle_type = HandleType::SELECT;
 #endif
 
 
-#define MAX_CHANNEL_SEND_SIZE 8 * 1024       // 10k
-#define MAX_CHANNEL_RECV_BUFFER_SIZE 8 * 1024 // 8k
-#define MAX_CHANNEL_SEND_BUFFER_SIZE 8 * 1024 // 8k
+#define MAX_CHANNEL_SEND_SIZE 100 * 1024       // 10k
+#define MAX_CHANNEL_RECV_BUFFER_SIZE 100 * 1024 // 8k
+#define MAX_CHANNEL_SEND_BUFFER_SIZE 100 * 1024 // 8k
 
 
 struct EventContext;

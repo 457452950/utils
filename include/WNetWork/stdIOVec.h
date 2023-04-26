@@ -1,6 +1,7 @@
 #ifndef STD_IOVEC_H
 #define STD_IOVEC_H
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <functional>
@@ -33,22 +34,24 @@ public:
     bool IsFull();
     bool IsEmpty();
 
-    using read_loop_cb_t = std::function<int64_t(const uint8_t *, int32_t buf_len)>;
-    using read_cb_t      = std::function<int64_t(const iovec *, int)>;
+    using read_loop_cb_t = std::function<int64_t(const uint8_t *, uint32_t buf_len)>;
+    using read_cb_t      = std::function<int64_t(const iovec *, uint32_t)>;
     // 从 IOVec 中读取数据
     int64_t Read(read_cb_t cb);
+    int64_t Read(read_loop_cb_t cb);
 
-    using write_loop_cb_t = std::function<int64_t(uint8_t *, int32_t buf_len)>;
-    using write_cb_t      = std::function<int64_t(iovec *, int)>;
+    using write_loop_cb_t = std::function<int64_t(uint8_t *, uint32_t buf_len)>;
+    using write_cb_t      = std::function<int64_t(iovec *, uint32_t)>;
     // 往 IOVec 中写入数据
     int64_t Write(write_cb_t cb);
+    int64_t Write(const uint8_t *, uint32_t);
 
 private:
 private:
     std::list<iovec *>           data_list_;
     std::list<iovec *>::iterator cur_page_;
-    int                          max_page_count_{0};
-    int                          max_page_size_{0};
+    uint32_t                     max_page_count_{0};
+    uint32_t                     max_page_size_{0};
 };
 
 inline IOVec::IOVec() {}
@@ -75,7 +78,10 @@ inline void IOVec::Init(int page_count, int page_size) {
     cur_page_ = data_list_.begin();
 }
 
-inline bool IOVec::IsFull() { return (cur_page_ == this->data_list_.end()); }
+inline bool IOVec::IsFull() {
+    return (std::distance(cur_page_, this->data_list_.end()) == 1) && cur_page_.operator*()->iov_len == max_page_size_;
+}
+
 inline bool IOVec::IsEmpty() {
     // clang-format off
     return 
@@ -91,10 +97,9 @@ inline int64_t IOVec::Read(read_cb_t cb) {
         return 0;
     }
 
-    //FIXME: cur_page_ is end
     //
-    auto distance   = std::distance(this->data_list_.begin(), cur_page_);
-    auto temp_iovec = new iovec[distance + 1];
+    auto distance   = std::distance(this->data_list_.begin(), cur_page_) + 1;
+    auto temp_iovec = new iovec[distance];
 
     // init temp_iovec
     int ind = 0;
@@ -106,14 +111,11 @@ inline int64_t IOVec::Read(read_cb_t cb) {
         ++ind;
     }
 
-    if (cur_page_ != this->data_list_.end())
-    {
-        temp_iovec[distance].iov_base = cur_page_.operator*()->iov_base;
-        temp_iovec[distance].iov_len  = cur_page_. operator*()->iov_len;
-        ++distance;
-    }
-
     total_size = cb(temp_iovec, distance);
+
+    if(total_size < 0) {
+        return -1;
+    }
 
     auto update_size = total_size;
 
@@ -127,14 +129,50 @@ inline int64_t IOVec::Read(read_cb_t cb) {
         } else {
             begin.operator*()->iov_len = 0;
 
-            if(cur_page_ != data_list_.begin())
+            if(cur_page_ != this->data_list_.begin()) {
                 // take begin to the back
                 this->data_list_.splice(data_list_.end(), data_list_, data_list_.begin(), ++data_list_.begin());
+            }
         }
 
         update_size -= size;
+        // std::cout << update_size << std::endl;
     } while(update_size > 0);
 
+
+    return total_size;
+}
+
+inline int64_t IOVec::Read(read_loop_cb_t cb) {
+    int64_t total_size = 0;
+
+    do {
+        if(this->IsEmpty()) {
+            break;
+        }
+
+        auto page = this->data_list_.begin().operator*();
+
+        auto len = cb((uint8_t *)page->iov_base, page->iov_len);
+
+        if(len < page->iov_len) {
+            page->iov_len -= len;
+        } else {
+            page->iov_len = 0;
+
+            if(cur_page_ != this->data_list_.begin()) {
+                // take begin to the back
+                this->data_list_.splice(data_list_.end(), data_list_, data_list_.begin(), ++data_list_.begin());
+            }
+        }
+
+        if(len == 0) {
+            break;
+        }
+
+        total_size += len;
+
+    } while(true);
 
     return total_size;
 }
@@ -143,12 +181,13 @@ inline int64_t IOVec::Write(write_cb_t cb) {
     int64_t total_size = 0;
 
     if(this->IsFull()) {
+        std::cout << "is full " << std::endl;
         return total_size;
     }
 
-    std::cout << "is empty " << IsEmpty() << std::endl;
+    // std::cout << "is empty " << IsEmpty() << std::endl;
 
-    //
+    // make temp_iovec
     auto distance   = std::distance(cur_page_, this->data_list_.end());
     auto temp_iovec = new iovec[distance];
 
@@ -159,7 +198,7 @@ inline int64_t IOVec::Write(write_cb_t cb) {
 
         temp_iovec[ind].iov_len = this->max_page_size_ - it.operator*()->iov_len;
         using namespace std;
-        cout << "len " << temp_iovec[ind].iov_len << "  ";
+        // cout << "len " << temp_iovec[ind].iov_len << "  ";
 
         ++ind;
     }
@@ -180,7 +219,7 @@ inline int64_t IOVec::Write(write_cb_t cb) {
 
         update_size -= i;
 
-        if(update_size < 0) {
+        if(update_size < 0 || std::distance(cur_page_, this->data_list_.end()) == 1) {
             break;
         }
     }
@@ -188,5 +227,34 @@ inline int64_t IOVec::Write(write_cb_t cb) {
     return total_size;
 }
 
+inline int64_t IOVec::Write(const uint8_t *buf, uint32_t len) {
+    int64_t total_size = 0;
+
+    do {
+        if(this->IsFull()) {
+            break;
+        }
+
+        auto page = cur_page_.operator*();
+
+        auto size    = this->max_page_size_ - (int)page->iov_len;
+        auto cp_size = std::min(size, len);
+
+        memcpy((uint8_t *)page->iov_base + page->iov_len, buf + total_size, cp_size);
+        page->iov_len += cp_size;
+        total_size += cp_size;
+        len -= cp_size;
+
+        if(cp_size == size && std::distance(cur_page_, this->data_list_.end()) == 1) {
+            ++cur_page_;
+        } else {
+            break;
+        }
+
+    } while(true);
+
+
+    return total_size;
+}
 
 #endif // STD_IOVEC_H

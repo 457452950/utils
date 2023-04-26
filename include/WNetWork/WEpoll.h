@@ -240,6 +240,7 @@ template <typename UserData>
 void WEpoll<UserData>::DelSocket(WEventHandler *handler) {
 
     if(!this->ep.RemoveSocket(handler->socket_)) {
+        std::cout << "DelSocket RemoveSocket err " << ErrorToString(GetError()) << std::endl; 
         return;
     }
 

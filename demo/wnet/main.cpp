@@ -414,11 +414,16 @@ public:
     TestSession(WChannel *ch_) : ch(ch_) {}
     virtual void onChannelConnect() {}
     virtual void onChannelDisConnect() {}
-    virtual void onReceive(uint8_t *message, uint64_t message_len) {
-        cout << "recv " << message << " size " << message_len;
+    virtual void onReceive(const uint8_t *message, uint64_t message_len) {
+        // cout << "recv " << std::string((char *)message, (int)message_len) << " size " << message_len << endl;
+        ch->Send(message, message_len);
+        ch->Send(message, message_len);
+        ch->Send(message, message_len);
         ch->Send(message, message_len);
     }
-    virtual void onError(const char *err_message) {}
+    virtual void onError(const char *err_message) {
+        std::cout << err_message << endl;
+    }
 
 private:
     WChannel *ch;
@@ -427,8 +432,9 @@ private:
 auto ac_cb = [](WEndPointInfo local, WEndPointInfo remote, event_handler_p handler) -> WBaseChannel * {
     auto info = WEndPointInfo::Dump(remote);
 
-    cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
+    // cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
     auto ch = new WChannel(local, remote, handler);
+    ch->SetRecvBufferMaxSize(10, 1000);
     auto se = new TestSession(ch);
     ch->SetListener(se);
     return ch;
@@ -458,13 +464,38 @@ void test_channel() {
         ::send(cli, "123123", 6, 0);
     }
 
-    WTimer t(&ep);
-    t.OnTime = []() { cout << "ontime!!!" << endl; };
-    t.Start(1000, 1000);
-
     std::thread thr1([cli]() {
-        ::send(cli, "hello", 5, 0);
+        // ::send(cli, "hello", 5, 0);
+        int  total = 0;
+        char buf[1500];
+        while(true) {
+            auto l = ::recv(cli, buf, 1500, 0);
+            total += l;
+            // clang-format off
+            cout 
+                // << "cli recv :" << std::string(buf, l) 
+                << " total : " << total << endl;
+            // clang-format on
+        }
     });
+
+    WTimer t(&ep);
+    t.OnTime = [cli, &t]() {
+        // cout << std::chrono::duration_cast<std::chrono::milliseconds>(
+        //                 std::chrono::system_clock::now().time_since_epoch())
+        //                 .count()
+        //      << " ontime!!!" << endl;
+        static int i = 0;
+        
+        ::send(cli, "hehellollohellohellohellohellohellohellohellohellohellohellohello", 66, 0);
+        ::send(cli, "hehellollohellohellohellohellohellohellohellohellohellohellohello", 66, 0);
+        ::send(cli, "hehellollohellohellohellohellohellohellohellohellohellohellohello", 66, 0);
+        ++i;
+        if (i == 10000)
+            t.Stop();
+    };
+    t.Start(100, 1);
+
     std::thread thr([&ep]() { ep.Loop(); });
     thr.join();
 }
