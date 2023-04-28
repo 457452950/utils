@@ -215,6 +215,7 @@ private:
 public:
     uint64_t hash{0u};
     bool     operator==(const WEndPointInfo &other) const noexcept { return this->hash == other.hash; }
+    bool     operator!=(const WEndPointInfo &other) const noexcept { return this->hash != other.hash; }
 };
 
 

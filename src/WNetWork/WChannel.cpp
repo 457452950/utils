@@ -125,13 +125,13 @@ void WAccepterChannel::ChannelIn() {
  * WUDP
  ************************************************************/
 
-WUDP::WUDP(const WEndPointInfo &endpoint, event_handle_p handle) {
-    this->local_endpoint_ = endpoint;
+WUDP::WUDP(const WEndPointInfo &local_ep, event_handle_p handle) {
+    this->local_endpoint_ = local_ep;
 
     auto socket = MakeBindedSocket(local_endpoint_);
     assert(socket != -1);
 
-    std::cout << "WUDP socket " << socket << std::endl;     
+    std::cout << "WUDP socket " << socket << std::endl;
 
     this->handler_ = event_handler_t::CreateHandler(socket, this, handle);
     this->handler_->SetEvents(HandlerEventType::EV_IN);
@@ -167,7 +167,7 @@ void WUDP::ChannelIn() {
     }
 }
 
-void wlb::network::WUDP::onErr(int err) {
+void WUDP::onErr(int err) {
     if(err != 0) {
         if(this->OnError) {
             this->OnError(ErrorToString(err));
@@ -179,9 +179,11 @@ bool WUDP::SendTo(const uint8_t *send_message, uint32_t message_len, const WEndP
     assert(message_len <= MAX_WAN_UDP_PACKAGE_LEN);
 
     auto [ip, port] = WEndPointInfo::Dump(remote);
-    std::cout << "WUDP::SendTo " << ip << " : " << port << " " << this->handler_->socket_ << " " << " msg:" << send_message << " size " << (size_t)message_len << std::endl;
+    std::cout << "WUDP::SendTo " << ip << " : " << port << " " << this->handler_->socket_ << " "
+              << " msg:" << send_message << " size " << (size_t)message_len << std::endl;
 
-    auto len = ::sendto(this->handler_->socket_, (void*)send_message, message_len, 0, remote.GetAddr(), remote.GetSockSize());
+    auto len = ::sendto(
+            this->handler_->socket_, (void *)send_message, message_len, 0, remote.GetAddr(), remote.GetSockSize());
     if(len == -1) {
         std::cout << "send to err " << std::endl;
         this->onErr(GetError());
@@ -190,6 +192,95 @@ bool WUDP::SendTo(const uint8_t *send_message, uint32_t message_len, const WEndP
 
     return true;
 }
+
+
+/***********************************************************
+ * WUDPChannel
+ ************************************************************/
+
+WUDPChannel::WUDPChannel(const WEndPointInfo &local_ep, const WEndPointInfo &remote_ep, event_handle_p handle) {
+    this->local_endpoint_  = local_ep;
+    this->remote_endpoint_ = remote_ep;
+
+    auto socket = MakeBindedSocket(local_endpoint_);
+    assert(socket != -1);
+
+    std::cout << "WUDPChannel socket " << socket << std::endl;
+
+    bool ok = ConnectToHost(socket, remote_endpoint_);
+    // if(!ok) {
+    //     assert("WUDPChannel ConnectToHost err ");
+    //     std::cout << "WUDPChannel ConnectToHost " << socket << std::endl;
+    // }
+
+    this->handler_ = event_handler_t::CreateHandler(socket, this, handle);
+    this->handler_->SetEvents(HandlerEventType::EV_IN);
+    this->handler_->Enable();
+}
+
+WUDPChannel::~WUDPChannel() {
+    if(this->handler_) {
+        if(this->handler_->IsEnable())
+            this->handler_->DisEnable();
+
+        delete this->handler_;
+        this->handler_ = nullptr;
+    }
+}
+
+void WUDPChannel::ChannelIn() {
+    // std::cout << "accpet channel in" << std::endl;
+
+    WEndPointInfo ei;
+    uint8_t       buf[MAX_UDP_BUFFER_LEN]{0};
+
+    // auto recv_len = RecvFrom(this->handler_->socket_, buf, MAX_UDP_BUFFER_LEN, &ei);
+    auto recv_len = recv(this->handler_->socket_, buf, MAX_UDP_BUFFER_LEN, 0);
+
+    // if(ei != this->remote_endpoint_) {
+    //     std::cout << "not wanted remote " << std::endl;
+    //     return;
+    // }
+
+    if(recv_len <= 0) { // error
+        onErr(GetError());
+    } else {
+        if(!OnMessage) {
+            return;
+        }
+
+        OnMessage(local_endpoint_, remote_endpoint_, buf, recv_len, this->handler_);
+    }
+}
+
+void WUDPChannel::onErr(int err) {
+    if(err != 0) {
+        if(this->OnError) {
+            this->OnError(ErrorToString(err));
+        }
+    }
+}
+
+bool WUDPChannel::Send(const uint8_t *send_message, uint32_t message_len) {
+    assert(message_len <= MAX_WAN_UDP_PACKAGE_LEN);
+
+    // auto len = ::sendto(this->handler_->socket_,
+    //                     (void *)send_message,
+    //                     message_len,
+    //                     0,
+    //                     remote_endpoint_.GetAddr(),
+    //                     remote_endpoint_.GetSockSize());
+    auto len = send(this->handler_->socket_, send_message, message_len, 0);
+
+    if(len == -1) {
+        std::cout << "send to err " << std::endl;
+        this->onErr(GetError());
+        return false;
+    }
+
+    return true;
+}
+
 
 /***********************************************************
  * WChannel

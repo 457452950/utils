@@ -96,8 +96,9 @@ private:
 
 
 /***********************************************************
- * WUDP
+ * WUDP 
  ************************************************************/
+// HACK: 逻辑上 WUDP not "is a" WBaseChannel.
 class WUDP : public WBaseChannel {
 public:
     explicit WUDP(const WEndPointInfo &local_endpoint, event_handle_p handle);
@@ -121,6 +122,32 @@ private:
     WEndPointInfo   local_endpoint_;
 };
 
+/***********************************************************
+ * WUDPChannel
+ ************************************************************/
+class WUDPChannel : public WBaseChannel {
+public:
+    explicit WUDPChannel(const WEndPointInfo &local_ep, const WEndPointInfo& remote_ep, event_handle_p handle);
+    ~WUDPChannel() override;
+
+    std::function<void(const WEndPointInfo &, const WEndPointInfo &, const uint8_t *, uint32_t, event_handler_p)>
+                                      OnMessage;
+    std::function<void(const char *)> OnError;
+
+    // unreliable
+    bool Send(const uint8_t *send_message, uint32_t message_len);
+
+private:
+    void ChannelIn() final;
+    void ChannelOut() final {};
+
+    void onErr(int err);
+
+private:
+    event_handler_p handler_{nullptr};
+    WEndPointInfo   local_endpoint_;
+    WEndPointInfo   remote_endpoint_;
+};
 
 /*****************************************
  *  WChannel
