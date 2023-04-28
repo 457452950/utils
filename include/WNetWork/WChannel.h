@@ -96,12 +96,12 @@ private:
 
 
 /***********************************************************
- * WUDPChannel
+ * WUDP
  ************************************************************/
-class WUDPChannel : public WBaseChannel {
+class WUDP : public WBaseChannel {
 public:
-    explicit WUDPChannel(const WEndPointInfo &local_endpoint, event_handle_p handle);
-    ~WUDPChannel() override;
+    explicit WUDP(const WEndPointInfo &local_endpoint, event_handle_p handle);
+    ~WUDP() override;
 
     std::function<void(const WEndPointInfo &, const WEndPointInfo &, const uint8_t *, uint32_t, event_handler_p)>
                                       OnMessage;
@@ -121,6 +121,10 @@ private:
     WEndPointInfo   local_endpoint_;
 };
 
+
+/*****************************************
+ *  WChannel
+******************************************/
 
 /**
  * 链接状态

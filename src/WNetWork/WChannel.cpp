@@ -122,23 +122,23 @@ void WAccepterChannel::ChannelIn() {
 }
 
 /***********************************************************
- * WUDPChannel
+ * WUDP
  ************************************************************/
 
-WUDPChannel::WUDPChannel(const WEndPointInfo &endpoint, event_handle_p handle) {
+WUDP::WUDP(const WEndPointInfo &endpoint, event_handle_p handle) {
     this->local_endpoint_ = endpoint;
 
     auto socket = MakeBindedSocket(local_endpoint_);
     assert(socket != -1);
 
-    std::cout << "WUDPChannel socket " << socket << std::endl;     
+    std::cout << "WUDP socket " << socket << std::endl;     
 
     this->handler_ = event_handler_t::CreateHandler(socket, this, handle);
     this->handler_->SetEvents(HandlerEventType::EV_IN);
     this->handler_->Enable();
 }
 
-WUDPChannel::~WUDPChannel() {
+WUDP::~WUDP() {
     if(this->handler_) {
         if(this->handler_->IsEnable())
             this->handler_->DisEnable();
@@ -148,7 +148,7 @@ WUDPChannel::~WUDPChannel() {
     }
 }
 
-void WUDPChannel::ChannelIn() {
+void WUDP::ChannelIn() {
     // std::cout << "accpet channel in" << std::endl;
 
     WEndPointInfo ei;
@@ -167,7 +167,7 @@ void WUDPChannel::ChannelIn() {
     }
 }
 
-void wlb::network::WUDPChannel::onErr(int err) {
+void wlb::network::WUDP::onErr(int err) {
     if(err != 0) {
         if(this->OnError) {
             this->OnError(ErrorToString(err));
@@ -175,11 +175,11 @@ void wlb::network::WUDPChannel::onErr(int err) {
     }
 }
 
-bool WUDPChannel::SendTo(const uint8_t *send_message, uint32_t message_len, const WEndPointInfo &remote) {
+bool WUDP::SendTo(const uint8_t *send_message, uint32_t message_len, const WEndPointInfo &remote) {
     assert(message_len <= MAX_WAN_UDP_PACKAGE_LEN);
 
     auto [ip, port] = WEndPointInfo::Dump(remote);
-    std::cout << "WUDPChannel::SendTo " << ip << " : " << port << " " << this->handler_->socket_ << " " << " msg:" << send_message << " size " << (size_t)message_len << std::endl;
+    std::cout << "WUDP::SendTo " << ip << " : " << port << " " << this->handler_->socket_ << " " << " msg:" << send_message << " size " << (size_t)message_len << std::endl;
 
     auto len = ::sendto(this->handler_->socket_, (void*)send_message, message_len, 0, remote.GetAddr(), remote.GetSockSize());
     if(len == -1) {

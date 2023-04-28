@@ -545,7 +545,7 @@ void test_udpchannel() {
     cli2_ed.Assign("192.168.101.2", 4002, AF_FAMILY::INET);
     auto cli2 = MakeBindedSocket(cli2_ed);
 
-    auto udp_srv = new WUDPChannel(srv_ed, &ep);
+    auto udp_srv = new WUDP(srv_ed, &ep);
 
     auto onmsg = [&](const wlb::network::WEndPointInfo &local,
                      const wlb::network::WEndPointInfo &remote,
