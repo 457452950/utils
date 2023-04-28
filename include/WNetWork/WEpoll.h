@@ -294,7 +294,7 @@ void WEpoll<UserData>::EventLoop() {
             continue;
         }
 
-        for(size_t i = 0; i < events_size; ++i) {
+        for(int i = 0; i < events_size; ++i) {
 
             if(!this->active_) {
                 delete events;

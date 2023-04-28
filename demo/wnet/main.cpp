@@ -224,8 +224,8 @@ void test_iovec() {
     cout << "client : ip " << std::get<0>(info) << " port:" << std::get<1>(info) << endl;
 
     for(int i = 0; i < 3; ++i) {
-        char   *str0 = "hello this is message 123";
-        ssize_t nwritten;
+        const char *str0 = "hello this is message 123";
+        ssize_t     nwritten;
 
 
         // send(srv, str0, strlen(str0), 0);

@@ -137,7 +137,7 @@ inline int64_t IOVec::Read(read_cb_t cb) {
         auto size  = begin.operator*()->iov_len;
         assert(size != 0);
 
-        if(update_size < size) {
+        if(update_size < (int64_t)size) {
             begin.operator*()->iov_len -= update_size;
         } else {
             begin.operator*()->iov_len = 0;
@@ -166,9 +166,9 @@ inline int64_t IOVec::Read(read_loop_cb_t cb) {
 
         auto page = this->data_list_.begin().operator*();
 
-        auto len = cb((uint8_t *)page->iov_base, page->iov_len);
+        int64_t len = cb((uint8_t *)page->iov_base, page->iov_len);
 
-        if(len < page->iov_len) {
+        if(len < (int64_t)page->iov_len) {
             page->iov_len -= len;
         } else {
             page->iov_len = 0;
@@ -207,7 +207,7 @@ inline int64_t IOVec::Write(write_cb_t cb) {
     // init temp_iovec
     int ind = 0;
     for(auto it = cur_page_; it != this->data_list_.end(); ++it) {
-        temp_iovec[ind].iov_base = it.operator*()->iov_base + it.operator*()->iov_len;
+        temp_iovec[ind].iov_base = (char*)it.operator*()->iov_base + it.operator*()->iov_len;
 
         temp_iovec[ind].iov_len = this->max_page_size_ - it.operator*()->iov_len;
         using namespace std;
@@ -228,7 +228,7 @@ inline int64_t IOVec::Write(write_cb_t cb) {
     for(; cur_page_ != this->data_list_.end(); ++cur_page_) {
         auto i = this->max_page_size_ - cur_page_.operator*()->iov_len;
 
-        cur_page_.operator*()->iov_len += (update_size > i) ? i : update_size;
+        cur_page_.operator*()->iov_len += (update_size > (int64_t)i) ? i : update_size;
 
         update_size -= i;
 
