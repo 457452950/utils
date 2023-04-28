@@ -77,7 +77,7 @@ template <typename UserData>
 inline void WEventHandle<UserData>::WEventHandler::Enable() {
     // events cant be 0
     assert(this->events_);
-    assert(this->handle_.expired());
+    assert(!this->handle_.expired());
 
     if(enable_) {
         return;
@@ -88,7 +88,7 @@ inline void WEventHandle<UserData>::WEventHandler::Enable() {
 
 template <typename UserData>
 inline void WEventHandle<UserData>::WEventHandler::DisEnable() {
-    assert(this->handle_.expired());
+    assert(!this->handle_.expired());
     if(!enable_) {
         std::cout << "WEventHandle<UserData>::WEventHandler::DisEnable is not enable now " << std::endl;
         return;
@@ -103,7 +103,7 @@ inline bool WEventHandle<UserData>::WEventHandler::IsEnable() {
 
 template <typename UserData>
 inline void WEventHandle<UserData>::WEventHandler::SetEvents(uint8_t events) {
-    assert(this->handle_.expired());
+    assert(!this->handle_.expired());
 
     if(this->events_ != events) {
         this->events_ = events;
