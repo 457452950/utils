@@ -26,9 +26,9 @@ bool WNetAccepter::Listen() {
     return true;
 }
 
-base_socket_type WNetAccepter::Accept(WEndPointInfo *info) { return wlb::network::Accept(this->socket_, info, true); }
+socket_t WNetAccepter::Accept(WEndPointInfo *info) { return wlb::network::Accept(this->socket_, info, true); }
 
-base_socket_type WNetAccepter::GetListenSocket() noexcept { return this->socket_; }
+socket_t WNetAccepter::GetListenSocket() noexcept { return this->socket_; }
 
 void WNetAccepter::Close() {
     this->handler_->RemoveSocket(this->socket_);
@@ -48,7 +48,7 @@ void WNetAccepter::Close() {
 
 void WNetAccepter::OnRead() {
     WEndPointInfo    info;
-    base_socket_type cli_sock = this->Accept(&info);
+    socket_t cli_sock = this->Accept(&info);
 
     if(cli_sock == -1) {
         this->errno_ = errno;
@@ -155,7 +155,7 @@ bool WFloatBufferConnection::Init(WNetWorkHandler *handler, uint32_t maxBufferSi
     return true;
 }
 
-bool WFloatBufferConnection::SetConnectedSocket(base_socket_type socket, const WEndPointInfo &peerInfo) {
+bool WFloatBufferConnection::SetConnectedSocket(socket_t socket, const WEndPointInfo &peerInfo) {
     this->socket_ = socket;
 
     if(!SetTcpSocketNoDelay(this->socket_) || !SetSocketKeepAlive(this->socket_)) {
@@ -419,7 +419,7 @@ bool WFixedBufferConnection::Init(WNetWorkHandler *handler, uint32_t maxBufferSi
     return true;
 }
 
-bool WFixedBufferConnection::SetConnectedSocket(base_socket_type socket, const WEndPointInfo &peerInfo) {
+bool WFixedBufferConnection::SetConnectedSocket(socket_t socket, const WEndPointInfo &peerInfo) {
     this->socket_ = socket;
 
     if(!SetTcpSocketNoDelay(this->socket_) || !SetSocketKeepAlive(this->socket_)) {

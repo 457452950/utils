@@ -31,6 +31,7 @@ public:
     ~IOVec();
 
     void Init(int page_count, int page_size);
+    void Release();
     bool IsFull();
     bool IsEmpty();
 
@@ -58,10 +59,13 @@ inline IOVec::IOVec() {}
 
 inline IOVec::IOVec(int page_count, int page_size) { Init(page_count, page_size); }
 
-inline IOVec::~IOVec() {}
+inline IOVec::~IOVec() {
+    this->Release();
+}
 
 inline void IOVec::Init(int page_count, int page_size) {
     assert(page_count < UIO_MAXIOV);
+    assert(page_count == 0);
 
     this->max_page_count_ = page_count;
     this->max_page_size_  = page_size;
@@ -76,6 +80,13 @@ inline void IOVec::Init(int page_count, int page_size) {
     }
 
     cur_page_ = data_list_.begin();
+}
+
+inline void IOVec::Release() {
+    std::for_each(this->data_list_.begin(), this->data_list_.end(), [](iovec *it) { delete it; });
+    this->data_list_.clear();
+    max_page_count_ = 0;
+    max_page_size_  = 0;
 }
 
 inline bool IOVec::IsFull() {
@@ -99,7 +110,9 @@ inline int64_t IOVec::Read(read_cb_t cb) {
 
     //
     auto distance   = std::distance(this->data_list_.begin(), cur_page_) + 1;
-    auto temp_iovec = new iovec[distance];
+    // auto temp_iovec = new iovec[distance];
+    auto temp_iovec = std::unique_ptr<iovec[]>(new iovec[distance]);
+    
 
     // init temp_iovec
     int ind = 0;
@@ -111,7 +124,7 @@ inline int64_t IOVec::Read(read_cb_t cb) {
         ++ind;
     }
 
-    total_size = cb(temp_iovec, distance);
+    total_size = cb(temp_iovec.get(), distance);
 
     if(total_size < 0) {
         return -1;
@@ -189,7 +202,7 @@ inline int64_t IOVec::Write(write_cb_t cb) {
 
     // make temp_iovec
     auto distance   = std::distance(cur_page_, this->data_list_.end());
-    auto temp_iovec = new iovec[distance];
+    auto temp_iovec = std::unique_ptr<iovec[]>(new iovec[distance]);
 
     // init temp_iovec
     int ind = 0;
@@ -204,7 +217,7 @@ inline int64_t IOVec::Write(write_cb_t cb) {
     }
 
     //
-    total_size = cb(temp_iovec, distance);
+    total_size = cb(temp_iovec.get(), distance);
 
     if(total_size <= 0) {
         return 0;

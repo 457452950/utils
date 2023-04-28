@@ -11,6 +11,7 @@
 #include <tuple>
 #include <unistd.h>
 #include <unordered_map> //std::hash
+#include <memory>
 
 #include <sys/socket.h>
 #include <sys/timerfd.h>
@@ -24,15 +25,16 @@
 
 namespace wlb::network {
 
-int   GetError();
-char *ErrorToString(int error);
+int         GetError();
+const char *ErrorToString(int error);
 
 enum AF_FAMILY { INET = AF_INET, INET6 = AF_INET6 };
 enum AF_PROTOL { TCP = IPPROTO_TCP, UDP = IPPROTO_UDP };
 
 struct WEndPointInfo;
-using base_socket_type = int32_t;
-using base_socket_ptr  = base_socket_type *;
+
+using socket_t = int32_t;
+using socket_p  = socket_t *;
 
 using timerfd_t = int32_t;
 using timerfd_p = timerfd_t *;
@@ -42,6 +44,7 @@ enum class SetTimeFlag {
     REL = 0, // 相对时间
     ABS = 1, // 绝对时间
 };
+
 timerfd_t CreateNewTimerfd();
 bool      SetTimerTime(timerfd_t                fd,
                        SetTimeFlag              flag,
@@ -53,9 +56,9 @@ bool      SetTimerTime(timerfd_t                fd,
 // sockaddr_in      sockaddr_in6
 // in_addr          in6_addr
 
-base_socket_type MakeSocket(enum AF_FAMILY family, enum AF_PROTOL protol);
-base_socket_type MakeTcpV4Socket();
-base_socket_type MakeUdpV4Socket();
+socket_t MakeSocket(enum AF_FAMILY family, enum AF_PROTOL protol);
+socket_t MakeTcpV4Socket();
+socket_t MakeUdpV4Socket();
 
 
 /***************************************************
@@ -75,40 +78,40 @@ bool MakeSockAddr_in(const std::string &ip_address, uint16_t port, sockaddr_in *
 bool MakeSockAddr_in6(const std::string &ip_address, uint16_t port, sockaddr_in6 *addr);
 
 // server methods
-bool Bind(base_socket_type socket, const std::string &host, uint16_t port, bool isv4 = true);
-bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo);
+bool Bind(socket_t socket, const std::string &host, uint16_t port, bool isv4 = true);
+bool Bind(socket_t socket, const WEndPointInfo &serverInfo);
 
-base_socket_type MakeBindedSocket(const WEndPointInfo &info);
-base_socket_type MakeListenedSocket(const WEndPointInfo &info);
+socket_t MakeBindedSocket(const WEndPointInfo &info);
+socket_t MakeListenedSocket(const WEndPointInfo &info);
 
 /***************************************************
  * TCP Utils
  ****************************************************/
 // return -1 if fail
-base_socket_type Accept(base_socket_type socket, WEndPointInfo *info);
-base_socket_type Accept4(base_socket_type socket, WEndPointInfo *info, int flags);
+socket_t Accept(socket_t socket, WEndPointInfo *info);
+socket_t Accept4(socket_t socket, WEndPointInfo *info, int flags);
 
-bool ConnectToHost(base_socket_type socket, const std::string &host, uint16_t port, bool isv4 = true);
-bool ConnectToHost(base_socket_type socket, const WEndPointInfo &info);
+bool ConnectToHost(socket_t socket, const std::string &host, uint16_t port, bool isv4 = true);
+bool ConnectToHost(socket_t socket, const WEndPointInfo &info);
 
 /***************************************************
  * UDP Utils
  ****************************************************/
 
-int32_t RecvFrom(base_socket_type socket, uint8_t *buf, uint32_t buf_len, WEndPointInfo *info);
+int32_t RecvFrom(socket_t socket, uint8_t *buf, uint32_t buf_len, WEndPointInfo *info);
 
 /***************************************************
  * Socket Utils
  ****************************************************/
 
 // socket function
-bool SetSocketNoBlock(base_socket_type socket);
-bool SetSocketReuseAddr(base_socket_type socket);
-bool SetSocketReusePort(base_socket_type socket);
-bool SetSocketKeepAlive(base_socket_type socket);
+bool SetSocketNoBlock(socket_t socket);
+bool SetSocketReuseAddr(socket_t socket);
+bool SetSocketReusePort(socket_t socket);
+bool SetSocketKeepAlive(socket_t socket);
 
 // tcp socket function
-bool SetTcpSocketNoDelay(base_socket_type socket);
+bool SetTcpSocketNoDelay(socket_t socket);
 
 // IP + port + isv4
 // struct WEndPointInfo {
@@ -138,7 +141,7 @@ struct WEndPointInfo {
     unsigned long   GetSockSize() const {
         return family_ == AF_FAMILY::INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
     }
-    
+
     static std::tuple<std::string, uint16_t> Dump(const WEndPointInfo &);
 
 private:

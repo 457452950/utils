@@ -35,7 +35,7 @@ bool WBaseSession::Init(SessionNode *node, WNetWorkHandler *handler) {
 
     return true;
 }
-bool WBaseSession::SetConnectedSocket(base_socket_type socket, const WEndPointInfo &peerInfo) {
+bool WBaseSession::SetConnectedSocket(socket_t socket, const WEndPointInfo &peerInfo) {
     assert(!this->connection_->isConnected());
 
     if(!this->AcceptConnection(peerInfo)) {

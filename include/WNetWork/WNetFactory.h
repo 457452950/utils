@@ -21,14 +21,14 @@ class WSessionFactory;
 struct EventContext {
     // accepter
     // return true for accpet the connection
-    using accept_cb_t       = bool (*)(base_socket_type socket, WEndPointInfo &endpoint);
+    using accept_cb_t       = bool (*)(socket_t socket, WEndPointInfo &endpoint);
     using accept_error_cb_t = void (*)(int error_no);
 
     //
     accept_cb_t       onAccept{nullptr};
     accept_error_cb_t onAcceptError{nullptr};
     //
-    event_handle_t *event_handle_{nullptr};
+    std::shared_ptr<ev_hdle_t> event_handle_{nullptr};
     //
     WChannelFactory *channel_factory_{nullptr};
     WSessionFactory *session_factory_{nullptr};
@@ -37,13 +37,13 @@ struct EventContext {
 
 namespace WNetFactory {
 
-inline event_handle_p CreateNetHandle(HandleType type) {
+inline std::shared_ptr<ev_hdle_t> CreateNetHandle(HandleType type) {
     switch(type) {
     case HandleType::SELECT:
-        return new WSelect<WBaseChannel>();
+        return std::make_shared<WSelect<WBaseChannel>>();
 
     case HandleType::EPOLL:
-        return new WEpoll<WBaseChannel>();
+        return std::make_shared<WEpoll<WBaseChannel>>();
 
     default:
         abort();

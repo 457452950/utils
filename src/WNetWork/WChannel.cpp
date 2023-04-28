@@ -14,18 +14,15 @@ using namespace debug;
 /********************************************
  * Timer
  *********************************************/
-WTimer::WTimer(event_handle_p handle) {
-    this->handler_ = event_handler_t::CreateHandler(CreateNewTimerfd(), this, handle);
+WTimer::WTimer(std::weak_ptr<ev_hdle_t> handle) {
+    this->handler_ = ev_hdler_t::CreateHandler(CreateNewTimerfd(), this, handle);
     this->handler_->SetEvents(HandlerEventType::EV_IN);
     DEBUGADD("WTimer");
 }
+
 WTimer::~WTimer() {
     DEBUGRM("WTimer");
     this->Stop();
-    if(this->handler_) {
-        delete this->handler_;
-        this->handler_ = nullptr;
-    }
 }
 
 void WTimer::ChannelIn() {
@@ -70,7 +67,7 @@ void WTimer::Stop() {
  * WAccepterChannel
  ************************************************************/
 
-WAccepterChannel::WAccepterChannel(const WEndPointInfo &endpoint, event_handle_p handle) {
+WAccepterChannel::WAccepterChannel(const WEndPointInfo &endpoint, std::weak_ptr<ev_hdle_t> handle) {
     this->local_endpoint_ = endpoint;
 
     auto socket = MakeListenedSocket(local_endpoint_);
@@ -79,7 +76,7 @@ WAccepterChannel::WAccepterChannel(const WEndPointInfo &endpoint, event_handle_p
         assert(socket != -1);
     }
 
-    this->handler_ = event_handler_t::CreateHandler(socket, this, handle);
+    this->handler_ = ev_hdler_t::CreateHandler(socket, this, handle);
     this->handler_->SetEvents(HandlerEventType::EV_IN);
     this->handler_->Enable();
 }
@@ -88,14 +85,12 @@ WAccepterChannel::~WAccepterChannel() {
     if(this->handler_) {
         if(this->handler_->IsEnable())
             this->handler_->DisEnable();
-
-        delete this->handler_;
-        this->handler_ = nullptr;
     }
 }
 
 void WAccepterChannel::ChannelIn() {
     // std::cout << "accpet channel in" << std::endl;
+    assert(this->handler_);
 
     WEndPointInfo ei;
     auto          cli = wlb::network::Accept4(this->handler_->socket_, &ei, SOCK_NONBLOCK);
@@ -109,9 +104,9 @@ void WAccepterChannel::ChannelIn() {
             return;
         }
 
-        auto handler = event_handler_t::CreateHandler(cli, nullptr, this->handler_->handle_);
+        auto handler = ev_hdler_t::CreateHandler(cli, nullptr, this->handler_->handle_);
 
-        auto channel = OnAccept(local_endpoint_, ei, handler);
+        auto channel = OnAccept(local_endpoint_, ei, std::move(handler));
         if(channel != nullptr) { // accept
             handler->user_data_ = channel;
         } else {
@@ -125,7 +120,7 @@ void WAccepterChannel::ChannelIn() {
  * WUDP
  ************************************************************/
 
-WUDP::WUDP(const WEndPointInfo &local_ep, event_handle_p handle) {
+WUDP::WUDP(const WEndPointInfo &local_ep, std::weak_ptr<ev_hdle_t> handle) {
     this->local_endpoint_ = local_ep;
 
     auto socket = MakeBindedSocket(local_endpoint_);
@@ -133,7 +128,7 @@ WUDP::WUDP(const WEndPointInfo &local_ep, event_handle_p handle) {
 
     std::cout << "WUDP socket " << socket << std::endl;
 
-    this->handler_ = event_handler_t::CreateHandler(socket, this, handle);
+    this->handler_ = ev_hdler_t::CreateHandler(socket, this, handle);
     this->handler_->SetEvents(HandlerEventType::EV_IN);
     this->handler_->Enable();
 }
@@ -142,9 +137,6 @@ WUDP::~WUDP() {
     if(this->handler_) {
         if(this->handler_->IsEnable())
             this->handler_->DisEnable();
-
-        delete this->handler_;
-        this->handler_ = nullptr;
     }
 }
 
@@ -163,7 +155,7 @@ void WUDP::ChannelIn() {
             return;
         }
 
-        OnMessage(local_endpoint_, ei, buf, recv_len, this->handler_);
+        OnMessage(local_endpoint_, ei, buf, recv_len);
     }
 }
 
@@ -198,7 +190,7 @@ bool WUDP::SendTo(const uint8_t *send_message, uint32_t message_len, const WEndP
  * WUDPChannel
  ************************************************************/
 
-WUDPChannel::WUDPChannel(const WEndPointInfo &local_ep, const WEndPointInfo &remote_ep, event_handle_p handle) {
+WUDPChannel::WUDPChannel(const WEndPointInfo &local_ep, const WEndPointInfo &remote_ep, std::weak_ptr<ev_hdle_t> handle) {
     this->local_endpoint_  = local_ep;
     this->remote_endpoint_ = remote_ep;
 
@@ -208,12 +200,13 @@ WUDPChannel::WUDPChannel(const WEndPointInfo &local_ep, const WEndPointInfo &rem
     std::cout << "WUDPChannel socket " << socket << std::endl;
 
     bool ok = ConnectToHost(socket, remote_endpoint_);
+    // like not be fail
     // if(!ok) {
     //     assert("WUDPChannel ConnectToHost err ");
     //     std::cout << "WUDPChannel ConnectToHost " << socket << std::endl;
     // }
 
-    this->handler_ = event_handler_t::CreateHandler(socket, this, handle);
+    this->handler_ = ev_hdler_t::CreateHandler(socket, this, handle);
     this->handler_->SetEvents(HandlerEventType::EV_IN);
     this->handler_->Enable();
 }
@@ -222,9 +215,6 @@ WUDPChannel::~WUDPChannel() {
     if(this->handler_) {
         if(this->handler_->IsEnable())
             this->handler_->DisEnable();
-
-        delete this->handler_;
-        this->handler_ = nullptr;
     }
 }
 
@@ -249,7 +239,7 @@ void WUDPChannel::ChannelIn() {
             return;
         }
 
-        OnMessage(local_endpoint_, remote_endpoint_, buf, recv_len, this->handler_);
+        OnMessage(local_endpoint_, remote_endpoint_, buf, recv_len);
     }
 }
 
@@ -286,8 +276,8 @@ bool WUDPChannel::Send(const uint8_t *send_message, uint32_t message_len) {
  * WChannel
  ************************************************************/
 
-WChannel::WChannel(const WEndPointInfo &local, const WEndPointInfo &remote, event_handler_p h) :
-    local_endpoint_(local), remote_endpoint_(remote), event_handler_(h) {
+WChannel::WChannel(const WEndPointInfo &local, const WEndPointInfo &remote, std::unique_ptr<ev_hdler_t> h) :
+    local_endpoint_(local), remote_endpoint_(remote), event_handler_(std::move(h)) {
     DEBUGADD("WChannel");
 
     assert(this->event_handler_);
@@ -299,13 +289,6 @@ WChannel::WChannel(const WEndPointInfo &local, const WEndPointInfo &remote, even
 WChannel::~WChannel() {
     DEBUGRM("WChannel");
     std::cout << "~WChannel" << std::endl;
-
-    if(event_handler_ != nullptr) {
-        delete event_handler_;
-        event_handler_ = nullptr;
-    }
-    this->FreeRecvBuffer();
-    this->FreeSendBuffer();
 }
 
 bool WChannel::Init() { return true; }
@@ -381,22 +364,6 @@ void WChannel::SetSendBufferMaxSize(int page_count, int page_size) {
     assert(this->max_send_buf_size_ <= MAX_CHANNEL_SEND_BUFFER_SIZE);
 
     send_buf.Init(page_count, page_size);
-}
-
-void WChannel::FreeRecvBuffer() {
-    // if(this->recv_buf_) {
-    //     DELADD;
-    //     delete[] this->recv_buf_;
-    //     this->recv_buf_ = nullptr;
-    // }
-}
-
-void WChannel::FreeSendBuffer() {
-    // if(this->send_buf_) {
-    //     DELADD;
-    //     delete[] this->send_buf_;
-    //     this->send_buf_ = nullptr;
-    // }
 }
 
 void WChannel::ChannelIn() {
@@ -508,6 +475,7 @@ void WChannel::onChannelClose() {
     //     close(this->client_socket_);
     this->listener_->onChannelDisConnect();
 }
+
 void WChannel::onChannelError(uint64_t error_code) {
     std::cout << "error " << ErrorToString(error_code) << std::endl;
     this->listener_->onError(ErrorToString(error_code));
@@ -515,3 +483,4 @@ void WChannel::onChannelError(uint64_t error_code) {
 
 
 } // namespace wlb::network
+

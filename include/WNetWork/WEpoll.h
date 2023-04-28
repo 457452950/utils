@@ -117,12 +117,12 @@ epoll_type CreateNewEpollFd();
 ////////////////////////////////////////////////////////////////////////////////////
 
 
-bool EpollAddSocket(epoll_type epoll, base_socket_type socket, uint32_t events);
-bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t events);
-bool EpollRemoveSocket(epoll_type epoll, base_socket_type socket);
+bool EpollAddSocket(epoll_type epoll, socket_t socket, uint32_t events);
+bool EpollModifySocket(epoll_type epoll, socket_t socket, uint32_t events);
+bool EpollRemoveSocket(epoll_type epoll, socket_t socket);
 
-bool EpollAddSocket(epoll_type epoll, base_socket_type socket, uint32_t events, epoll_data_t data);
-bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t events, epoll_data_t data);
+bool EpollAddSocket(epoll_type epoll, socket_t socket, uint32_t events, epoll_data_t data);
+bool EpollModifySocket(epoll_type epoll, socket_t socket, uint32_t events, epoll_data_t data);
 
 // struct epoll_event
 // {
@@ -147,11 +147,11 @@ public:
     bool Init();
     void Close();
 
-    bool AddSocket(base_socket_type socket, uint32_t events);
-    bool AddSocket(base_socket_type socket, uint32_t events, epoll_data_t data);
-    bool ModifySocket(base_socket_type socket, uint32_t events);
-    bool ModifySocket(base_socket_type socket, uint32_t events, epoll_data_t data);
-    bool RemoveSocket(base_socket_type socket);
+    bool AddSocket(socket_t socket, uint32_t events);
+    bool AddSocket(socket_t socket, uint32_t events, epoll_data_t data);
+    bool ModifySocket(socket_t socket, uint32_t events);
+    bool ModifySocket(socket_t socket, uint32_t events, epoll_data_t data);
+    bool RemoveSocket(socket_t socket);
 
 
     int32_t GetEvents(epoll_event *events, int32_t events_size, int32_t timeout = 0);
@@ -305,7 +305,7 @@ void WEpoll<UserData>::EventLoop() {
             auto    *data = (typename WEventHandle<UserData>::WEventHandler *)events[i].data.ptr;
 
             assert(data);
-            base_socket_type sock = data->socket_;
+            socket_t sock = data->socket_;
             uint8_t          eev  = data->GetEvents();
 
             assert(sock > 0);

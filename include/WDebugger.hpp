@@ -12,10 +12,10 @@ namespace wlb::debug {
 
 using namespace network;
 
-using WTimerHandle                  = event_handle_t;
+using WTimerHandle                  = ev_hdle_t;
 inline WTimerHandle *debuggerHandle = new WEpoll<WBaseChannel>;
 
-static auto handle_read_callback = [](base_socket_type sock, WEpoll<WBaseChannel>::user_data_ptr data) {
+static auto handle_read_callback = [](socket_t sock, WEpoll<WBaseChannel>::user_data_ptr data) {
     auto *ch = (ReadChannel *)data;
     // std::cout << "get channel call channel in [" << ch << "]" << std::endl;
     ch->ChannelIn();
@@ -35,7 +35,7 @@ public:
     bool Init(long timeout) {
         debuggerHandle->read_ = handle_read_callback;
 
-        this->_timer         = new WTimer(debuggerHandle);
+        // this->_timer         = new WTimer(debuggerHandle);
         this->_timer->OnTime = []() {
             // std::cout << "on time" << std::endl;
             for(auto &item : debugger->_memberMap) {

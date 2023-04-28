@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <iostream>
 #include <list>
+#include <memory>
 
 #include "WNetWorkDef.h"
 #include "WNetWorkUtils.h"
@@ -28,12 +29,8 @@ public:
 
     class WEventHandler;
 
-    // using option_type      = WEventHandler;
-    // using option_list      = std::list<WEventHandler *>;
-    // using option_list_item = typename option_list::iterator;
-
     // call back
-    using callback_type = void (*)(base_socket_type sock, user_data_ptr data);
+    using callback_type = void (*)(socket_t sock, user_data_ptr data);
 
     callback_type read_{nullptr};
     callback_type write_{nullptr};
@@ -52,11 +49,11 @@ public:
 template <typename UserData>
 class WEventHandle<UserData>::WEventHandler {
 public:
-    // TODO: 增加 events_ 修改的监听函数，自动调用ModifySocket
+    // DONE: 增加 events_ 修改的监听函数，自动调用ModifySocket
     // TODO: 增加 端信息
-    base_socket_type        socket_{-1};         // native socket
-    user_data_ptr           user_data_{nullptr}; // user data, void*
-    WEventHandle<UserData> *handle_{nullptr};
+    socket_t                              socket_{-1};         // native socket
+    user_data_ptr                         user_data_{nullptr}; // user data, void*
+    std::weak_ptr<WEventHandle<UserData>> handle_;
 
 private:
     uint8_t events_{0}; // HandlerEventType
@@ -69,8 +66,8 @@ public:
     void SetEvents(uint8_t events);
     auto GetEvents();
 
-    static WEventHandler *
-    CreateHandler(base_socket_type socket, user_data_ptr user_data, WEventHandle<UserData> *handle);
+    static std::unique_ptr<WEventHandler>
+    CreateHandler(socket_t socket, user_data_ptr user_data, std::weak_ptr<WEventHandle<UserData>> handle);
 
     ~WEventHandler();
 };
@@ -80,21 +77,23 @@ template <typename UserData>
 inline void WEventHandle<UserData>::WEventHandler::Enable() {
     // events cant be 0
     assert(this->events_);
+    assert(this->handle_.lock());
 
     if(enable_) {
         return;
     }
     this->enable_ = true;
-    this->handle_->AddSocket(this);
+    this->handle_.lock()->AddSocket(this);
 }
 
 template <typename UserData>
 inline void WEventHandle<UserData>::WEventHandler::DisEnable() {
+    assert(this->handle_.lock());
     if(!enable_) {
         std::cout << "WEventHandle<UserData>::WEventHandler::DisEnable is not enable now " << std::endl;
         return;
     }
-    this->handle_->DelSocket(this);
+    this->handle_.lock()->DelSocket(this);
 }
 
 template <typename UserData>
@@ -104,10 +103,12 @@ inline bool WEventHandle<UserData>::WEventHandler::IsEnable() {
 
 template <typename UserData>
 inline void WEventHandle<UserData>::WEventHandler::SetEvents(uint8_t events) {
+    assert(this->handle_.lock());
+
     if(this->events_ != events) {
         this->events_ = events;
         if(this->enable_) {
-            this->handle_->ModifySocket(this);
+            this->handle_.lock()->ModifySocket(this);
         }
     }
 }
@@ -119,13 +120,13 @@ inline auto WEventHandle<UserData>::WEventHandler::GetEvents() {
 
 // clang-format off
 template <typename UserData>
-typename WEventHandle<UserData>::WEventHandler* 
-WEventHandle<UserData>::WEventHandler::CreateHandler(base_socket_type        socket,
+std::unique_ptr<typename WEventHandle<UserData>::WEventHandler>
+WEventHandle<UserData>::WEventHandler::CreateHandler(socket_t        socket,
                                                      user_data_ptr           user_data,
-                                                     WEventHandle<UserData> *handle) {
-    auto the = new WEventHandle<UserData>::WEventHandler;
+                                                     std::weak_ptr<WEventHandle<UserData>> handle) {
+    auto the = std::make_unique<WEventHandle<UserData>::WEventHandler>();
 
-    if(the == nullptr) {
+    if(!the) {
         return nullptr;
     }
 
@@ -146,10 +147,12 @@ inline WEventHandle<UserData>::WEventHandler::~WEventHandler() {
  */
 
 class WBaseChannel;
-using event_handle_t  = WEventHandle<WBaseChannel>;
-using event_handle_p  = event_handle_t *;
-using event_handler_t = event_handle_t::WEventHandler;
-using event_handler_p = event_handler_t *;
+
+using ev_hdle_t = WEventHandle<WBaseChannel>;
+using ev_hdle_p = ev_hdle_t *;
+
+using ev_hdler_t = ev_hdle_t::WEventHandler;
+using ev_hdler_p = ev_hdler_t *;
 
 
 } // namespace wlb::network

@@ -10,7 +10,7 @@ using namespace debug;
 
 epoll_type CreateNewEpollFd() { return epoll_create(1); }
 
-bool EpollAddSocket(epoll_type epoll, base_socket_type socket, uint32_t events) {
+bool EpollAddSocket(epoll_type epoll, socket_t socket, uint32_t events) {
     struct epoll_event event {};
     event.data.fd = socket;
     event.events  = events;
@@ -22,7 +22,7 @@ bool EpollAddSocket(epoll_type epoll, base_socket_type socket, uint32_t events) 
     return false;
 }
 
-bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t events) {
+bool EpollModifySocket(epoll_type epoll, socket_t socket, uint32_t events) {
     struct epoll_event event {};
     event.data.fd = socket;
     event.events  = events;
@@ -34,7 +34,7 @@ bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t event
     return false;
 }
 
-bool EpollAddSocket(epoll_type epoll, base_socket_type socket, uint32_t events, epoll_data_t data) {
+bool EpollAddSocket(epoll_type epoll, socket_t socket, uint32_t events, epoll_data_t data) {
     struct epoll_event event {};
     event.data   = data;
     event.events = events;
@@ -45,7 +45,7 @@ bool EpollAddSocket(epoll_type epoll, base_socket_type socket, uint32_t events, 
 
     return false;
 }
-bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t events, epoll_data_t data) {
+bool EpollModifySocket(epoll_type epoll, socket_t socket, uint32_t events, epoll_data_t data) {
     struct epoll_event event {};
     event.data   = data;
     event.events = events;
@@ -57,7 +57,7 @@ bool EpollModifySocket(epoll_type epoll, base_socket_type socket, uint32_t event
     return false;
 }
 
-bool EpollRemoveSocket(epoll_type epoll, base_socket_type socket) {
+bool EpollRemoveSocket(epoll_type epoll, socket_t socket) {
     if(::epoll_ctl(epoll, EPOLL_CTL_DEL, socket, nullptr) == 0) {
         return true;
     }
@@ -98,7 +98,7 @@ void WBaseEpoll::Close() {
     }
 }
 
-bool WBaseEpoll::AddSocket(base_socket_type socket, uint32_t events) {
+bool WBaseEpoll::AddSocket(socket_t socket, uint32_t events) {
     assert(socket != -1);
     assert(events > 0);
 
@@ -108,7 +108,7 @@ bool WBaseEpoll::AddSocket(base_socket_type socket, uint32_t events) {
     return true;
 }
 
-bool WBaseEpoll::ModifySocket(base_socket_type socket, uint32_t events) {
+bool WBaseEpoll::ModifySocket(socket_t socket, uint32_t events) {
     assert(socket != -1);
 
     if(!EpollModifySocket(this->epoll_fd_, socket, events)) {
@@ -117,7 +117,7 @@ bool WBaseEpoll::ModifySocket(base_socket_type socket, uint32_t events) {
     return true;
 }
 
-bool WBaseEpoll::AddSocket(base_socket_type socket, uint32_t events, epoll_data_t data) {
+bool WBaseEpoll::AddSocket(socket_t socket, uint32_t events, epoll_data_t data) {
     assert(socket != -1);
     assert(events > 0);
 
@@ -127,7 +127,7 @@ bool WBaseEpoll::AddSocket(base_socket_type socket, uint32_t events, epoll_data_
     return true;
 }
 
-bool WBaseEpoll::ModifySocket(base_socket_type socket, uint32_t events, epoll_data_t data) {
+bool WBaseEpoll::ModifySocket(socket_t socket, uint32_t events, epoll_data_t data) {
     assert(socket != -1);
     assert(events > 0);
 
@@ -137,7 +137,7 @@ bool WBaseEpoll::ModifySocket(base_socket_type socket, uint32_t events, epoll_da
     return true;
 }
 
-bool WBaseEpoll::RemoveSocket(base_socket_type socket) {
+bool WBaseEpoll::RemoveSocket(socket_t socket) {
     assert(socket != -1);
 
     return EpollRemoveSocket(this->epoll_fd_, socket);

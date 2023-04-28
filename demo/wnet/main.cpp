@@ -1,5 +1,6 @@
 #include <csignal>
 #include <iostream>
+#include <memory>
 
 #include <sys/uio.h>
 
@@ -116,31 +117,31 @@ void test_preadv_pwritev() {
     auto info  = WEndPointInfo::Dump(en);
     cout << "client : ip " << std::get<0>(info) << " port:" << std::get<1>(info) << endl;
 
-    char *str0    = "helasdadafsafaafsadfdsaasfasfafafasfaufasnukfgagfasnjknfajkfbjasbfab,"
-                    "gkhjbgherabllhjbfahjlbehjrlgbhaejrbgjaelrkbghaerjbghajergberhjgbeshjblo";
-    char *str1    = "1\n";
-    char *str2    = "2\n";
-    char *str3    = "3\n";
-    char *str4    = "4\n";
-    char *str5    = "5\n";
-    char *str6    = "6\n";
-    char *str7    = "7\n";
-    char *str8    = "8\n";
-    char *str9    = "9\n";
-    char *strs[9] = {"1\n", "2\n", "3\n", "4\n", "5\n", "6\n", "7\n", "8\n", "9\n"};
+    const char *str0    = "helasdadafsafaafsadfdsaasfasfafafasfaufasnukfgagfasnjknfajkfbjasbfab,"
+                          "gkhjbgherabllhjbfahjlbehjrlgbhaejrbgjaelrkbghaerjbghajergberhjgbeshjblo";
+    const char *str1    = "1\n";
+    const char *str2    = "2\n";
+    const char *str3    = "3\n";
+    const char *str4    = "4\n";
+    const char *str5    = "5\n";
+    const char *str6    = "6\n";
+    const char *str7    = "7\n";
+    const char *str8    = "8\n";
+    const char *str9    = "9\n";
+    const char *strs[9] = {"1\n", "2\n", "3\n", "4\n", "5\n", "6\n", "7\n", "8\n", "9\n"};
     // char        *str10 = "10\n";
     struct iovec iov[2];
     ssize_t      nwritten;
 
-    iov[0].iov_base = str0;
+    iov[0].iov_base = (void *)str0;
     iov[0].iov_len  = strlen(str0);
-    iov[1].iov_base = str1;
+    iov[1].iov_base = (void *)str1;
     iov[1].iov_len  = strlen(str1);
 
     // send(srv, str0, strlen(str0), 0);
 
     for(size_t i = 0; i < 50000; i++) {
-        iov[1].iov_base = strs[i % 9];
+        iov[1].iov_base = (void *)strs[i % 9];
 
         // nwritten = pwritev2(srv, iov, 2, -1, RWF_APPEND);
         nwritten = pwritev2(srv, iov, 2, -1, 0);
@@ -349,7 +350,7 @@ struct test_s {
     int                      n;
 };
 
-auto r_cb = [](base_socket_type sock, WSelect<test_s>::user_data_ptr data) {
+auto r_cb = [](socket_t sock, WSelect<test_s>::user_data_ptr data) {
     cout << "in" << sock << endl;
 
     WEndPointInfo en;
@@ -371,9 +372,9 @@ auto r_cb = [](base_socket_type sock, WSelect<test_s>::user_data_ptr data) {
 
 void test_wepoll() {
     cout << "test wepoll " << endl;
-    WEpoll<test_s> ep;
-    ep.Init();
-    ep.read_ = r_cb;
+    auto ep = std::make_shared<WEpoll<test_s>>();
+    ep->Init();
+    ep->read_ = r_cb;
 
     auto sock = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
     SetSocketReuseAddr(sock);
@@ -396,7 +397,7 @@ void test_wepoll() {
     }
 
     test_s i{.f = [](int n) { cout << "heppy " << n << endl; }, .n = 3};
-    auto   handler = WEventHandle<test_s>::WEventHandler::CreateHandler(sock, &i, &ep);
+    auto   handler = WEventHandle<test_s>::WEventHandler::CreateHandler(sock, &i, ep);
     handler->SetEvents(HandlerEventType::EV_IN);
     handler->Enable();
 
@@ -409,7 +410,7 @@ void test_wepoll() {
         cout << "connect ok" << endl;
     }
 
-    std::thread t([&ep]() { ep.Loop(); });
+    std::thread t([&ep]() { ep->Loop(); });
     t.join();
 }
 
@@ -417,12 +418,12 @@ void test_wepoll() {
 /**
  * test_tcpchannel
  */
-auto in_cb = [](base_socket_type sock, WBaseChannel *data) {
+auto in_cb = [](socket_t sock, WBaseChannel *data) {
     auto *ch = (ReadChannel *)data;
     // cout << "get channel call channel in" << std::endl;
     ch->ChannelIn();
 };
-auto out_cb = [](base_socket_type sock, WBaseChannel *data) {
+auto out_cb = [](socket_t sock, WBaseChannel *data) {
     auto *ch = (WriteChannel *)data;
     // cout << "get channel call channel in" << std::endl;
     ch->ChannelOut();
@@ -450,11 +451,11 @@ private:
     WChannel *ch;
 };
 
-auto ac_cb = [](WEndPointInfo local, WEndPointInfo remote, event_handler_p handler) -> WBaseChannel * {
+auto ac_cb = [](WEndPointInfo local, WEndPointInfo remote, std::unique_ptr<ev_hdler_t> handler) -> WBaseChannel * {
     auto info = WEndPointInfo::Dump(remote);
 
     // cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
-    auto ch = new WChannel(local, remote, handler);
+    auto ch = new WChannel(local, remote, std::move(handler));
     ch->SetRecvBufferMaxSize(10, 1000);
     auto se = new TestSession(ch);
     ch->SetListener(se);
@@ -464,14 +465,14 @@ auto ac_cb = [](WEndPointInfo local, WEndPointInfo remote, event_handler_p handl
 void test_tcpchannel() {
     cout << "test channel " << endl;
 
-    WEpoll<WBaseChannel> ep;
-    ep.Init();
-    ep.read_  = in_cb;
-    ep.write_ = out_cb;
+    auto ep = std::make_shared<WEpoll<WBaseChannel>>();
+    ep->Init();
+    ep->read_  = in_cb;
+    ep->write_ = out_cb;
 
     WEndPointInfo local_ed = *WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 4000, AF_FAMILY::INET6);
 
-    auto accp_channel      = new WAccepterChannel(local_ed, &ep);
+    auto accp_channel      = new WAccepterChannel(local_ed, ep);
     accp_channel->OnAccept = ac_cb;
 
     auto cli = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
@@ -501,7 +502,7 @@ void test_tcpchannel() {
         }
     });
 
-    WTimer t(&ep);
+    WTimer t(ep);
     t.OnTime = [cli, &t]() {
         // cout << std::chrono::duration_cast<std::chrono::milliseconds>(
         //                 std::chrono::system_clock::now().time_since_epoch())
@@ -518,7 +519,7 @@ void test_tcpchannel() {
     };
     t.Start(100, 1);
 
-    std::thread thr([&ep]() { ep.Loop(); });
+    std::thread thr([&ep]() { ep->Loop(); });
     thr.join();
 }
 
@@ -526,10 +527,10 @@ void test_tcpchannel() {
  * test_udp
  */
 void test_udp() {
-    WEpoll<WBaseChannel> ep;
-    ep.Init();
-    ep.read_  = in_cb;
-    ep.write_ = out_cb;
+    auto ep = std::make_shared<WEpoll<WBaseChannel>>();
+    ep->Init();
+    ep->read_  = in_cb;
+    ep->write_ = out_cb;
 
     WEndPointInfo srv_ed;
     // srv_ed.Assign("::1", 4000, AF_FAMILY::INET6);
@@ -546,13 +547,12 @@ void test_udp() {
     cli2_ed.Assign("192.168.101.2", 4002, AF_FAMILY::INET);
     auto cli2 = MakeBindedSocket(cli2_ed);
 
-    auto udp_srv = new WUDP(srv_ed, &ep);
+    auto udp_srv = new WUDP(srv_ed, ep);
 
     auto onmsg = [&](const wlb::network::WEndPointInfo &local,
                      const wlb::network::WEndPointInfo &remote,
                      const uint8_t                     *msg,
-                     uint32_t                           msg_len,
-                     wlb::network::event_handler_p      h) {
+                     uint32_t                           msg_len) {
         auto [lip, lport] = WEndPointInfo::Dump(local);
         auto [rip, rport] = WEndPointInfo::Dump(remote);
 
@@ -573,7 +573,7 @@ void test_udp() {
     udp_srv->OnMessage = onmsg;
     udp_srv->OnError   = onerr;
 
-    std::thread th1([&]() { ep.Loop(); });
+    std::thread th1([&]() { ep->Loop(); });
 
     std::thread th2([&]() {
         char send_msg[] = "afsafsfsfagrtgtbgfbstrbsrbrtbrbstrgbtrbsfdsvbfsdsvbsrtbv";
@@ -603,8 +603,6 @@ void test_udp() {
         }
     });
     th1.join();
-
-    delete udp_srv;
 }
 
 
@@ -612,10 +610,10 @@ void test_udp() {
  * test_udpchannel
  */
 void test_udpchannel() {
-    WEpoll<WBaseChannel> ep;
-    ep.Init();
-    ep.read_  = in_cb;
-    ep.write_ = out_cb;
+    auto ep = std::make_shared<WEpoll<WBaseChannel>>();
+    ep->Init();
+    ep->read_  = in_cb;
+    ep->write_ = out_cb;
 
     WEndPointInfo srv_ed;
     // srv_ed.Assign("::1", 4000, AF_FAMILY::INET6);
@@ -633,14 +631,13 @@ void test_udpchannel() {
     cli2_ed.Assign("192.168.101.2", 4002, AF_FAMILY::INET);
     auto cli2 = MakeBindedSocket(cli2_ed);
 
-    auto udp_srv = new WUDPChannel(srv_ed, cli_ed, &ep);
+    auto udp_srv = std::make_unique<WUDPChannel>(srv_ed, cli_ed, ep);
     // auto udp_srv = new WUDPChannel(srv_ed, cli2_ed, &ep);
 
     auto onmsg = [&](const wlb::network::WEndPointInfo &local,
                      const wlb::network::WEndPointInfo &remote,
                      const uint8_t                     *msg,
-                     uint32_t                           msg_len,
-                     wlb::network::event_handler_p      h) {
+                     uint32_t                           msg_len) {
         auto [lip, lport] = WEndPointInfo::Dump(local);
         auto [rip, rport] = WEndPointInfo::Dump(remote);
 
@@ -661,7 +658,7 @@ void test_udpchannel() {
     udp_srv->OnMessage = onmsg;
     udp_srv->OnError   = onerr;
 
-    std::thread th1([&]() { ep.Loop(); });
+    std::thread th1([&]() { ep->Loop(); });
 
     std::thread th2([&]() {
         char send_msg[] = "afsafsfsfagrtgtbgfbstrbsrbrtbrbstrgbtrbsfdsvbfsdsvbsrtbv";
@@ -675,7 +672,8 @@ void test_udpchannel() {
             std::cout << "cli sendto err " << ErrorToString(GetError()) << endl;
         } else {
             auto [ip, port] = WEndPointInfo::Dump(srv_ed);
-            cout << "cli sendto [" << ip << " : " << port << "] " << std::string(send_msg, strlen(send_msg)).c_str() << endl;
+            cout << "cli sendto [" << ip << " : " << port << "] " << std::string(send_msg, strlen(send_msg)).c_str()
+                 << endl;
         }
 
 
@@ -698,15 +696,13 @@ void test_udpchannel() {
         }
     });
     th1.join();
-
-    delete udp_srv;
 }
 
 
 /**
  * test_tcpserver
  */
-// auto acc_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> bool {
+// auto acc_cb = [](wlb::network::socket_t socket, wlb::network::WEndPointInfo &endpoint) -> bool {
 //     // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
 
 //     // ch = new WChannel(socket, endpoint);
@@ -755,7 +751,7 @@ void sin_handle(int signal) { exit(-1); }
 //     ser.Join();
 // }
 
-auto acc2_cb = [](wlb::network::base_socket_type socket, wlb::network::WEndPointInfo &endpoint) -> bool {
+auto acc2_cb = [](wlb::network::socket_t socket, wlb::network::WEndPointInfo &endpoint) -> bool {
     // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
     // TODO: 使用抽象工厂模式
     // ch = new MyChannel(socket, endpoint);

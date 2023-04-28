@@ -23,9 +23,9 @@ using fd_set_type = fd_set;
 using fd_set_ptr  = fd_set_type *;
 
 inline void SetClearFd(fd_set_ptr set) { FD_ZERO(set); };
-inline void SetAddFd(base_socket_type fd, fd_set_ptr set) { FD_SET(fd, set); };
-inline void SetDelFd(base_socket_type fd, fd_set_ptr set) { FD_CLR(fd, set); };
-inline bool SetCheckFd(base_socket_type fd, fd_set_ptr set) { return FD_ISSET(fd, set); };
+inline void SetAddFd(socket_t fd, fd_set_ptr set) { FD_SET(fd, set); };
+inline void SetDelFd(socket_t fd, fd_set_ptr set) { FD_CLR(fd, set); };
+inline bool SetCheckFd(socket_t fd, fd_set_ptr set) { return FD_ISSET(fd, set); };
 inline void CopySet(fd_set_ptr set_dist, fd_set_ptr set_src) { memcpy(set_dist, set_src, sizeof(fd_set_type)); }
 
 // struct timeval
@@ -182,7 +182,7 @@ private:
     bool HasEventIN(uint8_t events) { return events & HandlerEventType::EV_IN; }
     bool HasEventOut(uint8_t events) { return events & HandlerEventType::EV_OUT; }
 
-    void ParseAndSetEvents(base_socket_type socket, uint8_t events) {
+    void ParseAndSetEvents(socket_t socket, uint8_t events) {
         if(HasEventIN(events)) {
             SetAddFd(socket, &read_set_);
         } else {
@@ -204,7 +204,7 @@ private:
     std::unordered_set<WEventHandler *> handler_set;
     std::stack<WEventHandler *>         rubish_stack_;
     uint32_t                            fd_count_{0};
-    base_socket_type                    max_fd_number{0};
+    socket_t                    max_fd_number{0};
     bool                                active_{false};
 };
 

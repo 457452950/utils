@@ -5,8 +5,8 @@
 namespace wlb::network {
 
 
-int   GetError() { return errno; }
-char *ErrorToString(int error) { return strerror(error); }
+int         GetError() { return errno; }
+const char *ErrorToString(int error) { return strerror(error); }
 
 timerfd_t CreateNewTimerfd() {
     // return ::timerfd_create(CLOCK_REALTIME_ALARM, TFD_NONBLOCK | TFD_CLOEXEC);
@@ -22,15 +22,15 @@ bool SetTimerTime(timerfd_t fd, SetTimeFlag flag, const struct itimerspec *next_
 }
 
 // -1 for errno
-base_socket_type MakeSocket(enum AF_FAMILY family, enum AF_PROTOL protol) {
+socket_t MakeSocket(enum AF_FAMILY family, enum AF_PROTOL protol) {
     if(protol == AF_PROTOL::TCP) {
         return ::socket(static_cast<int>(family), SOCK_STREAM, IPPROTO_TCP);
     } else {
         return ::socket(static_cast<int>(family), SOCK_DGRAM, IPPROTO_UDP);
     }
 }
-base_socket_type MakeTcpV4Socket() { return MakeSocket(AF_FAMILY::INET, AF_PROTOL::TCP); }
-base_socket_type MakeUdpV4Socket() { return MakeSocket(AF_FAMILY::INET, AF_PROTOL::UDP); }
+socket_t MakeTcpV4Socket() { return MakeSocket(AF_FAMILY::INET, AF_PROTOL::TCP); }
+socket_t MakeUdpV4Socket() { return MakeSocket(AF_FAMILY::INET, AF_PROTOL::UDP); }
 
 bool IpAddrToString(in_addr addr_, std::string *buf) {
     try {
@@ -129,7 +129,7 @@ bool MakeSockAddr_in6(const std::string &ip_address, uint16_t port, sockaddr_in6
     return true;
 }
 
-bool Bind(base_socket_type socket, const std::string &host, uint16_t port, bool isv4) {
+bool Bind(socket_t socket, const std::string &host, uint16_t port, bool isv4) {
     if(isv4) {
         sockaddr_in ei{0};
 
@@ -159,10 +159,11 @@ bool Bind(base_socket_type socket, const std::string &host, uint16_t port, bool 
     return false;
 }
 
-bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo) {
+bool Bind(socket_t socket, const WEndPointInfo &serverInfo) {
 
     auto t = WEndPointInfo::Dump(serverInfo);
-    std::cout << "Bind " << std::get<0>(t) << " : " << std::get<1>(t) << " " << serverInfo.GetSockSize() << std::endl;
+    std::cout << socket << " Bind " << std::get<0>(t) << " : " << std::get<1>(t) << " " << serverInfo.GetSockSize()
+              << std::endl;
 
     auto ok = ::bind(socket, serverInfo.GetAddr(), serverInfo.GetSockSize());
     if(ok == 0) {
@@ -173,9 +174,9 @@ bool Bind(base_socket_type socket, const WEndPointInfo &serverInfo) {
 }
 
 
-base_socket_type MakeBindedSocket(const WEndPointInfo &info) {
-    base_socket_type bind_sock = 0;
-    auto             fami      = info.GetFamily();
+socket_t MakeBindedSocket(const WEndPointInfo &info) {
+    socket_t bind_sock = -1;
+    auto     fami      = info.GetFamily();
 
     auto [ip, port] = WEndPointInfo::Dump(info);
 
@@ -183,7 +184,7 @@ base_socket_type MakeBindedSocket(const WEndPointInfo &info) {
     if(bind_sock == -1) {
         std::cout << "MakeBindedSocket : make [" << ip << ":" << port << "] socket failed " << strerror(errno)
                   << std::endl;
-        return bind_sock;
+        return -1;
     }
 
     // SetSocketNoBlock(bind_sock);
@@ -193,20 +194,21 @@ base_socket_type MakeBindedSocket(const WEndPointInfo &info) {
     if(Bind(bind_sock, info)) {
         return bind_sock;
     }
-    
-    std::cout << "MakeBindedSocket : Bind [" << ip << ":" << port << "] failed " << strerror(errno) << std::endl;
-    close(bind_sock);
+
+    std::cout << "MakeBindedSocket : " << bind_sock << " Bind [" << ip << ":" << port << "] failed " << strerror(errno)
+              << std::endl;
+    ::close(bind_sock);
     return -1;
 }
 
-base_socket_type MakeListenedSocket(const WEndPointInfo &info) {
-    base_socket_type listen_sock = 0;
-    auto             fami        = info.GetFamily();
+socket_t MakeListenedSocket(const WEndPointInfo &info) {
+    socket_t listen_sock(-1);
+    auto     fami = info.GetFamily();
 
     listen_sock = MakeSocket(fami, AF_PROTOL::TCP);
     if(listen_sock == -1) {
         std::cout << "make listened socket : make socket failed " << strerror(errno) << std::endl;
-        return listen_sock;
+        return -1;
     }
 
     SetSocketReuseAddr(listen_sock);
@@ -222,10 +224,10 @@ base_socket_type MakeListenedSocket(const WEndPointInfo &info) {
     return -1;
 }
 
-base_socket_type Accept(base_socket_type socket, WEndPointInfo *info) {
-    socklen_t        len = 0;
-    sockaddr_in6     temp;
-    base_socket_type clientsock = ::accept(socket, (sockaddr *)&temp, &len);
+socket_t Accept(socket_t socket, WEndPointInfo *info) {
+    socklen_t    len = 0;
+    sockaddr_in6 temp;
+    socket_t     clientsock = ::accept(socket, (sockaddr *)&temp, &len);
     if(clientsock < 0) {
         return -1;
     }
@@ -238,10 +240,10 @@ base_socket_type Accept(base_socket_type socket, WEndPointInfo *info) {
     return clientsock;
 }
 
-base_socket_type Accept4(base_socket_type socket, WEndPointInfo *info, int flags) {
-    socklen_t        len = 0;
-    sockaddr_in6     temp;
-    base_socket_type clientsock = ::accept4(socket, (sockaddr *)&temp, &len, flags);
+socket_t Accept4(socket_t socket, WEndPointInfo *info, int flags) {
+    socklen_t    len = 0;
+    sockaddr_in6 temp;
+    socket_t     clientsock = ::accept4(socket, (sockaddr *)&temp, &len, flags);
     if(clientsock < 0) {
         return -1;
     }
@@ -254,7 +256,7 @@ base_socket_type Accept4(base_socket_type socket, WEndPointInfo *info, int flags
     return clientsock;
 }
 
-bool ConnectToHost(base_socket_type socket, const std::string &host, uint16_t port, bool isv4) {
+bool ConnectToHost(socket_t socket, const std::string &host, uint16_t port, bool isv4) {
     if(isv4) {
         sockaddr_in addr{};
         if(!MakeSockAddr_in(host, port, &addr)) {
@@ -274,9 +276,8 @@ bool ConnectToHost(base_socket_type socket, const std::string &host, uint16_t po
     }
     return false;
 }
-bool ConnectToHost(base_socket_type socket, const WEndPointInfo &info) {
-    const auto _size = info.GetFamily() == AF_FAMILY::INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
-    if(::connect(socket, info.GetAddr(), _size) == 0) {
+bool ConnectToHost(socket_t socket, const WEndPointInfo &info) {
+    if(::connect(socket, info.GetAddr(), info.GetSockSize()) == 0) {
         return true;
     }
 
@@ -287,7 +288,7 @@ bool ConnectToHost(base_socket_type socket, const WEndPointInfo &info) {
  * UDP Utils
  ****************************************************/
 
-int32_t RecvFrom(base_socket_type socket, uint8_t *buf, uint32_t buf_len, WEndPointInfo *info) {
+int32_t RecvFrom(socket_t socket, uint8_t *buf, uint32_t buf_len, WEndPointInfo *info) {
     socklen_t    len = 0;
     sockaddr_in6 temp{0};
     auto         recv_len = ::recvfrom(socket, buf, buf_len, 0, (sockaddr *)&temp, &len);
@@ -307,14 +308,14 @@ int32_t RecvFrom(base_socket_type socket, uint8_t *buf, uint32_t buf_len, WEndPo
 /***************************************************
  * Socket Utils
  ****************************************************/
-bool SetSocketNoBlock(base_socket_type socket) {
+bool SetSocketNoBlock(socket_t socket) {
     if(::fcntl(socket, F_SETFL, ::fcntl(socket, F_GETFL, 0) | O_NONBLOCK) == -1) {
         return false;
     }
     return true;
 }
 
-bool SetSocketReuseAddr(base_socket_type socket) {
+bool SetSocketReuseAddr(socket_t socket) {
     int          opt = 1;
     unsigned int len = sizeof(opt);
     if(::setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &opt, len) == -1) {
@@ -322,7 +323,7 @@ bool SetSocketReuseAddr(base_socket_type socket) {
     }
     return true;
 }
-bool SetSocketReusePort(base_socket_type socket) {
+bool SetSocketReusePort(socket_t socket) {
     int          opt = 1;
     unsigned int len = sizeof(opt);
     if(::setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &opt, len) == -1) {
@@ -330,7 +331,7 @@ bool SetSocketReusePort(base_socket_type socket) {
     }
     return true;
 }
-bool SetSocketKeepAlive(base_socket_type socket) {
+bool SetSocketKeepAlive(socket_t socket) {
     int          opt = 1;
     unsigned int len = sizeof(opt);
     if(::setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &opt, len) == -1) {
@@ -339,7 +340,7 @@ bool SetSocketKeepAlive(base_socket_type socket) {
     return true;
 }
 
-bool SetTcpSocketNoDelay(base_socket_type socket) {
+bool SetTcpSocketNoDelay(socket_t socket) {
     int opt_val = 1;
     if(::setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, &opt_val, static_cast<socklen_t>(sizeof opt_val)) == 0) {
         return true;
