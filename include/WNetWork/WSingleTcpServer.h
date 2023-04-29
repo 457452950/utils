@@ -6,7 +6,7 @@
 
 
 #include "WChannel.h"
-#include "WNetWork/WNetFactory.h"
+#include "WNetFactory.h"
 
 namespace wlb::network {
 

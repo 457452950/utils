@@ -142,18 +142,6 @@ inline WEventHandle<UserData>::WEventHandler::~WEventHandler() {
     ::close(this->socket_);
 }
 
-/**
- *
- */
-
-class WBaseChannel;
-
-using ev_hdle_t = WEventHandle<WBaseChannel>;
-using ev_hdle_p = ev_hdle_t *;
-
-using ev_hdler_t = ev_hdle_t::WEventHandler;
-using ev_hdler_p = ev_hdler_t *;
-
 
 } // namespace wlb::network
 
