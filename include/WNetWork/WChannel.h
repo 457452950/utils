@@ -94,10 +94,14 @@ private:
 class WChannel;
 class WAccepterChannel : public ReadChannel {
 public:
-    explicit WAccepterChannel(const WEndPointInfo &local_endpoint, std::weak_ptr<ev_hdle_t> handle);
+    explicit WAccepterChannel(std::weak_ptr<ev_hdle_t> handle);
     ~WAccepterChannel() override;
 
-    using accept_cb = WBaseChannel *(*)(const WEndPointInfo &, const WEndPointInfo &, std::unique_ptr<ev_hdler_t>);
+    bool Start(const WEndPointInfo &local_endpoint);
+
+    using accept_cb = std::shared_ptr<WBaseChannel> (*)(const WEndPointInfo &,
+                                                        const WEndPointInfo &,
+                                                        std::unique_ptr<ev_hdler_t>);
     accept_cb                         OnAccept;
     std::function<void(const char *)> OnError;
 
@@ -116,8 +120,10 @@ private:
 // HACK: 逻辑上 WUDP not "is a" WBaseChannel.
 class WUDP : public WBaseChannel {
 public:
-    explicit WUDP(const WEndPointInfo &local_endpoint, std::weak_ptr<ev_hdle_t> handle);
+    explicit WUDP(std::weak_ptr<ev_hdle_t> handle);
     ~WUDP() override;
+
+    bool Start(const WEndPointInfo &local_endpoint);
 
     std::function<void(const WEndPointInfo &, const WEndPointInfo &, const uint8_t *, uint32_t)> OnMessage;
     std::function<void(const char *)>                                                            OnError;
@@ -141,10 +147,10 @@ private:
  ************************************************************/
 class WUDPChannel : public WBaseChannel {
 public:
-    explicit WUDPChannel(const WEndPointInfo     &local_ep,
-                         const WEndPointInfo     &remote_ep,
-                         std::weak_ptr<ev_hdle_t> handle);
+    explicit WUDPChannel(std::weak_ptr<ev_hdle_t> handle);
     ~WUDPChannel() override;
+
+    bool Start(const WEndPointInfo &local_ep, const WEndPointInfo &remote_ep);
 
     // listener
 public:
@@ -154,10 +160,10 @@ public:
         virtual void OnError(const char *err_message)                        = 0;
     };
 
-    inline void SetListener(Listener *listener) { this->listener_ = listener; }
+    inline void SetListener(std::weak_ptr<Listener> listener) { this->listener_ = listener; }
 
 protected:
-    Listener *listener_{nullptr};
+    std::weak_ptr<Listener> listener_;
 
 public:
     // unreliable
@@ -204,10 +210,10 @@ public:
         virtual void onError(const char *err_message)                        = 0;
     };
 
-    inline void SetListener(Listener *listener) { this->listener_ = listener; }
+    inline void SetListener(std::weak_ptr<Listener> listener) { this->listener_ = listener; }
 
 protected:
-    Listener *listener_{nullptr};
+    std::weak_ptr<Listener> listener_;
 
     // buffer
 public:

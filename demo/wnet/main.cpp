@@ -397,7 +397,10 @@ void test_wepoll() {
     }
 
     test_s i{.f = [](int n) { cout << "heppy " << n << endl; }, .n = 3};
-    auto   handler = WEventHandle<test_s>::WEventHandler::CreateHandler(sock, &i, ep);
+    auto   handler = std::make_unique<WEventHandle<test_s>::WEventHandler>();
+    handler->socket_ = sock;
+    handler->user_data_ = &i;
+    handler->handle_ = ep;
     handler->SetEvents(HandlerEventType::EV_IN);
     handler->Enable();
 
@@ -431,7 +434,7 @@ auto out_cb = [](socket_t sock, WBaseChannel *data) {
 
 class TestSession : public WChannel::Listener {
 public:
-    TestSession(WChannel *ch_) : ch(ch_) {}
+    TestSession(std::shared_ptr<WChannel> ch_) : ch(ch_) {}
     virtual void onChannelConnect() {}
     virtual void onChannelDisConnect() {}
     virtual void onReceive(const uint8_t *message, uint64_t message_len) {
@@ -448,18 +451,20 @@ public:
     virtual void onError(const char *err_message) { std::cout << err_message << endl; }
 
 private:
-    WChannel *ch;
+    std::shared_ptr<WChannel> ch;
 };
+
+std::shared_ptr<TestSession> se;
 
 auto ac_cb = [](const WEndPointInfo        &local,
                 const WEndPointInfo        &remote,
-                std::unique_ptr<ev_hdler_t> handler) -> WBaseChannel * {
+                std::unique_ptr<ev_hdler_t> handler) -> std::shared_ptr<WBaseChannel> {
     auto info = WEndPointInfo::Dump(remote);
 
     // cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
-    auto ch = new WChannel(local, remote, std::move(handler));
+    auto ch = std::make_shared<WChannel>(local, remote, std::move(handler));
     ch->SetRecvBufferMaxSize(10, 1000);
-    auto se = new TestSession(ch);
+    se = std::make_shared<TestSession>(ch);
     ch->SetListener(se);
     return ch;
 };
@@ -474,7 +479,8 @@ void test_tcpchannel() {
 
     WEndPointInfo local_ed = *WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 4000, AF_FAMILY::INET6);
 
-    auto accp_channel      = new WAccepterChannel(local_ed, ep);
+    auto accp_channel      = new WAccepterChannel(ep);
+    accp_channel->Start(local_ed);
     accp_channel->OnAccept = ac_cb;
 
     auto cli = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
@@ -503,7 +509,7 @@ void test_tcpchannel() {
             // clang-format on
         }
     });
-
+    
     WTimer t(ep);
     t.OnTime = [cli, &t]() {
         // cout << std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -549,7 +555,8 @@ void test_udp() {
     cli2_ed.Assign("192.168.101.2", 4002, AF_FAMILY::INET);
     auto cli2 = MakeBindedSocket(cli2_ed);
 
-    auto udp_srv = new WUDP(srv_ed, ep);
+    auto udp_srv = new WUDP(ep);
+    udp_srv->Start(srv_ed);
 
     auto onmsg = [&](const wlb::network::WEndPointInfo &local,
                      const wlb::network::WEndPointInfo &remote,
@@ -659,15 +666,16 @@ void test_udpchannel() {
     cli2_ed.Assign("192.168.101.2", 4002, AF_FAMILY::INET);
     auto cli2 = MakeBindedSocket(cli2_ed);
 
-    auto udp_srv = std::make_unique<WUDPChannel>(srv_ed, cli_ed, ep);
+    auto udp_srv = std::make_unique<WUDPChannel>(ep);
+    udp_srv->Start(srv_ed, cli_ed);
     // auto udp_srv = new WUDPChannel(srv_ed, cli2_ed, &ep);
 
     std::shared_ptr<udpSession> sess = std::make_shared<udpSession>();
     sess->cli_ed = cli_ed;
     sess->srv_ed = srv_ed;
-    udp_srv->SetListener(sess.get());
+    udp_srv->SetListener(sess);
     sess->udp_chl = std::move(udp_srv);
-    
+
     std::thread th1([&]() { ep->Loop(); });
 
     std::thread th2([&]() {
