@@ -55,9 +55,9 @@ int main() {
     // test_ipv6();
     // test_wepoll();
 
-    // test_tcpchannel();
+    test_tcpchannel();
     // test_udp();
-    test_udpchannel();
+    // test_udpchannel();
     // test_tcpserver();
     // test_myChannel();
 }
@@ -435,7 +435,7 @@ auto out_cb = [](socket_t sock, WBaseChannel *data) {
 class TestSession : public WChannel::Listener {
 public:
     TestSession(std::shared_ptr<WChannel> ch_) : ch(ch_) {}
-    virtual void onChannelConnect() {}
+    virtual void onChannelConnect(std::shared_ptr<WChannel>) {}
     virtual void onChannelDisConnect() {}
     virtual void onReceive(const uint8_t *message, uint64_t message_len) {
         // cout << "recv " << std::string((char *)message, (int)message_len) << " size " << message_len << endl;
@@ -458,7 +458,7 @@ std::shared_ptr<TestSession> se;
 
 auto ac_cb = [](const WEndPointInfo        &local,
                 const WEndPointInfo        &remote,
-                std::unique_ptr<ev_hdler_t> handler) -> std::shared_ptr<WBaseChannel> {
+                std::unique_ptr<ev_hdler_t> handler) {
     auto info = WEndPointInfo::Dump(remote);
 
     // cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
@@ -466,7 +466,6 @@ auto ac_cb = [](const WEndPointInfo        &local,
     ch->SetRecvBufferMaxSize(10, 1000);
     se = std::make_shared<TestSession>(ch);
     ch->SetListener(se);
-    return ch;
 };
 
 void test_tcpchannel() {

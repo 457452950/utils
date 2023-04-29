@@ -310,6 +310,7 @@ WChannel::WChannel(const WEndPointInfo &local, const WEndPointInfo &remote, std:
 
     assert(this->event_handler_);
 
+    this->event_handler_->user_data_ = this;
     this->event_handler_->SetEvents(HandlerEventType::EV_IN);
     this->event_handler_->Enable();
 }

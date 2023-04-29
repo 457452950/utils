@@ -99,9 +99,7 @@ public:
 
     bool Start(const WEndPointInfo &local_endpoint);
 
-    using accept_cb = std::shared_ptr<WBaseChannel> (*)(const WEndPointInfo &,
-                                                        const WEndPointInfo &,
-                                                        std::unique_ptr<ev_hdler_t>);
+    using accept_cb = std::function<void(const WEndPointInfo &, const WEndPointInfo &, std::unique_ptr<ev_hdler_t>)>;
     accept_cb                         OnAccept;
     std::function<void(const char *)> OnError;
 
@@ -125,8 +123,9 @@ public:
 
     bool Start(const WEndPointInfo &local_endpoint);
 
-    std::function<void(const WEndPointInfo &, const WEndPointInfo &, const uint8_t *, uint32_t)> OnMessage;
-    std::function<void(const char *)>                                                            OnError;
+    using message_cb = std::function<void(const WEndPointInfo &, const WEndPointInfo &, const uint8_t *, uint32_t)>;
+    message_cb                        OnMessage;
+    std::function<void(const char *)> OnError;
 
     // unreliable
     bool SendTo(const uint8_t *send_message, uint32_t message_len, const WEndPointInfo &remote);
@@ -204,7 +203,7 @@ protected:
 public:
     class Listener {
     public:
-        virtual void onChannelConnect()                                      = 0;
+        virtual void onChannelConnect(std::shared_ptr<WChannel>)             = 0;
         virtual void onChannelDisConnect()                                   = 0;
         virtual void onReceive(const uint8_t *message, uint64_t message_len) = 0;
         virtual void onError(const char *err_message)                        = 0;

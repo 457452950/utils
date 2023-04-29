@@ -65,7 +65,7 @@ inline IOVec::~IOVec() {
 
 inline void IOVec::Init(int page_count, int page_size) {
     assert(page_count < UIO_MAXIOV);
-    assert(page_count == 0);
+    assert(page_count != 0);
 
     this->max_page_count_ = page_count;
     this->max_page_size_  = page_size;

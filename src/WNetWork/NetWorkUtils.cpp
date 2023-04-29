@@ -188,8 +188,8 @@ socket_t MakeBindedSocket(const WEndPointInfo &info) {
     }
 
     // SetSocketNoBlock(bind_sock);
-    SetSocketReuseAddr(bind_sock);
-    SetSocketReusePort(bind_sock);
+    // SetSocketReuseAddr(bind_sock);
+    // SetSocketReusePort(bind_sock);
 
     if(Bind(bind_sock, info)) {
         return bind_sock;
