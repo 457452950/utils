@@ -28,7 +28,7 @@ using ev_hdler_p = ev_hdler_t *;
 
 /**************************************************
  * WBaseChannel interface
-***************************************************/
+ ***************************************************/
 class WBaseChannel {
 public:
     WBaseChannel() {}
@@ -97,8 +97,9 @@ public:
     explicit WAccepterChannel(const WEndPointInfo &local_endpoint, std::weak_ptr<ev_hdle_t> handle);
     ~WAccepterChannel() override;
 
-    std::function<WBaseChannel *(const WEndPointInfo &, const WEndPointInfo &, std::unique_ptr<ev_hdler_t>)> OnAccept;
-    std::function<void(const char *)>                                                                        OnError;
+    using accept_cb = WBaseChannel *(*)(const WEndPointInfo &, const WEndPointInfo &, std::unique_ptr<ev_hdler_t>);
+    accept_cb                         OnAccept;
+    std::function<void(const char *)> OnError;
 
 private:
     void ChannelIn() final;
@@ -140,12 +141,25 @@ private:
  ************************************************************/
 class WUDPChannel : public WBaseChannel {
 public:
-    explicit WUDPChannel(const WEndPointInfo &local_ep, const WEndPointInfo &remote_ep, std::weak_ptr<ev_hdle_t> handle);
+    explicit WUDPChannel(const WEndPointInfo     &local_ep,
+                         const WEndPointInfo     &remote_ep,
+                         std::weak_ptr<ev_hdle_t> handle);
     ~WUDPChannel() override;
 
-    std::function<void(const WEndPointInfo &, const WEndPointInfo &, const uint8_t *, uint32_t)> OnMessage;
-    std::function<void(const char *)>                                                            OnError;
+    // listener
+public:
+    class Listener {
+    public:
+        virtual void OnMessage(const uint8_t *message, uint64_t message_len) = 0;
+        virtual void OnError(const char *err_message)                        = 0;
+    };
 
+    inline void SetListener(Listener *listener) { this->listener_ = listener; }
+
+protected:
+    Listener *listener_{nullptr};
+
+public:
     // unreliable
     bool Send(const uint8_t *send_message, uint32_t message_len);
 
@@ -155,7 +169,7 @@ private:
 
     void onErr(int err);
 
-private:
+protected:
     std::unique_ptr<ev_hdler_t> handler_{nullptr};
     WEndPointInfo               local_endpoint_;
     WEndPointInfo               remote_endpoint_;

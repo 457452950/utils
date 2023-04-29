@@ -235,18 +235,18 @@ void WUDPChannel::ChannelIn() {
     if(recv_len <= 0) { // error
         onErr(GetError());
     } else {
-        if(!OnMessage) {
+        if(!listener_) {
             return;
         }
 
-        OnMessage(local_endpoint_, remote_endpoint_, buf, recv_len);
+        listener_->OnMessage(buf, recv_len);
     }
 }
 
 void WUDPChannel::onErr(int err) {
     if(err != 0) {
-        if(this->OnError) {
-            this->OnError(ErrorToString(err));
+        if(listener_) {
+            listener_->OnError(ErrorToString(err));
         }
     }
 }

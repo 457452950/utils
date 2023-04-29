@@ -451,7 +451,9 @@ private:
     WChannel *ch;
 };
 
-auto ac_cb = [](WEndPointInfo local, WEndPointInfo remote, std::unique_ptr<ev_hdler_t> handler) -> WBaseChannel * {
+auto ac_cb = [](const WEndPointInfo        &local,
+                const WEndPointInfo        &remote,
+                std::unique_ptr<ev_hdler_t> handler) -> WBaseChannel * {
     auto info = WEndPointInfo::Dump(remote);
 
     // cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
@@ -609,6 +611,32 @@ void test_udp() {
 /**
  * test_udpchannel
  */
+
+struct udpSession : public WUDPChannel::Listener {
+
+    virtual void OnMessage(const uint8_t *message, uint64_t message_len) {
+        auto [lip, lport] = WEndPointInfo::Dump(srv_ed);
+        auto [rip, rport] = WEndPointInfo::Dump(cli_ed);
+
+        fprintf(stdout,
+                "remote[%s:%d] --> local[%s:%d] msg:[%s] len:%ld\n",
+                rip.c_str(),
+                rport,
+                lip.c_str(),
+                lport,
+                (char *)message,
+                message_len);
+        std::cout.flush();
+
+        udp_chl->Send(message, message_len);
+    };
+    virtual void OnError(const char *err_message) { cout << "[test_udp]onerr err : " << err_message << endl; }
+
+    WEndPointInfo                srv_ed;
+    WEndPointInfo                cli_ed;
+    std::unique_ptr<WUDPChannel> udp_chl;
+};
+
 void test_udpchannel() {
     auto ep = std::make_shared<WEpoll<WBaseChannel>>();
     ep->Init();
@@ -634,30 +662,12 @@ void test_udpchannel() {
     auto udp_srv = std::make_unique<WUDPChannel>(srv_ed, cli_ed, ep);
     // auto udp_srv = new WUDPChannel(srv_ed, cli2_ed, &ep);
 
-    auto onmsg = [&](const wlb::network::WEndPointInfo &local,
-                     const wlb::network::WEndPointInfo &remote,
-                     const uint8_t                     *msg,
-                     uint32_t                           msg_len) {
-        auto [lip, lport] = WEndPointInfo::Dump(local);
-        auto [rip, rport] = WEndPointInfo::Dump(remote);
-
-        fprintf(stdout,
-                "remote[%s:%d] --> local[%s:%d] msg:[%s] len:%d\n",
-                rip.c_str(),
-                rport,
-                lip.c_str(),
-                lport,
-                (char *)msg,
-                msg_len);
-        std::cout.flush();
-
-        udp_srv->Send(msg, msg_len);
-    };
-    auto onerr = [](const char *msg) { cout << "[test_udp]onerr err : " << msg << endl; };
-
-    udp_srv->OnMessage = onmsg;
-    udp_srv->OnError   = onerr;
-
+    std::shared_ptr<udpSession> sess = std::make_shared<udpSession>();
+    sess->cli_ed = cli_ed;
+    sess->srv_ed = srv_ed;
+    udp_srv->SetListener(sess.get());
+    sess->udp_chl = std::move(udp_srv);
+    
     std::thread th1([&]() { ep->Loop(); });
 
     std::thread th2([&]() {
