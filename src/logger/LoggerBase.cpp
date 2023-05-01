@@ -4,6 +4,8 @@
 
 namespace wlb {
 
+namespace Log {
+
 void GetLogFileName(const std::string &base_file_name, char *file_name, int max_len) {
     // get data and time
     time_t _t    = ::time(nullptr);
@@ -20,6 +22,7 @@ void GetLogFileName(const std::string &base_file_name, char *file_name, int max_
                _time->tm_sec,
                ::getpid());
 }
+
 void MakeMessageHead(
         const char *file_name, int line_no, const char *log_level, const char *func_name, char *head, int max_len) {
 
@@ -32,6 +35,6 @@ void MakeMessageHead(
     ::snprintf(head, max_len, "%s[%s][%s:%d:%s] ", data_val, log_level, file_name, line_no, func_name);
 }
 
-namespace Log {}
+} // namespace Log
 
 } // namespace wlb

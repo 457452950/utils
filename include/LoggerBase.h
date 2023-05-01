@@ -1,6 +1,6 @@
 #pragma once
 #ifndef UTILS_LOGGER_BASE_H
-#define UTILS_LOGGER_BASE_H 
+#define UTILS_LOGGER_BASE_H
 
 #include <atomic>
 #include <condition_variable>
@@ -21,15 +21,12 @@
 
 namespace wlb {
 
-void GetLogFileName(const std::string &base_file_name, char *file_name, int max_len);
-void MakeMessageHead(
-        const char *file_name, int line_no, const char *log_level, const char *func_name, char *head, int max_len);
 
 namespace Log {
 
 namespace LOG_TYPE {
-const int8_t L_STDOUT = 1 << 0;
-const int8_t L_FILE   = 1 << 1;
+constexpr int8_t L_STDOUT = 1 << 0;
+constexpr int8_t L_FILE   = 1 << 1;
 } // namespace LOG_TYPE
 
 enum LOG_LEVEL : uint8_t {
@@ -39,6 +36,11 @@ enum LOG_LEVEL : uint8_t {
     L_ERROR = 1 << 3,
     L_FATAL = 1 << 4,
 };
+
+
+void GetLogFileName(const std::string &base_file_name, char *file_name, int max_len);
+void MakeMessageHead(
+        const char *file_name, int line_no, const char *log_level, const char *func_name, char *head, int max_len);
 
 } // namespace Log
 } // namespace wlb

@@ -17,27 +17,30 @@ Logger::Logger() = default;
 
 Logger::~Logger() {
     if(file_stream_.is_open()) {
+        file_stream_.flush();
         file_stream_.close();
     }
 }
 
 void Logger::initFilePath() {
     if(file_stream_.is_open()) {
+        file_stream_.flush();
         file_stream_.close();
     }
 
     char name[256];
-    wlb::GetLogFileName(Logger::base_file_name_, name, 256);
+    GetLogFileName(Logger::base_file_name_, name, 256);
 
     if(!IsFileExist("log")) {
         wlb::mkdir("log");
     }
+    std::cout << "log file name " << name << std::endl;
     file_stream_.open(name, std::ios::out);
 }
 
 LogHelper_ptr Logger::Write(const char *level, const char *file, int lineNo, const char *_func) {
     char head[256];
-    wlb::MakeMessageHead(file, lineNo, level, _func, head, 256);
+    MakeMessageHead(file, lineNo, level, _func, head, 256);
 
     mutex_.lock();
     string_stream_ << head;
@@ -60,14 +63,16 @@ void Logger::commit() {
 void Logger::Loop() {
     while(running_ || !log_string_list_.empty()) {
         std::unique_lock<std::mutex> ulock(mutex_);
+
         while(log_string_list_.empty()) {
             con_variable_.wait(ulock);
             //
             if(!running_ && log_string_list_.empty()) {
-                std::cout << "out" << std::endl;
+                std::cout << "log over" << std::endl;
                 return;
             }
         }
+
         std::string str = log_string_list_.front();
         log_string_list_.pop_front();
 
@@ -128,10 +133,10 @@ LOG_LEVEL Logger::GetLogLevel() { return Logger::getInstance()->log_level_; }
 
 void Logger::Init(int8_t type, LOG_LEVEL level, char *fileName, std::unordered_set<std::string> tags) {
     Logger::Init(type, level, fileName);
-    Logger::getInstance()->tags_ = std::move(tags);
+    Logger::getInstance()->tags_.swap(tags);
     Logger::getInstance()->use_tags_ = true;
 }
-bool Logger::UserTag() { return Logger::getInstance()->use_tags_; }
+bool Logger::UseTag() { return Logger::getInstance()->use_tags_; }
 bool Logger::ContainTag(const std::string &tag) { return Logger::getInstance()->tags_.count(tag) == 1; }
 
 } // namespace wlb::Log

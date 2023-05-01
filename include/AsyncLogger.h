@@ -48,39 +48,50 @@ private:
 public:
     ~Logger();
     // no copyable
-    void operator=(Logger *) = delete;
-    Logger(const Logger &)   = delete;
+    void operator=(const Logger &) = delete;
+    Logger(const Logger &)         = delete;
+
+    using StringSet  = std::unordered_set<std::string>;
+    using StringList = std::list<std::string>;
 
     // 初始化
+    // all tags
     static void Init(int8_t type, LOG_LEVEL level, char *fileName);
-    static void Init(int8_t type, LOG_LEVEL level, char *fileName, std::unordered_set<std::string> tags);
+    // use tag registed
+    static void Init(int8_t type, LOG_LEVEL level, char *fileName, StringSet tags);
+
     static void Stop();
     static void Wait2Exit();
 
-    static Logger *  getInstance();
+    static Logger   *getInstance();
     static LOG_LEVEL GetLogLevel();
-    static bool      UserTag();
-    static bool      ContainTag(const std::string &tag);
-    void             Loop();
+
+    static bool UseTag();
+    static bool ContainTag(const std::string &tag);
+
+    void Loop();
 
 private:
     // log config
-    static Logger *                 instance_;
-    LOG_LEVEL                       log_level_{L_ERROR};
-    int8_t                          log_type_{LOG_TYPE::L_STDOUT};
-    bool                            use_tags_{false};
-    std::unordered_set<std::string> tags_;
+    static Logger *instance_;
+
+    LOG_LEVEL log_level_{L_ERROR};
+    int8_t    log_type_{LOG_TYPE::L_STDOUT};
+
+    bool      use_tags_{false};
+    StringSet tags_;
 
     // file config
-    char *        base_file_name_{nullptr};
-    const int64_t max_file_size_  = 100 * 1024 * 1024; // 10MB
-    const int8_t  max_check_times = 10;
-    int8_t        check_times_{0};
+    char         *base_file_name_{nullptr};
+    const int64_t max_file_size_{100 * 1024 * 1024}; // 10MB
+    const int8_t  max_check_times{10};
+    int8_t        check_times_{0}; // 一定轮次检查文件大小
+    std::ofstream file_stream_;
 
     // async
-    std::ofstream           file_stream_;
-    bool                    running_{false};
-    std::thread *           thread_{nullptr};
+    bool running_{false};
+
+    std::thread            *thread_{nullptr};
     std::mutex              mutex_;
     std::condition_variable con_variable_;
 
@@ -95,8 +106,8 @@ private:
     int64_t getFileSize() { return file_stream_.tellp(); }
 
 private:
-    std::list<std::string> log_string_list_;
-    std::stringstream      string_stream_;
+    StringList        log_string_list_;
+    std::stringstream string_stream_;
 };
 
 class LogHelper {
@@ -111,7 +122,7 @@ private:
 
 #define LOG(level, tag)                                                                                                \
     if(Logger::getInstance() && Logger::GetLogLevel() <= (level))                                                      \
-        if(!Logger::getInstance()->UserTag() || (Logger::getInstance()->UserTag() && Logger::ContainTag(tag)))         \
+        if(!Logger::getInstance()->UseTag() || (Logger::getInstance()->UseTag() && Logger::ContainTag(tag)))           \
     Logger::getInstance()->Write(#level, __FILENAME__, __LINE__, __FUNCTION__)->Get()
 
 } // namespace wlb::Log
