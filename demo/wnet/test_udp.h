@@ -14,6 +14,40 @@ using namespace wlb::network;
  */
 namespace test_udp_config {
 
+namespace srv {
+namespace bind {
+constexpr char     *ip     = "192.168.101.2";
+constexpr int       port   = 4000;
+constexpr AF_FAMILY family = AF_FAMILY::INET;
+constexpr AF_PROTOL protol = AF_PROTOL::UDP;
+} // namespace bind
+namespace send {
+constexpr char     *ip     = "192.168.101.2";
+constexpr int       port   = 4001;
+constexpr AF_FAMILY family = AF_FAMILY::INET;
+constexpr AF_PROTOL protol = AF_PROTOL::UDP;
+} // namespace send
+} // namespace srv
+
+namespace cli {
+
+namespace bind {
+constexpr char     *ip     = "192.168.101.2";
+constexpr int       port   = 4001;
+constexpr AF_FAMILY family = AF_FAMILY::INET;
+constexpr AF_PROTOL protol = AF_PROTOL::UDP;
+} // namespace bind
+
+namespace send {
+constexpr char     *ip     = "192.168.101.2";
+constexpr int       port   = 4000;
+constexpr AF_FAMILY family = AF_FAMILY::INET;
+constexpr AF_PROTOL protol = AF_PROTOL::UDP;
+} // namespace send
+
+} // namespace cli
+
+
 inline auto in_cb = [](socket_t sock, WBaseChannel *data) {
     auto *ch = (ReadChannel *)data;
     // cout << "get channel call channel in" << std::endl;
@@ -25,33 +59,36 @@ inline auto out_cb = [](socket_t sock, WBaseChannel *data) {
     ch->ChannelOut();
 };
 
-} // namespace test_udp
+std::shared_ptr<WEpoll<WBaseChannel>> ep_;
 
-inline void test_udp() {
-    using namespace test_udp_config;
+void server_thread() {
+    using namespace srv;
 
     auto ep = std::make_shared<WEpoll<WBaseChannel>>();
+    ep_     = ep;
     ep->Init();
     ep->read_  = in_cb;
     ep->write_ = out_cb;
 
     WEndPointInfo srv_ed;
     // srv_ed.Assign("::1", 4000, AF_FAMILY::INET6);
-    srv_ed.Assign("192.168.101.2", 4000, AF_FAMILY::INET);
+    if(!srv_ed.Assign(bind::ip, bind::port, bind::family)) {
+        return;
+    }
+
     auto [ip, port] = WEndPointInfo::Dump(srv_ed);
     cout << "[" << ip << ":" << port << "]" << std::endl;
 
     WEndPointInfo cli_ed;
     // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
-    cli_ed.Assign("192.168.101.2", 4001, AF_FAMILY::INET);
-    auto          cli = MakeBindedSocket(cli_ed);
-    WEndPointInfo cli2_ed;
-    // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
-    cli2_ed.Assign("192.168.101.2", 4002, AF_FAMILY::INET);
-    auto cli2 = MakeBindedSocket(cli2_ed);
+    if(!cli_ed.Assign(send::ip, send::port, send::family)) {
+        return;
+    }
 
-    auto udp_srv = new WUDP(ep);
-    udp_srv->Start(srv_ed);
+    auto udp_srv = std::make_shared<WUDP>(ep);
+    if(!udp_srv->Start(srv_ed)) {
+        return;
+    }
 
     auto onmsg = [&](const wlb::network::WEndPointInfo &local,
                      const wlb::network::WEndPointInfo &remote,
@@ -78,6 +115,30 @@ inline void test_udp() {
     udp_srv->OnError   = onerr;
 
     std::thread th1([&]() { ep->Loop(); });
+
+
+    th1.join();
+}
+
+void client_thread() {
+    using namespace cli;
+
+    WEndPointInfo cli_ed;
+    // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
+    if(!cli_ed.Assign(bind::ip, bind::port, bind::family)) {
+        return;
+    }
+
+    auto cli = MakeBindedSocket(cli_ed);
+    if(cli == -1) {
+        return;
+    }
+
+    WEndPointInfo srv_ed;
+    // srv_ed.Assign("::1", 4000, AF_FAMILY::INET6);
+    if(!srv_ed.Assign(send::ip, send::port, send::family)) {
+        return;
+    }
 
     std::thread th2([&]() {
         char send_msg[] = "afsafsfsfagrtgtbgfbstrbsrbrtbrbstrgbtrbsfdsvbfsdsvbsrtbv";
@@ -106,7 +167,30 @@ inline void test_udp() {
             cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
         }
     });
-    th1.join();
+
+    th2.join();
+    ::close(cli);
+}
+
+
+void handle_pipe(int signal) {
+    cout << "signal" << endl;
+    ep_->Stop();
+}
+
+} // namespace test_udp_config
+
+inline void test_udp() {
+    using namespace test_udp_config;
+
+    signal(SIGPIPE, handle_pipe); // 自定义处理函数
+    signal(SIGINT, handle_pipe);  // 自定义处理函数
+
+    thread sr(server_thread);
+    thread cl(client_thread);
+
+    sr.join();
+    cl.join();
 }
 
 

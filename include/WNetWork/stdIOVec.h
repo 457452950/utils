@@ -124,7 +124,7 @@ inline int64_t IOVec::Read(read_cb_t cb) {
         temp_iovec[ind].iov_base = it.operator*()->iov_base;
         temp_iovec[ind].iov_len  = it. operator*()->iov_len;
 
-        std::cout << "len " << temp_iovec[ind].iov_len << std::endl;
+        // std::cout << "len " << temp_iovec[ind].iov_len << std::endl;
 
         if(it == this->cur_page_) {
             break;
@@ -222,7 +222,7 @@ inline int64_t IOVec::Write(write_cb_t cb) {
         temp_iovec[ind].iov_len = this->max_page_size_ - it.operator*()->iov_len;
 
         using namespace std;
-        cout << "len " << temp_iovec[ind].iov_len << "  ";
+        // cout << "len " << temp_iovec[ind].iov_len << "  ";
 
         ++ind;
     }
@@ -242,7 +242,7 @@ inline int64_t IOVec::Write(write_cb_t cb) {
         cur_page_.operator*()->iov_len += (update_size > (int64_t)i) ? i : update_size;
 
         using namespace std;
-        std::cout << "  len " << cur_page_.operator*()->iov_len << "  ";
+        // std::cout << "  len " << cur_page_.operator*()->iov_len << "  ";
 
         update_size -= i;
 

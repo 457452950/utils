@@ -35,11 +35,11 @@ int main() {
 
     // test_ipv6();
     // test_wepoll();
-    test_wselect();
+    // test_wselect();
 
     // test_tcpchannel();
     // test_udp();
-    // test_udpchannel();
+    test_udpchannel();
     // test_tcpserver();
     // test_myChannel();
 }
