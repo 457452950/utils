@@ -1,5 +1,5 @@
-#ifndef UTILS_DEMO_WNET_TEST_WEPOLL_H
-#define UTILS_DEMO_WNET_TEST_WEPOLL_H
+#ifndef UTILS_DEMO_WNET_TEST_WSELECT_H
+#define UTILS_DEMO_WNET_TEST_WSELECT_H
 
 #include <iostream>
 
@@ -10,10 +10,10 @@ using namespace wlb::network;
 
 
 /**
- * test_wepoll
+ * test_wselect
  */
 
-namespace test_wepoll_config {
+namespace test_wselect_config {
 
 namespace srv {
 namespace listen {
@@ -25,7 +25,6 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 } // namespace srv
 
 namespace cli {
-
 namespace connect {
 constexpr char     *ip     = "::1";
 constexpr int       port   = 4000;
@@ -61,7 +60,7 @@ inline auto r_cb = [](socket_t sock, test_s *data) -> void {
 };
 
 
-inline void server_thread(std::shared_ptr<WEpoll<test_s>> ep) {
+inline void server_thread(std::shared_ptr<WSelect<test_s>> sl) {
     using namespace srv;
 
     auto sock = MakeSocket(listen::family, listen::protol);
@@ -93,11 +92,12 @@ inline void server_thread(std::shared_ptr<WEpoll<test_s>> ep) {
     auto   handler      = std::make_unique<WEventHandle<test_s>::WEventHandler>();
     handler->socket_    = sock;
     handler->user_data_ = &i;
-    handler->handle_    = ep;
+    handler->handle_    = sl;
     handler->SetEvents(HandlerEventType::EV_IN);
+    cout << "set events " << (int)handler->GetEvents() << std::endl;
     handler->Enable();
 
-    ep->Loop();
+    sl->Loop();
 }
 
 inline void client_thread() {
@@ -111,36 +111,36 @@ inline void client_thread() {
     auto res = ConnectToHost(cli, cli_ed);
 
     if(!res) {
-        cout << "[test_wepoll]connect error : " << strerror(errno) << endl;
+        cout << "[test_wselect]connect error : " << strerror(errno) << endl;
     } else {
         cout << "connect ok" << endl;
     }
 }
 
-std::shared_ptr<WEpoll<test_s>> ep_;
+std::shared_ptr<WSelect<test_s>> sl_;
 
 void handle_pipe(int signal) {
     cout << "signal" << endl;
-    ep_->Stop();
+    sl_->Stop();
 }
 
-} // namespace test_wepoll_config
+} // namespace test_wselect_config
 
 
-inline void test_wepoll() {
-    using namespace test_wepoll_config;
+inline void test_wselect() {
+    using namespace test_wselect_config;
 
     signal(SIGPIPE, handle_pipe); // 自定义处理函数
     signal(SIGINT, handle_pipe);  // 自定义处理函数
 
-    cout << "test wepoll " << endl;
-    auto ep = std::make_shared<WEpoll<test_s>>();
+    cout << "test wselect " << endl;
+    auto sl = std::make_shared<WSelect<test_s>>();
 
-    ep_ = ep;
-    ep->Init();
-    ep->read_ = r_cb;
+    sl_ = sl;
+    sl->Init();
+    sl->read_ = r_cb;
 
-    thread sr(server_thread, ep);
+    thread sr(server_thread, sl);
     thread cl(client_thread);
 
     sr.join();

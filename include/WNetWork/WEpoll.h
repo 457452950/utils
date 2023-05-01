@@ -175,10 +175,10 @@ public:
     bool ModifySocket(WEventHandler *handler) override;
     void DelSocket(WEventHandler *handler) override;
 
-    bool Init();
+    bool Init() override;
     void Loop() override;
-    void Wake();
     void Stop() override;
+    void Wake();
 
 private:
     static uint32_t ParseToEpollEvent(uint8_t events);

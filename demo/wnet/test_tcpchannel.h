@@ -12,21 +12,20 @@ using namespace wlb::network;
 /**
  * test_tcpchannel
  */
-namespace test_tcpchannel_config
-{
-    
-    inline auto in_cb = [](socket_t sock, WBaseChannel *data) {
-        auto *ch = (ReadChannel *)data;
-        // cout << "get channel call channel in" << std::endl;
-        ch->ChannelIn();
-    };
-    inline auto out_cb = [](socket_t sock, WBaseChannel *data) {
-        auto *ch = (WriteChannel *)data;
-        // cout << "get channel call channel in" << std::endl;
-        ch->ChannelOut();
-    };
+namespace test_tcpchannel_config {
 
-} // namespace test_tcpchannel
+inline auto in_cb = [](socket_t sock, WBaseChannel *data) {
+    auto *ch = (ReadChannel *)data;
+    // cout << "get channel call channel in" << std::endl;
+    ch->ChannelIn();
+};
+inline auto out_cb = [](socket_t sock, WBaseChannel *data) {
+    auto *ch = (WriteChannel *)data;
+    // cout << "get channel call channel in" << std::endl;
+    ch->ChannelOut();
+};
+
+} // namespace test_tcpchannel_config
 
 class TestSession : public WChannel::Listener {
 public:
@@ -52,9 +51,7 @@ private:
 
 std::shared_ptr<TestSession> se;
 
-inline auto ac_cb = [](const WEndPointInfo        &local,
-                const WEndPointInfo        &remote,
-                std::unique_ptr<ev_hdler_t> handler) {
+inline auto ac_cb = [](const WEndPointInfo &local, const WEndPointInfo &remote, std::unique_ptr<ev_hdler_t> handler) {
     auto info = WEndPointInfo::Dump(remote);
 
     // cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
@@ -74,16 +71,16 @@ inline void test_tcpchannel() {
     ep->write_ = out_cb;
 
     WEndPointInfo local_ed;
-    if (!local_ed.Assign("0:0:0:0:0:0:0:1", 4000, AF_FAMILY::INET6)) {
+    if(!local_ed.Assign("0:0:0:0:0:0:0:1", 4000, AF_FAMILY::INET6)) {
         return;
     }
 
-    auto accp_channel      = new WAccepterChannel(ep);
+    auto accp_channel = new WAccepterChannel(ep);
     accp_channel->Start(local_ed);
     accp_channel->OnAccept = ac_cb;
 
     WEndPointInfo cli_ed;
-    if (!cli_ed.Assign("0:0:0:0:0:0:0:1", 4000, AF_FAMILY::INET6)) {
+    if(!cli_ed.Assign("0:0:0:0:0:0:0:1", 4000, AF_FAMILY::INET6)) {
         return;
     }
     auto cli = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
@@ -112,7 +109,7 @@ inline void test_tcpchannel() {
             // clang-format on
         }
     });
-    
+
     WTimer t(ep);
     t.OnTime = [cli, &t]() {
         // cout << std::chrono::duration_cast<std::chrono::milliseconds>(

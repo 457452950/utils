@@ -41,6 +41,7 @@ public:
     virtual void DelSocket(WEventHandler *handler)    = 0;
 
     // thread control
+    virtual bool Init() = 0;
     virtual void Loop() = 0;
     virtual void Stop() = 0;
 };

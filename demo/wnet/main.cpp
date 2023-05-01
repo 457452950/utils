@@ -9,6 +9,8 @@
 
 #include "test_ipv6.h"
 #include "test_wepoll.h"
+#include "test_wselect.h"
+
 #include "test_tcpchannel.h"
 #include "test_udp.h"
 #include "test_udpchannel.h"
@@ -32,7 +34,8 @@ int main() {
     // test_iovec();
 
     // test_ipv6();
-    test_wepoll();
+    // test_wepoll();
+    test_wselect();
 
     // test_tcpchannel();
     // test_udp();
