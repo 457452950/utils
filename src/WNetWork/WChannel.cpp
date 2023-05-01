@@ -103,7 +103,7 @@ void WAccepterChannel::ChannelIn() {
     assert(this->handler_);
 
     WEndPointInfo ei;
-    auto          cli = wlb::network::Accept4(this->handler_->socket_, &ei, SOCK_NONBLOCK);
+    auto          cli = wlb::network::Accept4(this->handler_->socket_, ei, SOCK_NONBLOCK);
 
     if(cli <= 0) { // error
         if(OnError) {
@@ -162,7 +162,7 @@ void WUDP::ChannelIn() {
     WEndPointInfo ei;
     uint8_t       buf[MAX_UDP_BUFFER_LEN]{0};
 
-    auto recv_len = RecvFrom(this->handler_->socket_, buf, MAX_UDP_BUFFER_LEN, &ei);
+    auto recv_len = RecvFrom(this->handler_->socket_, buf, MAX_UDP_BUFFER_LEN, ei);
 
     if(recv_len <= 0) { // error
         onErr(GetError());

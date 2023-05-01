@@ -7,11 +7,11 @@
 #include <cstring> // strerror
 #include <exception>
 #include <fcntl.h> // fcntl
+#include <memory>
 #include <string>
 #include <tuple>
 #include <unistd.h>
 #include <unordered_map> //std::hash
-#include <memory>
 
 #include <sys/socket.h>
 #include <sys/timerfd.h>
@@ -34,7 +34,7 @@ enum AF_PROTOL { TCP = IPPROTO_TCP, UDP = IPPROTO_UDP };
 struct WEndPointInfo;
 
 using socket_t = int32_t;
-using socket_p  = socket_t *;
+using socket_p = socket_t *;
 
 using timerfd_t = int32_t;
 using timerfd_p = timerfd_t *;
@@ -65,8 +65,8 @@ socket_t MakeUdpV4Socket();
  * IP Port Utils
  ****************************************************/
 
-bool IpAddrToString(in_addr addr, std::string *buf);
-bool IpAddrToString(in6_addr addr, std::string *buf);
+bool IpAddrToString(in_addr addr, std::string &buf);
+bool IpAddrToString(in6_addr addr, std::string &buf);
 
 bool IPStringToAddress(const std::string &ip_str, in_addr *addr);
 bool IPStringToAddress(const std::string &ip_str, in6_addr *addr);
@@ -78,7 +78,7 @@ bool MakeSockAddr_in(const std::string &ip_address, uint16_t port, sockaddr_in *
 bool MakeSockAddr_in6(const std::string &ip_address, uint16_t port, sockaddr_in6 *addr);
 
 // server methods
-bool Bind(socket_t socket, const std::string &host, uint16_t port, bool isv4 = true);
+// bool Bind(socket_t socket, const std::string &host, uint16_t port, bool isv4 = true);
 bool Bind(socket_t socket, const WEndPointInfo &serverInfo);
 
 socket_t MakeBindedSocket(const WEndPointInfo &info);
@@ -88,17 +88,18 @@ socket_t MakeListenedSocket(const WEndPointInfo &info);
  * TCP Utils
  ****************************************************/
 // return -1 if fail
-socket_t Accept(socket_t socket, WEndPointInfo *info);
-socket_t Accept4(socket_t socket, WEndPointInfo *info, int flags);
+socket_t Accept(socket_t socket, WEndPointInfo& info);
+socket_t Accept4(socket_t socket, WEndPointInfo& info, int flags);
 
-bool ConnectToHost(socket_t socket, const std::string &host, uint16_t port, bool isv4 = true);
+// tcp is default and return -1 if fail     
+socket_t ConnectToHost(const WEndPointInfo &info, AF_PROTOL = AF_PROTOL::TCP);
 bool ConnectToHost(socket_t socket, const WEndPointInfo &info);
 
 /***************************************************
  * UDP Utils
  ****************************************************/
 
-int32_t RecvFrom(socket_t socket, uint8_t *buf, uint32_t buf_len, WEndPointInfo *info);
+int32_t RecvFrom(socket_t socket, uint8_t *buf, uint32_t buf_len, WEndPointInfo& info);
 
 /***************************************************
  * Socket Utils
@@ -132,8 +133,9 @@ struct WEndPointInfo {
 
     static WEndPointInfo *MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family);
 
-    bool                  Assign(const std::string &address, uint16_t port, AF_FAMILY family);
-    bool                  Assign(const sockaddr *sock, AF_FAMILY family);
+    bool Assign(const std::string &address, uint16_t port, AF_FAMILY family);
+    bool Assign(const sockaddr *sock, AF_FAMILY family);
+
     static WEndPointInfo *Emplace(const sockaddr *addr, AF_FAMILY family);
 
     const sockaddr *GetAddr() const { return (sockaddr *)&addr_; }

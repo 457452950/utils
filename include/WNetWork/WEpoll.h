@@ -177,16 +177,18 @@ public:
 
     bool Init();
     void Loop() override;
+    void Wake();
     void Stop() override;
 
 private:
     static uint32_t ParseToEpollEvent(uint8_t events);
-    void     EventLoop();
+    void            EventLoop();
 
 private:
-    WBaseEpoll   ep;
-    uint32_t     fd_count_{0};
-    bool         active_{false};
+    WBaseEpoll            ep;
+    uint32_t              fd_count_{0};
+    std::vector<socket_t> close_sign_pair_{-1, -1};
+    bool                  active_{false};
 };
 
 
@@ -195,6 +197,11 @@ WEpoll<UserData>::WEpoll() {}
 
 template <typename UserData>
 WEpoll<UserData>::~WEpoll() {
+    std::for_each(this->close_sign_pair_.begin(), this->close_sign_pair_.end(), [](socket_t s) {
+        if(s != -1)
+            ::close(s);
+    });
+
     this->Stop();
 }
 
@@ -206,6 +213,15 @@ bool WEpoll<UserData>::Init() {
         // std::cerr << "epoll init failed!" << std::endl;
         return false;
     }
+
+    if(::socketpair(AF_LOCAL, SOCK_STREAM, 0, this->close_sign_pair_.data()) == -1) {
+        return false;
+    }
+
+    if(this->ep.AddSocket(this->close_sign_pair_[0], EPOLLIN) == false) {
+        return false;
+    }
+
     return true;
 }
 
@@ -240,7 +256,7 @@ template <typename UserData>
 void WEpoll<UserData>::DelSocket(WEventHandler *handler) {
 
     if(!this->ep.RemoveSocket(handler->socket_)) {
-        std::cout << "DelSocket RemoveSocket err " << ErrorToString(GetError()) << std::endl; 
+        std::cout << "DelSocket RemoveSocket err " << ErrorToString(GetError()) << std::endl;
         return;
     }
 
@@ -256,6 +272,12 @@ void WEpoll<UserData>::Loop() {
 template <typename UserData>
 inline void WEpoll<UserData>::Stop() {
     this->active_ = false;
+    this->Wake();
+}
+
+template <typename UserData>
+inline void WEpoll<UserData>::Wake() {
+    ::send(this->close_sign_pair_[1], "", 1, 0);
 }
 
 template <typename UserData>
@@ -274,16 +296,16 @@ uint32_t WEpoll<UserData>::ParseToEpollEvent(uint8_t events) {
 template <typename UserData>
 void WEpoll<UserData>::EventLoop() {
 
-    epoll_event *events;
+    std::unique_ptr<epoll_event[]> events;
 
     while(this->active_) {
         int events_size = fd_count_;
-        events          = new epoll_event[events_size];
+        events.reset(new epoll_event[events_size]);
 
-        events_size = ep.GetEvents(events, events_size, -1);
+        events_size = ep.GetEvents(events.get(), events_size, -1);
 
         if(!this->active_) {
-            delete events;
+            std::cout << "close !!!" << std::endl;
             break;
         }
 
@@ -297,7 +319,6 @@ void WEpoll<UserData>::EventLoop() {
         for(int i = 0; i < events_size; ++i) {
 
             if(!this->active_) {
-                delete events;
                 break;
             }
 
@@ -306,7 +327,7 @@ void WEpoll<UserData>::EventLoop() {
 
             assert(data);
             socket_t sock = data->socket_;
-            uint8_t          eev  = data->GetEvents();
+            uint8_t  eev  = data->GetEvents();
 
             assert(sock > 0);
 
@@ -321,8 +342,6 @@ void WEpoll<UserData>::EventLoop() {
                 }
             }
         }
-
-        delete[] events;
     }
 }
 
