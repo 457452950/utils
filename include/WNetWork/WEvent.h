@@ -22,7 +22,12 @@ constexpr inline uint8_t EV_OUT = 1 << 1;
 template <typename UserData>
 class WEventHandle {
 public:
+    WEventHandle() {}
     virtual ~WEventHandle() {}
+
+    // nocopyable
+    WEventHandle(const WEventHandle &)             = delete;
+    WEventHandle &operator=(const WEventHandle &) = delete;
 
     using user_data_type = UserData;
     using user_data_ptr  = user_data_type *;
