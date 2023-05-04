@@ -81,8 +81,8 @@ bool MakeSockAddr_in6(const std::string &ip_address, uint16_t port, sockaddr_in6
 // bool Bind(socket_t socket, const std::string &host, uint16_t port, bool isv4 = true);
 bool Bind(socket_t socket, const WEndPointInfo &serverInfo);
 
-socket_t MakeBindedSocket(const WEndPointInfo &info);
-socket_t MakeListenedSocket(const WEndPointInfo &info);
+socket_t MakeBindedSocket(const WEndPointInfo &info, bool reuse);
+socket_t MakeListenedSocket(const WEndPointInfo &info, bool reuse);
 
 /***************************************************
  * TCP Utils

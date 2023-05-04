@@ -86,7 +86,7 @@ void server_thread() {
     }
 
     auto udp_srv = std::make_shared<WUDP>(ep);
-    if(!udp_srv->Start(srv_ed)) {
+    if(!udp_srv->Start(srv_ed, true)) {
         return;
     }
 
@@ -129,7 +129,7 @@ void client_thread() {
         return;
     }
 
-    auto cli = MakeBindedSocket(cli_ed);
+    auto cli = MakeBindedSocket(cli_ed, true);
     if(cli == -1) {
         return;
     }

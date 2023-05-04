@@ -145,7 +145,7 @@ bool Bind(socket_t socket, const WEndPointInfo &serverInfo) {
 }
 
 
-socket_t MakeBindedSocket(const WEndPointInfo &info) {
+socket_t MakeBindedSocket(const WEndPointInfo &info, bool reuse) {
     socket_t bind_sock = -1;
     auto     fami      = info.GetFamily();
 
@@ -158,9 +158,10 @@ socket_t MakeBindedSocket(const WEndPointInfo &info) {
         return -1;
     }
 
-    // SetSocketNoBlock(bind_sock);
-    // SetSocketReuseAddr(bind_sock);
-    // SetSocketReusePort(bind_sock);
+    if(reuse) {
+        SetSocketReuseAddr(bind_sock);
+        SetSocketReusePort(bind_sock);
+    }
 
     if(Bind(bind_sock, info)) {
         return bind_sock;
@@ -172,7 +173,7 @@ socket_t MakeBindedSocket(const WEndPointInfo &info) {
     return -1;
 }
 
-socket_t MakeListenedSocket(const WEndPointInfo &info) {
+socket_t MakeListenedSocket(const WEndPointInfo &info, bool reuse) {
     socket_t listen_sock(-1);
     auto     fami = info.GetFamily();
 
@@ -182,8 +183,10 @@ socket_t MakeListenedSocket(const WEndPointInfo &info) {
         return -1;
     }
 
-    SetSocketReuseAddr(listen_sock);
-    SetSocketReusePort(listen_sock);
+    if(reuse) {
+        SetSocketReuseAddr(listen_sock);
+        SetSocketReusePort(listen_sock);
+    }
 
     if(Bind(listen_sock, info)) {
         if(::listen(listen_sock, 1024) == 0) {

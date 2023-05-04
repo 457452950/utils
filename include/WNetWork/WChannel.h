@@ -97,7 +97,7 @@ public:
     explicit WAccepterChannel(std::weak_ptr<ev_hdle_t> handle);
     ~WAccepterChannel() override;
 
-    bool Start(const WEndPointInfo &local_endpoint);
+    bool Start(const WEndPointInfo &local_endpoint, bool shared);
 
     using accept_cb = std::function<void(const WEndPointInfo &, const WEndPointInfo &, std::unique_ptr<ev_hdler_t>)>;
     accept_cb                         OnAccept;
@@ -121,7 +121,7 @@ public:
     explicit WUDP(std::weak_ptr<ev_hdle_t> handle);
     ~WUDP() override;
 
-    bool Start(const WEndPointInfo &local_endpoint);
+    bool Start(const WEndPointInfo &local_endpoint, bool shared);
 
     using message_cb = std::function<void(const WEndPointInfo &, const WEndPointInfo &, const uint8_t *, uint32_t)>;
     message_cb                        OnMessage;
@@ -149,7 +149,7 @@ public:
     explicit WUDPChannel(std::weak_ptr<ev_hdle_t> handle);
     ~WUDPChannel() override;
 
-    bool Start(const WEndPointInfo &local_ep, const WEndPointInfo &remote_ep);
+    bool Start(const WEndPointInfo &local_ep, const WEndPointInfo &remote_ep, bool shared);
 
     // listener
 public:

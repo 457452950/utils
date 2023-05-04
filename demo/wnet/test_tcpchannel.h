@@ -97,7 +97,7 @@ void server_thread() {
     }
 
     auto accp_channel = new WAccepterChannel(ep);
-    accp_channel->Start(local_ed);
+    accp_channel->Start(local_ed, true);
     accp_channel->OnAccept = ac_cb;
 
     ep->Loop();

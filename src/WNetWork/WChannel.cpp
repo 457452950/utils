@@ -82,10 +82,10 @@ WAccepterChannel::~WAccepterChannel() {
     }
 }
 
-bool wlb::network::WAccepterChannel::Start(const WEndPointInfo &local_endpoint) {
+bool wlb::network::WAccepterChannel::Start(const WEndPointInfo &local_endpoint, bool shared) {
     this->local_endpoint_ = local_endpoint;
 
-    auto socket = MakeListenedSocket(local_endpoint_);
+    auto socket = MakeListenedSocket(local_endpoint_, shared);
     if(socket == -1) {
         std::cout << "make listened socket err " << ErrorToString(GetError()) << std::endl;
         return false;
@@ -141,10 +141,10 @@ WUDP::~WUDP() {
     }
 }
 
-bool wlb::network::WUDP::Start(const WEndPointInfo &local_endpoint) {
+bool wlb::network::WUDP::Start(const WEndPointInfo &local_endpoint, bool shared) {
     this->local_endpoint_ = local_endpoint;
 
-    auto socket = MakeBindedSocket(local_endpoint_);
+    auto socket = MakeBindedSocket(local_endpoint_, shared);
     if(socket == -1) {
         return false;
     }
@@ -220,12 +220,12 @@ WUDPChannel::~WUDPChannel() {
     }
 }
 
-bool wlb::network::WUDPChannel::Start(const WEndPointInfo &local_ep, const WEndPointInfo &remote_ep) {
+bool wlb::network::WUDPChannel::Start(const WEndPointInfo &local_ep, const WEndPointInfo &remote_ep, bool shared) {
 
     this->local_endpoint_  = local_ep;
     this->remote_endpoint_ = remote_ep;
 
-    auto socket = MakeBindedSocket(local_endpoint_);
+    auto socket = MakeBindedSocket(local_endpoint_, shared);
     if(socket == -1) {
         return false;
     }

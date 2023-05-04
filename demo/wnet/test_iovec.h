@@ -41,7 +41,7 @@ void server_thread() {
         return;
     }
 
-    auto sock = MakeListenedSocket(srv_ed);
+    auto sock = MakeListenedSocket(srv_ed, true);
     if(sock == -1) {
         return;
     }

@@ -110,7 +110,7 @@ void server_thread() {
     }
 
     auto udp_srv = std::make_unique<WUDPChannel>(ep);
-    udp_srv->Start(srv_ed, cli_ed);
+    udp_srv->Start(srv_ed, cli_ed, true);
 
     std::shared_ptr<udpSession> sess = std::make_shared<udpSession>();
     sess->cli_ed                     = cli_ed;
@@ -127,7 +127,7 @@ void client_thread() {
     WEndPointInfo cli_ed;
     // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
     cli_ed.Assign(bind::ip, bind::port, bind::family);
-    auto cli = MakeBindedSocket(cli_ed);
+    auto cli = MakeBindedSocket(cli_ed, true);
     if(cli == -1) {
         return;
     }
