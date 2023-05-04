@@ -56,9 +56,9 @@ public:
 
     // 初始化
     // all tags
-    static void Init(int8_t type, LOG_LEVEL level, char *fileName);
+    static void Init(int8_t type, LOG_LEVEL level, const char *fileName);
     // use tag registed
-    static void Init(int8_t type, LOG_LEVEL level, char *fileName, StringSet tags);
+    static void Init(int8_t type, LOG_LEVEL level, const char *fileName, StringSet tags);
 
     static void Stop();
     static void Wait2Exit();
@@ -97,7 +97,7 @@ private:
 
     // Logger helper
 public:
-    LogHelper_ptr      Write(const char *level, const char *file, int lineNo, const char *_func);
+    LogHelper_ptr      Write(const char *level, const char *tag, const char *file, int lineNo, const char *_func);
     std::stringstream &GetStream() { return string_stream_; }
     void               commit();
 
@@ -123,7 +123,7 @@ private:
 #define LOG(level, tag)                                                                                                \
     if(Logger::getInstance() && Logger::GetLogLevel() <= (level))                                                      \
         if(!Logger::getInstance()->UseTag() || (Logger::getInstance()->UseTag() && Logger::ContainTag(tag)))           \
-    Logger::getInstance()->Write(#level, __FILENAME__, __LINE__, __FUNCTION__)->Get()
+    Logger::getInstance()->Write(#level, tag, __FILENAME__, __LINE__, __FUNCTION__)->Get()
 
 } // namespace wlb::Log
 

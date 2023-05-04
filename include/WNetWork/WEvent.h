@@ -26,7 +26,7 @@ public:
     virtual ~WEventHandle() {}
 
     // nocopyable
-    WEventHandle(const WEventHandle &)             = delete;
+    WEventHandle(const WEventHandle &)            = delete;
     WEventHandle &operator=(const WEventHandle &) = delete;
 
     using user_data_type = UserData;
@@ -120,25 +120,6 @@ template <typename UserData>
 inline auto WEventHandle<UserData>::WEventHandler::GetEvents() {
     return this->events_;
 }
-
-// // clang-format off
-// template <typename UserData>
-// std::unique_ptr<typename WEventHandle<UserData>::WEventHandler>
-// WEventHandle<UserData>::WEventHandler::CreateHandler(socket_t        socket,
-//                                                      user_data_ptr           user_data,
-//                                                      std::weak_ptr<WEventHandle<UserData>> handle) {
-//     auto the = std::make_unique<WEventHandle<UserData>::WEventHandler>();
-
-//     if(!the) {
-//         return nullptr;
-//     }
-
-//     the->socket_    = socket;
-//     the->user_data_ = user_data;
-//     the->handle_    = handle;
-//     return the;
-// }
-// // clang-format on
 
 template <typename UserData>
 inline WEventHandle<UserData>::WEventHandler::~WEventHandler() {

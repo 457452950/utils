@@ -1,5 +1,7 @@
 // #include <sys/time.h>
 #include "LoggerBase.h"
+
+// #include <cassert>
 #include <sstream>
 
 namespace wlb {
@@ -23,16 +25,24 @@ void GetLogFileName(const std::string &base_file_name, char *file_name, int max_
                ::getpid());
 }
 
-void MakeMessageHead(
-        const char *file_name, int line_no, const char *log_level, const char *func_name, char *head, int max_len) {
+void MakeMessageHead(const char *file_name,
+                     const char *tag,
+                     int         line_no,
+                     const char *log_level,
+                     const char *func_name,
+                     char       *head,
+                     int         max_len) {
 
-    char        data_val[128];
+    char        data_val[150];
     std::string _file_name(file_name);
 
-    wlb::GetCurrentTimeFormat(data_val, 128);
-
+    wlb::GetCurrentTimeFormat(data_val, 150);
     // get head
-    ::snprintf(head, max_len, "%s[%s][%s:%d:%s] ", data_val, log_level, file_name, line_no, func_name);
+#ifndef NDEBUG
+    ::snprintf(head, max_len, "%s[%s|%s][%s:%d:%s]", data_val, log_level, tag, file_name, line_no, func_name);
+#else
+    ::snprintf(head, max_len, "%s[%s|%s]", data_val, log_level, tag);
+#endif
 }
 
 } // namespace Log

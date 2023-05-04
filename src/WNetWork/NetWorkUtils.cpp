@@ -194,7 +194,7 @@ socket_t MakeListenedSocket(const WEndPointInfo &info, bool reuse) {
         }
     }
 
-    close(listen_sock);
+    ::close(listen_sock);
     return -1;
 }
 

@@ -74,8 +74,8 @@ void CloseEpoll(epoll_type epoll) { ::close(epoll); }
 
 
 /*************************************************
- * base epoll 
-**************************************************/
+ * base epoll
+ **************************************************/
 
 WBaseEpoll::WBaseEpoll() { DEBUGADD("WBaseEpoll"); }
 WBaseEpoll::~WBaseEpoll() {
@@ -145,15 +145,8 @@ bool WBaseEpoll::RemoveSocket(socket_t socket) {
 
 int32_t WBaseEpoll::GetEvents(epoll_event *events, int32_t events_size, int32_t timeout) {
     auto res = EpollGetEvents(this->epoll_fd_, events, events_size, timeout);
-    // if(res == -1) {
-    //     return -1;
-    // }
     return res;
 }
-
-
-
-
 
 
 } // namespace wlb::network

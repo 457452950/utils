@@ -16,6 +16,9 @@ Logger *Logger::getInstance() { return instance_; }
 Logger::Logger() = default;
 
 Logger::~Logger() {
+    Logger::Stop();
+    Logger::Wait2Exit();
+
     if(file_stream_.is_open()) {
         file_stream_.flush();
         file_stream_.close();
@@ -38,9 +41,9 @@ void Logger::initFilePath() {
     file_stream_.open(name, std::ios::out);
 }
 
-LogHelper_ptr Logger::Write(const char *level, const char *file, int lineNo, const char *_func) {
+LogHelper_ptr Logger::Write(const char *level, const char *tag, const char *file, int lineNo, const char *_func) {
     char head[256];
-    MakeMessageHead(file, lineNo, level, _func, head, 256);
+    MakeMessageHead(file, tag, lineNo, level, _func, head, 256);
 
     mutex_.lock();
     string_stream_ << head;
@@ -100,15 +103,16 @@ void Logger::Wait2Exit() {
 void Logger::Stop() {
     auto *this_ = Logger::getInstance();
 
-    this_->mutex_.lock();
+    std::unique_lock ulock(this_->mutex_);
 
-    instance_->running_ = false;
+    if(instance_->running_) {
+        instance_->running_ = false;
+    }
+
     this_->con_variable_.notify_all();
-
-    this_->mutex_.unlock();
 }
 
-void Logger::Init(int8_t type, LOG_LEVEL level, char *fileName) {
+void Logger::Init(int8_t type, LOG_LEVEL level, const char *fileName) {
     instance_   = new Logger();
     auto *this_ = instance_;
 
@@ -131,7 +135,7 @@ void Logger::Init(int8_t type, LOG_LEVEL level, char *fileName) {
 
 LOG_LEVEL Logger::GetLogLevel() { return Logger::getInstance()->log_level_; }
 
-void Logger::Init(int8_t type, LOG_LEVEL level, char *fileName, std::unordered_set<std::string> tags) {
+void Logger::Init(int8_t type, LOG_LEVEL level, const char *fileName, std::unordered_set<std::string> tags) {
     Logger::Init(type, level, fileName);
     Logger::getInstance()->tags_.swap(tags);
     Logger::getInstance()->use_tags_ = true;

@@ -197,12 +197,14 @@ WEpoll<UserData>::WEpoll() {}
 
 template <typename UserData>
 WEpoll<UserData>::~WEpoll() {
+    this->Stop();
+
     std::for_each(this->close_sign_pair_.begin(), this->close_sign_pair_.end(), [](socket_t s) {
         if(s != -1)
             ::close(s);
     });
 
-    this->Stop();
+    ep.Close();
 }
 
 

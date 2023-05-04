@@ -127,7 +127,7 @@ void WAccepterChannel::ChannelIn() {
  ************************************************************/
 
 WUDP::WUDP(std::weak_ptr<ev_hdle_t> handle) {
-    std::cout << "WUDP socket " << socket << std::endl;
+    std::cout << "WUDP " << std::endl;
 
     this->handler_             = std::make_unique<ev_hdler_t>();
     this->handler_->handle_    = handle;
@@ -220,7 +220,7 @@ WUDPChannel::~WUDPChannel() {
     }
 }
 
-bool wlb::network::WUDPChannel::Start(const WEndPointInfo &local_ep, const WEndPointInfo &remote_ep, bool shared) {
+bool WUDPChannel::Start(const WEndPointInfo &local_ep, const WEndPointInfo &remote_ep, bool shared) {
 
     this->local_endpoint_  = local_ep;
     this->remote_endpoint_ = remote_ep;

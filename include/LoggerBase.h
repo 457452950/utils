@@ -39,8 +39,13 @@ enum LOG_LEVEL : uint8_t {
 
 
 void GetLogFileName(const std::string &base_file_name, char *file_name, int max_len);
-void MakeMessageHead(
-        const char *file_name, int line_no, const char *log_level, const char *func_name, char *head, int max_len);
+void MakeMessageHead(const char *file_name,
+                     const char *tag,
+                     int         line_no,
+                     const char *log_level,
+                     const char *func_name,
+                     char       *head,
+                     int         max_len);
 
 } // namespace Log
 } // namespace wlb
