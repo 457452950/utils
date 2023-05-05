@@ -66,7 +66,7 @@ public:
 };
 
 inline Debugger *debugger = new Debugger;
-#ifdef DEBUG
+#ifndef NDEBUG
 
 #define DEBUGADD(name)                                                                                                 \
     if(debugger != nullptr && debugger->IsActive())                                                                    \

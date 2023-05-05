@@ -194,6 +194,9 @@ public:
 
     virtual void Send(const uint8_t *send_message, uint32_t message_len);
 
+    const WEndPointInfo &GetLocalInfo() { return local_endpoint_; }
+    const WEndPointInfo &GetRemoteInfo() { return remote_endpoint_; }
+
 protected:
     WEndPointInfo               local_endpoint_;
     WEndPointInfo               remote_endpoint_;
