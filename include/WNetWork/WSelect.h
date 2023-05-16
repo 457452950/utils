@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include <sys/eventfd.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <sys/timerfd.h>
@@ -95,8 +96,8 @@ private:
     uint32_t                            fd_count_{0};
     socket_t                            max_fd_number{0};
 
-    std::vector<socket_t> close_sign_pair_{-1, -1};
-    bool                  active_{false};
+    int  wakeup_fd_{-1};
+    bool active_{false};
 };
 
 
@@ -144,9 +145,11 @@ void WSelect<UserData>::DelSocket(WEventHandler *handler) {
 
 template <typename UserData>
 inline bool WSelect<UserData>::Init() {
-    if(::socketpair(AF_LOCAL, SOCK_STREAM, 0, this->close_sign_pair_.data()) == -1) {
+    this->wakeup_fd_ = eventfd(0, 0);
+    if(this->wakeup_fd_ == -1) {
         return false;
     }
+
     ++this->fd_count_;
     return true;
 }
@@ -158,7 +161,7 @@ void WSelect<UserData>::Loop() {
 }
 template <typename UserData>
 inline void WSelect<UserData>::Wake() {
-    ::send(this->close_sign_pair_[1], "", 1, 0);
+    eventfd_write(this->wakeup_fd_, 1);
 };
 
 template <typename UserData>
@@ -176,6 +179,14 @@ void WSelect<UserData>::EventLoop() {
         } else if(res == 0) {
             // time out
             continue;
+        }
+
+        if(this->active_ == false) {
+            std::cout << "close !!!" << std::endl;
+            uint64_t cnt;
+            eventfd_read(this->wakeup_fd_, &cnt);
+            assert(cnt == 1);
+            break;
         }
 
         auto temp_end = this->handler_set.end();
@@ -213,7 +224,7 @@ template <typename UserData>
 void WSelect<UserData>::InitAllToSet() {
     ClearAllSet();
 
-    max_fd_number = std::max((int)close_sign_pair_[0], (int)close_sign_pair_[1]);
+    max_fd_number = wakeup_fd_;
     for(auto &it : handler_set) {
         if(max_fd_number < it->socket_) {
             max_fd_number = it->socket_;
@@ -224,7 +235,7 @@ void WSelect<UserData>::InitAllToSet() {
         assert(SetCheckFd(it->socket_, &read_set_));
     }
 
-    SetAddFd(close_sign_pair_[0], &read_set_);
+    SetAddFd(wakeup_fd_, &read_set_);
 
     // need !!!
     ++max_fd_number;

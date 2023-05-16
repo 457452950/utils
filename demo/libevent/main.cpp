@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
     struct evconnlistener *listener;
     struct sockaddr_in     sin {};
 
-    int port = 4000;
+    int port = 4050;
 
     if(argc > 1) {
         port = atoi(argv[1]);
@@ -99,10 +99,10 @@ int main(int argc, char **argv) {
     base = event_base_new();
     if(!base) {
         // puts("Couldn't open event base");
-        cout << "Couldn't open event base" << endl;
+        cout << "Couldn't open event base [" << errno << "]" << endl;
         return 1;
     }
-    cout << "Couldn open event base" << endl;
+    cout << "Could open event base" << endl;
 
     /* Clear the sockaddr before using it, in case there are extra
      * platform-specific fields that can mess us up. */
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
                                        sizeof(sin));
     if(!listener) {
         // perror("Couldn't create listener");
-        cout << "Couldn't create listener" << endl;
+        cout << "Couldn't create listener : " << strerror(errno) << endl;
         return 1;
     }
     evconnlistener_set_error_cb(listener, accept_error_cb);

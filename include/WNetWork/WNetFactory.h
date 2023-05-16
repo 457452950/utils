@@ -15,26 +15,6 @@
 namespace wlb::network {
 
 
-class WChannelFactory;
-class WSessionFactory;
-
-struct EventContext {
-    // accepter
-    // return true for accpet the connection
-    using accept_cb_t       = bool (*)(socket_t socket, WEndPointInfo &endpoint);
-    using accept_error_cb_t = void (*)(int error_no);
-
-    //
-    accept_cb_t       onAccept{nullptr};
-    accept_error_cb_t onAcceptError{nullptr};
-    //
-    std::shared_ptr<ev_hdle_t> event_handle_{nullptr};
-    //
-    WChannelFactory *channel_factory_{nullptr};
-    WSessionFactory *session_factory_{nullptr};
-};
-
-
 namespace WNetFactory {
 
 inline std::shared_ptr<ev_hdle_t> CreateNetHandle(HandleType type) {
@@ -51,39 +31,34 @@ inline std::shared_ptr<ev_hdle_t> CreateNetHandle(HandleType type) {
     return nullptr;
 }
 
+inline std::shared_ptr<ev_hdle_t> CreateDefaultNetHandle() { return CreateNetHandle(default_handle_type); }
+
+inline std::shared_ptr<WChannel>
+CreateDefaultChannel(const WEndPointInfo &local, const WEndPointInfo &remote, std::unique_ptr<ev_hdler_t> handler) {
+    return std::make_shared<WChannel>(local, remote, std::move(handler));
+}
+
 }; // namespace WNetFactory
 
+template <typename Channel>
+struct WTCPEvFactory {
+    // clang-format off
+    template<typename channel>
+    using newChannel = std::function<std::shared_ptr<channel>(
+                                                const WEndPointInfo &, 
+                                                const WEndPointInfo &,
+                                                std::shared_ptr<typename channel::Listener>, 
+                                                std::unique_ptr<ev_hdler_t>)>;
 
-/**
- * WChannelFactory 工厂
- */
-class WChannelFactory {
-public:
-    virtual std::unique_ptr<WChannel> CreateChannel(){
-            // return std::make_unique<WChannel>(this->buffer_size_);
-    };
+    newChannel<Channel> NewChannel = WNetFactory::CreateDefaultChannel;
 
-    void SetChannelBufferSize(uint16_t size) noexcept { this->buffer_size_ = size; }
-
-public:
-    WChannelFactory() {}
-    virtual ~WChannelFactory() {}
-
-private:
-    uint16_t buffer_size_{1024};
+    using newSession = std::function<std::shared_ptr<WChannel::Listener>(
+                                                    const WEndPointInfo &, 
+                                                    const WEndPointInfo &)>;
+    newSession NewSession;
+    // clang-format on
 };
 
-/**
- * WSessionFactory
- */
-class WSessionFactory {
-public:
-    virtual void CreateSession(std::unique_ptr<WChannel> channel) = 0;
-
-public:
-    WSessionFactory() {}
-    virtual ~WSessionFactory() {}
-};
 
 } // namespace wlb::network
 

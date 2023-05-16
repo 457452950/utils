@@ -8,8 +8,10 @@
 #include <iostream>
 #include <list>
 #include <mutex>
-#include <sys/epoll.h>
 #include <thread>
+
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
 
 #include "WEvent.h"
 #include "WNetWorkUtils.h"
@@ -185,10 +187,10 @@ private:
     void            EventLoop();
 
 private:
-    WBaseEpoll            ep;
-    uint32_t              fd_count_{0};
-    std::vector<socket_t> close_sign_pair_{-1, -1};
-    bool                  active_{false};
+    WBaseEpoll ep;
+    uint32_t   fd_count_{0};
+    int        wakeup_fd_{-1}; // event_fd
+    bool       active_{false};
 };
 
 
@@ -199,10 +201,7 @@ template <typename UserData>
 WEpoll<UserData>::~WEpoll() {
     this->Stop();
 
-    std::for_each(this->close_sign_pair_.begin(), this->close_sign_pair_.end(), [](socket_t s) {
-        if(s != -1)
-            ::close(s);
-    });
+    ::close(wakeup_fd_);
 
     ep.Close();
 }
@@ -216,11 +215,12 @@ bool WEpoll<UserData>::Init() {
         return false;
     }
 
-    if(::socketpair(AF_LOCAL, SOCK_STREAM, 0, this->close_sign_pair_.data()) == -1) {
+    wakeup_fd_ = eventfd(0, 0);
+    if(wakeup_fd_ == -1) {
         return false;
     }
 
-    if(this->ep.AddSocket(this->close_sign_pair_[0], EPOLLIN) == false) {
+    if(this->ep.AddSocket(wakeup_fd_, EPOLLIN) == false) {
         return false;
     }
 
@@ -246,7 +246,7 @@ bool WEpoll<UserData>::AddSocket(WEventHandler *handler) {
 
 template <typename UserData>
 bool WEpoll<UserData>::ModifySocket(WEventHandler *handler) {
-    epoll_data_t ep_data{0};
+    epoll_data_t ep_data = {0};
 
     ep_data.ptr = handler->user_data_;
     auto ev     = this->ParseToEpollEvent(handler->GetEvents());
@@ -279,7 +279,7 @@ inline void WEpoll<UserData>::Stop() {
 
 template <typename UserData>
 inline void WEpoll<UserData>::Wake() {
-    ::send(this->close_sign_pair_[1], "", 1, 0);
+    eventfd_write(this->wakeup_fd_, 1);
 }
 
 template <typename UserData>
@@ -308,6 +308,9 @@ void WEpoll<UserData>::EventLoop() {
 
         if(!this->active_) {
             std::cout << "close !!!" << std::endl;
+            uint64_t cnt;
+            eventfd_read(this->wakeup_fd_, &cnt);
+            assert(cnt == 1);
             break;
         }
 

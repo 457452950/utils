@@ -26,6 +26,8 @@ using ev_hdle_p = ev_hdle_t *;
 using ev_hdler_t = ev_hdle_t::WEventHandler;
 using ev_hdler_p = ev_hdler_t *;
 
+void setCommonCallBack(ev_hdle_p handle);
+
 /**************************************************
  * WBaseChannel interface
  ***************************************************/
@@ -91,7 +93,6 @@ private:
 /***********************************************************
  * WAccepterChannel
  ************************************************************/
-class WChannel;
 class WAccepterChannel : public ReadChannel {
 public:
     explicit WAccepterChannel(std::weak_ptr<ev_hdle_t> handle);
@@ -190,7 +191,7 @@ public:
 
     bool Init();
     void ShutDown(int how); // Async
-    void CloseChannel();    // Sync
+    void CloseChannel();    // TODO: Sync
 
     virtual void Send(const uint8_t *send_message, uint32_t message_len);
 
@@ -206,10 +207,11 @@ protected:
 public:
     class Listener {
     public:
-        virtual void onChannelConnect(std::shared_ptr<WChannel>)             = 0;
+        // virtual void onChannelConnect(std::shared_ptr<WChannel>)             = 0;
         virtual void onChannelDisConnect()                                   = 0;
         virtual void onReceive(const uint8_t *message, uint64_t message_len) = 0;
         virtual void onError(const char *err_message)                        = 0;
+        virtual ~Listener() {}
     };
 
     inline void SetListener(std::weak_ptr<Listener> listener) { this->listener_ = listener; }

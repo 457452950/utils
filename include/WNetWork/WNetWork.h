@@ -5,7 +5,6 @@
 #ifndef UTILS_WNETWORK_H
 #define UTILS_WNETWORK_H
 
-#include "WChannel.h"
 #include "WEpoll.h"
 #include "WEvent.h"
 #include "WNetFactory.h"
@@ -43,7 +42,8 @@ class WChannel;
 
 
 /* WNetFactory.h */
-class WChannelFactory;
+template <typename Channel>
+class WTCPEvFactory;
 
 
 /* WSingleTcpServer.h */

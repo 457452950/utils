@@ -75,8 +75,8 @@ void server_thread() {
         cout << "Accept ok " << srv << endl;
     }
 
-    int  totol = 0;
-    auto [ip, port]  = WEndPointInfo::Dump(en);
+    int totol       = 0;
+    auto [ip, port] = WEndPointInfo::Dump(en);
     cout << "client : ip " << ip << " port:" << port << endl;
 
     const char  str0[]    = "helasdadafsafaafsadfdsaasfasfafafasfaufasnukfgagfasnjknfajkfbjasbfab,"
@@ -102,7 +102,7 @@ void server_thread() {
 
     // send(srv, str0, strlen(str0), 0);
 
-    for(size_t i = 0; i < 10000; i++) {
+    for(size_t i = 0; i < 100; i++) {
         iov[1].iov_base = (void *)strs[i % 10];
 
         // nwritten = pwritev2(srv, iov, 2, -1, RWF_APPEND);
@@ -111,7 +111,7 @@ void server_thread() {
         // nwritten = send(srv, str0, strlen(str0), 0);
 
         totol += nwritten;
-        if(nwritten == 142)
+        if(nwritten == 140)
             continue;
         cout << "pwritev2 size " << nwritten << endl;
         if(nwritten == -1) {
@@ -145,9 +145,22 @@ void client_thread() {
     }
 
     {
+        struct iovec iov[2];
+        iov[0].iov_base = new char[1024];
+        iov[0].iov_len  = 1024;
+        iov[1].iov_base = new char[1024];
+        iov[1].iov_len  = 1024;
+        auto len        = readv(cli, iov, 2);
+        cout << " : " << iov[0].iov_len << std::endl
+             << " : " << iov[1].iov_len << std::endl;
+        delete[] (char*)iov[0].iov_base;
+        delete[] (char*)iov[1].iov_base;
+    }
+
+    {
         char recv_buf[150000]{0};
         auto res = ::recv(cli, recv_buf, 150000, 0);
-        cout << "'" << std::string(recv_buf, res).c_str() << "' \n recv_buf len : " << strlen(recv_buf) << endl;
+        // cout << "'" << std::string(recv_buf, res).c_str() << "' \n recv_buf len : " << strlen(recv_buf) << endl;
         cout << "recv res : " << res << endl;
         if(res == -1) {
             auto err = GetError();
@@ -159,7 +172,7 @@ void client_thread() {
         char    recv_buf[150000]{0};
         ssize_t res = ::recv(cli, recv_buf, 150000, 0);
         std::cout.flush();
-        cout << "'" << std::string(recv_buf, 100).c_str() << "' \n" << endl;
+        // cout << "'" << std::string(recv_buf, 100).c_str() << "' \n" << endl;
         // printf("' %c'", recv_buf[0]);
         res = ::recv(cli, recv_buf, 150000, 0);
         cout << "recv res : " << res << endl;

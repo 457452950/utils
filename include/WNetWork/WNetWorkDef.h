@@ -35,8 +35,8 @@ const auto default_handle_type = HandleType::SELECT;
 #define MAX_UDP_BUFFER_LEN 1500
 
 
-struct EventContext;
-using event_context_t = EventContext;
+struct EventFactory;
+using event_context_t = EventFactory;
 using event_context_p = event_context_t *;
 
 } // namespace wlb::network

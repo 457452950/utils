@@ -16,9 +16,13 @@ namespace test_tcpchannel_config {
 
 namespace srv {
 namespace listen {
-constexpr char     *ip     = "0:0:0:0:0:0:0:0";
+// constexpr char     *ip     = "0:0:0:0:0:0:0:0";
+// constexpr int       port   = 4000;
+// constexpr AF_FAMILY family = AF_FAMILY::INET6;
+// constexpr AF_PROTOL protol = AF_PROTOL::TCP;
+constexpr char     *ip     = "0.0.0.0";
 constexpr int       port   = 4000;
-constexpr AF_FAMILY family = AF_FAMILY::INET6;
+constexpr AF_FAMILY family = AF_FAMILY::INET;
 constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 } // namespace listen
 } // namespace srv
@@ -26,9 +30,13 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 namespace cli {
 
 namespace connect {
-constexpr char     *ip     = "0:0:0:0:0:0:0:0";
+// constexpr char     *ip     = "0:0:0:0:0:0:0:0";
+// constexpr int       port   = 4000;
+// constexpr AF_FAMILY family = AF_FAMILY::INET6;
+// constexpr AF_PROTOL protol = AF_PROTOL::TCP;
+constexpr char     *ip     = "0.0.0.0";
 constexpr int       port   = 4000;
-constexpr AF_FAMILY family = AF_FAMILY::INET6;
+constexpr AF_FAMILY family = AF_FAMILY::INET;
 constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 } // namespace connect
 
@@ -48,8 +56,7 @@ inline auto out_cb = [](socket_t sock, WBaseChannel *data) {
 class TestSession : public WChannel::Listener {
 public:
     TestSession(std::shared_ptr<WChannel> ch_) : ch(ch_) {}
-    virtual void onChannelConnect(std::shared_ptr<WChannel>) {}
-    virtual void onChannelDisConnect() {}
+    virtual void onChannelDisConnect() { this->ch.reset(); }
     virtual void onReceive(const uint8_t *message, uint64_t message_len) {
         // cout << "recv " << std::string((char *)message, (int)message_len) << " size " << message_len << endl;
         ch->Send(message, message_len);
@@ -63,7 +70,7 @@ public:
     }
     virtual void onError(const char *err_message) { std::cout << err_message << endl; }
 
-// private:
+    // private:
     std::shared_ptr<WChannel> ch;
 };
 
@@ -74,7 +81,7 @@ std::shared_ptr<WEpoll<WBaseChannel>> ep_;
 inline auto ac_cb = [](const WEndPointInfo &local, const WEndPointInfo &remote, std::unique_ptr<ev_hdler_t> handler) {
     auto info = WEndPointInfo::Dump(remote);
 
-    // cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
+    cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
     auto ch = std::make_shared<WChannel>(local, remote, std::move(handler));
     ch->SetRecvBufferMaxSize(10, 1000);
     se = std::make_shared<TestSession>(ch);
@@ -101,9 +108,10 @@ void server_thread() {
     accp_channel->OnAccept = ac_cb;
 
     ep->Loop();
-    
+    cout << wlb::network::ErrorToString(GetError()) << endl;
+
     // 激活客户端的 阻塞recv
-    se->ch->Send((uint8_t*)"s", 1);
+    se->ch->Send((uint8_t *)"s", 1);
     delete accp_channel;
 }
 
@@ -134,10 +142,10 @@ void client_thread() {
             auto l = ::recv(cli, buf, 1500, 0);
             total += l;
             // clang-format off
-            cout 
+//            cout
                 // << "cli recv :" << std::string(buf, l) 
-                << " total : " << total 
-                << endl;
+//                << " total : " << total
+//                << endl;
             // clang-format on
         }
     });
@@ -166,8 +174,8 @@ void client_thread() {
 
 void handle_pipe(int signal) {
     cout << "signal" << endl;
-    ep_->Stop();
-    active.store(false);
+    //    ep_->Stop();
+    //    active.store(false);
 }
 
 

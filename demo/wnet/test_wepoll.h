@@ -17,9 +17,9 @@ namespace test_wepoll_config {
 
 namespace srv {
 namespace listen {
-constexpr char     *ip     = "::1";
+constexpr char     *ip     = "0.0.0.0";
 constexpr int       port   = 4000;
-constexpr AF_FAMILY family = AF_FAMILY::INET6;
+constexpr AF_FAMILY family = AF_FAMILY::INET;
 constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 } // namespace listen
 } // namespace srv
@@ -27,9 +27,9 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 namespace cli {
 
 namespace connect {
-constexpr char     *ip     = "::1";
+constexpr char     *ip     = "0.0.0.0";
 constexpr int       port   = 4000;
-constexpr AF_FAMILY family = AF_FAMILY::INET6;
+constexpr AF_FAMILY family = AF_FAMILY::INET;
 constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 } // namespace connect
 

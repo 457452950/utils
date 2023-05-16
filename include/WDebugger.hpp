@@ -2,11 +2,11 @@
 #ifndef UTILS_WDEBUGGER_H
 #define UTILS_WDEBUGGER_H
 
+#include "WNetWork/WChannel.h"
 #include <atomic>
 #include <iostream>
 #include <thread>
 #include <unordered_map>
-#include "WNetWork/WChannel.h"
 
 namespace wlb::debug {
 
@@ -39,7 +39,7 @@ public:
         this->_timer->OnTime = []() {
             // std::cout << "on time" << std::endl;
             for(auto &item : debugger->_memberMap) {
-                // std::cout << item.first << " : " << item.second << std::endl;
+                std::cout << item.first << " : " << item.second << std::endl;
             }
         };
         this->_isActive = true;
@@ -51,9 +51,9 @@ public:
     };
     inline bool IsActive() const { return this->_isActive; }
     void        Destroy() {
-            //    debuggerHandle->Join();
-               delete this->_timer;
-               this->_timer = nullptr;
+        //    debuggerHandle->Join();
+        delete this->_timer;
+        this->_timer = nullptr;
     };
 
     void MemberAdd(const std::string &name) { _memberMap[name]++; };
@@ -123,4 +123,4 @@ private:
 
 } // namespace wlb::debug
 
-#endif //UTILS_WDEBUGGER_H
+#endif // UTILS_WDEBUGGER_H
