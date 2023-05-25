@@ -17,6 +17,8 @@
 #include "test_udp.h"
 #include "test_udpchannel.h"
 
+#include "test_timer.h"
+
 #include "Channel.h"
 #include "WDebugger.hpp"
 #include "WNetWork/WNetWork.h"
@@ -36,6 +38,8 @@ int main() {
     // test_ipv6();
     //    test_wepoll();
     //    test_wselect();
+
+    //    test_timer();
 
     test_tcpchannel();
     // test_udp();

@@ -75,7 +75,7 @@ private:
     // log config
     static Logger *instance_;
 
-    LOG_LEVEL log_level_{L_ERROR};
+    LOG_LEVEL log_level_{LERROR};
     int8_t    log_type_{LOG_TYPE::L_STDOUT};
 
     bool      use_tags_{false};
@@ -85,7 +85,7 @@ private:
     char         *base_file_name_{nullptr};
     const int64_t max_file_size_{100 * 1024 * 1024}; // 10MB
     const int8_t  max_check_times{10};
-    int8_t        check_times_{0}; // 一定轮次检查文件大小
+    int8_t        check_times_{0};                   // 一定轮次检查文件大小
     std::ofstream file_stream_;
 
     // async

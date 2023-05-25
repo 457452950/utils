@@ -30,11 +30,11 @@ constexpr int8_t L_FILE   = 1 << 1;
 } // namespace LOG_TYPE
 
 enum LOG_LEVEL : uint8_t {
-    L_DEBUG = 1 << 0,
-    L_INFO  = 1 << 1,
-    L_WARN  = 1 << 2,
-    L_ERROR = 1 << 3,
-    L_FATAL = 1 << 4,
+    LDEBUG = 1 << 0,
+    LINFO  = 1 << 1,
+    LWARN  = 1 << 2,
+    LERROR = 1 << 3,
+    LFATAL = 1 << 4,
 };
 
 

@@ -94,9 +94,9 @@ void server_thread() {
 
     auto ep = std::make_shared<WEpoll<WBaseChannel>>();
     ep->Init();
-    ep_        = ep;
-    ep->read_  = in_cb;
-    ep->write_ = out_cb;
+    ep_ = ep;
+
+    setCommonCallBack(ep.get());
 
     WEndPointInfo local_ed;
     if(!local_ed.Assign(listen::ip, listen::port, listen::family)) {

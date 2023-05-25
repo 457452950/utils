@@ -17,16 +17,16 @@ int main(int argc, char **argv) {
 
 
     char *h = "hello ";
-    LOG(L_DEBUG, "main") << "debug logger" << h << 123;
+    LOG(LDEBUG, "main") << "debug logger" << h << 123;
 
-    Logger::Init(LOG_TYPE::L_FILE, LOG_LEVEL::L_DEBUG, "temp");
-    // Logger::Init(LOG_TYPE::L_STDOUT, LOG_LEVEL::L_DEBUG, argv[0]);
+    Logger::Init(LOG_TYPE::L_FILE, LOG_LEVEL::LDEBUG, "temp");
+    // Logger::Init(LOG_TYPE::L_STDOUT, LOG_LEVEL::LDEBUG, argv[0]);
     cout << "logger init over" << endl;
 
     thread t([]() {
         char *h = "hello ";
         while(true) {
-            LOG(L_DEBUG, "main") << "debug logger " << h << 123;
+            LOG(LDEBUG, "main") << "debug logger " << h << 123;
         }
         usleep(10);
     });

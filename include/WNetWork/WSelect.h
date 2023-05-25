@@ -57,8 +57,8 @@ Select(int max_sock, fd_set_ptr read_set, fd_set_ptr wirte_set, fd_set_ptr err_s
 template <typename UserData>
 class WSelect final : public WEventHandle<UserData> {
 public:
-    WSelect(){};
-    ~WSelect(){};
+    WSelect()  = default;
+    ~WSelect() = default;
 
     using WEventHandler = typename WEventHandle<UserData>::WEventHandler;
 
@@ -88,8 +88,8 @@ private:
     void ParseAndSetEvents(socket_t socket, uint8_t events);
 
 private:
-    fd_set_type read_set_;
-    fd_set_type write_set_;
+    fd_set_type read_set_{};
+    fd_set_type write_set_{};
 
     std::unordered_set<WEventHandler *> handler_set;
     std::stack<WEventHandler *>         rubish_stack_;

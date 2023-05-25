@@ -1,6 +1,7 @@
 #include "WNetWork/WChannel.h"
 #include <cassert>
 #include <iostream>
+#include <utility>
 
 #include "AsyncLogger.h"
 #include "WDebugger.hpp"
@@ -33,7 +34,7 @@ WTimer::WTimer(std::weak_ptr<ev_hdle_t> handle) {
     this->handler_             = std::make_unique<ev_hdler_t>();
     this->handler_->socket_    = CreateNewTimerfd();
     this->handler_->user_data_ = this;
-    this->handler_->handle_    = handle;
+    this->handler_->handle_    = std::move(handle);
     this->handler_->SetEvents(HandlerEventType::EV_IN);
     DEBUGADD("WTimer");
 }
@@ -52,21 +53,21 @@ void WTimer::ChannelIn() {
 }
 
 bool WTimer::Start(long time_value, long interval) {
-    assert(!this->active_);
+    struct itimerspec next_time = {0};
 
-    struct itimerspec next_time {
-        0
-    };
     next_time.it_value.tv_sec     = time_value / 1000L;
     next_time.it_value.tv_nsec    = (time_value % 1000L) * 1000'000L;
     next_time.it_interval.tv_sec  = interval / 1000L;
     next_time.it_interval.tv_nsec = (interval % 1000L) * 1000'000L;
+
     if(!SetTimerTime(this->handler_->socket_, SetTimeFlag::REL, &next_time)) {
         return false;
     }
 
-    this->handler_->Enable();
-    this->active_ = true;
+    if(!this->active_) {
+        this->handler_->Enable();
+        this->active_ = true;
+    }
 
     return true;
 }
