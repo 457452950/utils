@@ -3,8 +3,7 @@
 #include <set>
 #include <string>
 
-#include "WNetWork/WChannel.h"
-#include "WNetWork/WNetFactory.h"
+#include "wutils/network/WChannel.h"
+#include "wutils/network/WNetFactory.h"
 
-using namespace wlb::network;
-
+using namespace wutils::network;

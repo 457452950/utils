@@ -20,12 +20,12 @@
 #include "test_timer.h"
 
 #include "Channel.h"
-#include "WDebugger.hpp"
-#include "WNetWork/WNetWork.h"
-#include "WNetWork/stdIOVec.h"
+#include "wutils/WDebugger.hpp"
+#include "wutils/network/WNetWork.h"
+#include "wutils/network/stdIOVec.h"
 
 using namespace std;
-using namespace wlb::network;
+using namespace wutils::network;
 
 int main() {
 

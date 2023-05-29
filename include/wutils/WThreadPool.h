@@ -1,0 +1,72 @@
+#pragma once
+#ifndef UTILS_WTHREAD_POOL_H
+#define UTILS_WTHREAD_POOL_H
+
+#include <atomic>
+#include <condition_variable>
+#include <functional>
+#include <mutex>
+#include <queue>
+#include <thread>
+#include <utility>
+#include <vector>
+
+namespace wutils {
+
+// 任务回调函数参数类型
+using user_data_t = union _user_data_t {
+    [[maybe_unused]] int64_t integer;
+    [[maybe_unused]] void   *ptr{nullptr};
+};
+// 任务回调函数类型
+using user_function_t = std::function<void(user_data_t)>;
+
+// 任务
+struct task {
+    task(user_function_t user_function, user_data_t user_data) :
+        _function(std::move(user_function)), _userData(user_data) {}
+
+    user_function_t _function;
+    user_data_t     _userData;
+};
+
+// 线程池
+class WThreadPool {
+    using task_list   = std::queue<task>;           // 任务队列格式
+    using thread_list = std::vector<std::thread *>; // 线程队列
+public:
+    WThreadPool() = default;
+    ~WThreadPool() { this->Destroy(); }
+    // no copyable
+    WThreadPool(const WThreadPool &)            = delete;
+    WThreadPool &operator=(const WThreadPool &) = delete;
+
+    // lifetime
+    // return true if the pool start success
+    bool        Start(uint16_t threads_count);
+    inline void Stop() {
+        this->is_active_ = false;
+        this->condition_.notify_all();
+    }
+    // Wait the pool return (block)
+    void WaitToStop();
+    void Destroy();
+
+    // methods
+    void AddTask(const user_function_t &function, user_data_t data);
+
+private:
+    void ConsumerThread(); // 消费者线程
+
+private:
+    std::atomic_bool        is_active_{false}; // 运行
+    uint16_t                threads_count_{1}; // 线程数量
+    thread_list             threads_;          // 线程
+    task_list               tasks_;            // 任务列表
+    std::mutex              mutex_;            // 锁
+    std::condition_variable condition_;        // 条件变量
+};
+
+} // namespace wutils
+
+#endif // UTILS_WTHREAD_POOL_H

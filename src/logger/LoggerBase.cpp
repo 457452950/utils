@@ -1,12 +1,8 @@
-// #include <sys/time.h>
-#include "LoggerBase.h"
+#include "wutils/logger/LoggerBase.h"
 
-// #include <cassert>
 #include <sstream>
 
-namespace wlb {
-
-namespace Log {
+namespace wutils::Log {
 
 void GetLogFileName(const std::string &base_file_name, char *file_name, int max_len) {
     // get data and time
@@ -36,7 +32,7 @@ void MakeMessageHead(const char *file_name,
     char        data_val[150];
     std::string _file_name(file_name);
 
-    wlb::GetCurrentTimeFormat(data_val, 150);
+    wutils::GetCurrentTimeFormat(data_val, 150);
     // get head
 #ifndef NDEBUG
     ::snprintf(head, max_len, "%s[%s|%s][%s:%d:%s]", data_val, log_level, tag, file_name, line_no, func_name);
@@ -45,6 +41,4 @@ void MakeMessageHead(const char *file_name,
 #endif
 }
 
-} // namespace Log
-
-} // namespace wlb
+} // namespace wutils::Log

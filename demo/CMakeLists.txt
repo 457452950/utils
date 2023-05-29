@@ -9,10 +9,12 @@ if (LINUX)
     add_subdirectory(wnet)
     add_subdirectory(libevent)
     add_subdirectory(safe)
-endif()
+    add_subdirectory(buffer)
+endif ()
 
 if (WINDOWS)
     message("demo for WINDOWS")
-endif()
+    add_subdirectory(buffer)
+endif ()
 
 

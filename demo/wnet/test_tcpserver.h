@@ -6,13 +6,13 @@
 #include "WNetWork/WNetWork.h"
 
 using namespace std;
-using namespace wlb::network;
+using namespace wutils::network;
 
 
 /**
  * test_tcpserver
  */
-// auto acc_cb = [](wlb::network::socket_t socket, wlb::network::WEndPointInfo &endpoint) -> bool {
+// auto acc_cb = [](wutils::network::socket_t socket, wutils::network::WEndPointInfo &endpoint) -> bool {
 //     // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
 
 //     // ch = new WChannel(socket, endpoint);
@@ -20,7 +20,7 @@ using namespace wlb::network;
 // };
 
 
-// using namespace wlb::debug;
+// using namespace wutils::debug;
 
 // void test_tcpserver() {
 //     // debugger->Init(1000);

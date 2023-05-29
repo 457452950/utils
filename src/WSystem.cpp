@@ -1,7 +1,7 @@
-#include "WSystem.h"
+#include "wutils/WSystem.h"
 #include <sys/time.h>
 
-namespace wlb {
+namespace wutils {
 
 bool mkdir(const std::string &path) {
     auto res = ::mkdir(path.c_str(), 477);
@@ -35,4 +35,4 @@ void GetCurrentTimeFormat(char *buff, int max_len) {
                curTime.tv_usec % 1000);
 }
 
-} // namespace wlb
+} // namespace wutils

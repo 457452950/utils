@@ -6,11 +6,10 @@
 #include "WNetWork/WNetWork.h"
 
 using namespace std;
-using namespace wlb::network;
+using namespace wutils::network;
 
 
-
-auto acc2_cb = [](wlb::network::socket_t socket, wlb::network::WEndPointInfo &endpoint) -> bool {
+auto acc2_cb = [](wutils::network::socket_t socket, wutils::network::WEndPointInfo &endpoint) -> bool {
     // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
     // TODO: 使用抽象工厂模式
     // ch = new MyChannel(socket, endpoint);
@@ -24,7 +23,7 @@ void test_myChannel() {
     // WSingleTcpServer ser;
     // ser.SetOnAccept(acc2_cb);
 
-    // auto linfo = WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 8000, wlb::network::AF_FAMILY::INET6);
+    // auto linfo = WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 8000, wutils::network::AF_FAMILY::INET6);
     // if(linfo == nullptr) {
     //     cout << "[test_myChannel]MakeWEndPointInfo linfo error : " << strerror(errno) << endl;
     //     return;
@@ -39,7 +38,7 @@ void test_myChannel() {
 
     // auto cli = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);
 
-    // auto cinfo = WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 8000, wlb::network::AF_FAMILY::INET6);
+    // auto cinfo = WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 8000, wutils::network::AF_FAMILY::INET6);
     // if(cinfo == nullptr) {
     //     cout << "[test_myChannel]MakeWEndPointInfo cinfo error : " << strerror(errno) << endl;
     //     return;

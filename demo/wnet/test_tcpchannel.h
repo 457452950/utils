@@ -3,10 +3,10 @@
 
 #include <iostream>
 
-#include "WNetWork/WNetWork.h"
+#include "wutils/network/WNetWork.h"
 
 using namespace std;
-using namespace wlb::network;
+using namespace wutils::network;
 
 
 /**
@@ -108,7 +108,7 @@ void server_thread() {
     accp_channel->OnAccept = ac_cb;
 
     ep->Loop();
-    cout << wlb::network::ErrorToString(GetError()) << endl;
+    cout << wutils::network::ErrorToString(GetError()) << endl;
 
     // 激活客户端的 阻塞recv
     se->ch->Send((uint8_t *)"s", 1);

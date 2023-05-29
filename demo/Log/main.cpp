@@ -1,10 +1,10 @@
 #include <iostream>
 #include <signal.h>
 
-#include "AsyncLogger.h"
+#include "wutils/logger/AsyncLogger.h"
 
 using namespace std;
-using namespace wlb::Log;
+using namespace wutils::Log;
 
 
 void signal_handle(int sign) {

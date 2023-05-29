@@ -3,10 +3,10 @@
 
 #include <iostream>
 
-#include "WNetWork/WNetWork.h"
+#include "wutils/network/WNetWork.h"
 
 using namespace std;
-using namespace wlb::network;
+using namespace wutils::network;
 
 
 /**
@@ -151,10 +151,9 @@ void client_thread() {
         iov[1].iov_base = new char[1024];
         iov[1].iov_len  = 1024;
         auto len        = readv(cli, iov, 2);
-        cout << " : " << iov[0].iov_len << std::endl
-             << " : " << iov[1].iov_len << std::endl;
-        delete[] (char*)iov[0].iov_base;
-        delete[] (char*)iov[1].iov_base;
+        cout << " : " << iov[0].iov_len << std::endl << " : " << iov[1].iov_len << std::endl;
+        delete[](char *)iov[0].iov_base;
+        delete[](char *)iov[1].iov_base;
     }
 
     {

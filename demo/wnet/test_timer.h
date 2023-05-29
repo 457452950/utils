@@ -1,10 +1,10 @@
 #ifndef UTILS_DEMO_WNET_TEST_TIMER_H
 #define UTILS_DEMO_WNET_TEST_TIMER_H
 
-#include "AsyncLogger.h"
-#include "WNetWork/WChannel.h"
+#include "wutils/logger/AsyncLogger.h"
+#include "wutils/network/WChannel.h"
 
-using namespace wlb::Log;
+using namespace wutils::Log;
 
 int tag = 0;
 

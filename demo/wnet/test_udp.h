@@ -3,10 +3,10 @@
 
 #include <iostream>
 
-#include "WNetWork/WNetWork.h"
+#include "wutils/network/WNetWork.h"
 
 using namespace std;
-using namespace wlb::network;
+using namespace wutils::network;
 
 
 /**
@@ -90,10 +90,10 @@ void server_thread() {
         return;
     }
 
-    auto onmsg = [&](const wlb::network::WEndPointInfo &local,
-                     const wlb::network::WEndPointInfo &remote,
-                     const uint8_t                     *msg,
-                     uint32_t                           msg_len) {
+    auto onmsg = [&](const wutils::network::WEndPointInfo &local,
+                     const wutils::network::WEndPointInfo &remote,
+                     const uint8_t                        *msg,
+                     uint32_t                              msg_len) {
         auto [lip, lport] = WEndPointInfo::Dump(local);
         auto [rip, rport] = WEndPointInfo::Dump(remote);
 

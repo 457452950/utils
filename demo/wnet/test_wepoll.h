@@ -3,10 +3,10 @@
 
 #include <iostream>
 
-#include "WNetWork/WNetWork.h"
+#include "wutils/network/WNetWork.h"
 
 using namespace std;
-using namespace wlb::network;
+using namespace wutils::network;
 
 
 /**

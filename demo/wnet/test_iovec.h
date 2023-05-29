@@ -3,10 +3,10 @@
 
 #include <iostream>
 
-#include "WNetWork/WNetWork.h"
+#include "wutils/network/WNetWork.h"
 
 using namespace std;
-using namespace wlb::network;
+using namespace wutils::network;
 
 
 /**
@@ -48,7 +48,7 @@ void server_thread() {
 
     WEndPointInfo en;
     // auto          srv = Accept4(sock, en, SOCK_NONBLOCK);
-    auto          srv = Accept4(sock, en, 0);
+    auto srv = Accept4(sock, en, 0);
     if(srv == -1) {
         cout << "Accept error : " << strerror(errno) << endl;
         return;
