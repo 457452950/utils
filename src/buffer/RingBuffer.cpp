@@ -1,4 +1,4 @@
-#include "wutils/buffer/ringbuffer.h"
+#include "wutils/buffer/RingBuffer.h"
 
 #include <cassert>
 
@@ -11,7 +11,7 @@ RingBuffer::RingBuffer(const RingBuffer &other) :
     write_offset_(other.write_offset_),
     is_full_(other.is_full_) {}
 
-RingBuffer::RingBuffer(const RingBuffer &&other) :
+RingBuffer::RingBuffer(const RingBuffer &&other) noexcept :
     buffer_(std::move(other.buffer_)),
     read_offset_(other.read_offset_),
     write_offset_(other.write_offset_),
@@ -62,7 +62,13 @@ void RingBuffer::Release() {
 
 bool RingBuffer::IsFull() const { return this->is_full_; }
 
-bool RingBuffer::IsEmpty() const { return (this->read_offset_ == this->write_offset_) ? (!this->IsFull()) : false; }
+bool RingBuffer::IsEmpty() const {
+    if(this->read_offset_ == this->write_offset_) {
+        return !this->IsFull();
+    } else {
+        return false;
+    }
+}
 
 uint64_t RingBuffer::GetReadableBytes() const {
     if(write_offset_ >= read_offset_) {
@@ -115,7 +121,7 @@ void RingBuffer::SkipReadBytes(uint64_t bytes) {
     this->read_offset_ %= this->MaxSize();
 
     if(bytes != 0 && this->is_full_) {
-        this->is_full_ = !this->is_full_;
+        this->is_full_ = false;
     }
 }
 

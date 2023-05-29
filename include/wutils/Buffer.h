@@ -129,8 +129,8 @@ public:
     virtual void ReadUntil(readcb cb) = 0;
 };
 
-#include "buffer/chainbuffer.h"
-#include "buffer/ringbuffer.h"
-#include "buffer/straightbuffer.h"
+#include "buffer/ChainBuffer.h"
+#include "buffer/RingBuffer.h"
+#include "buffer/StraightBuffer.h"
 
 #endif // BUFFER_H

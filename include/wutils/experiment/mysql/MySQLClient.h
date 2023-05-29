@@ -13,7 +13,7 @@ namespace wutils {
 
 class MySQLResult {
 public:
-    MySQLResult(MYSQL_RES *res) : _res(res) {}
+    explicit MySQLResult(MYSQL_RES *res) : _res(res) {}
     ~MySQLResult() { mysql_free_result(this->_res); }
 
     bool GetNames(std::vector<std::string> &names) {
@@ -30,7 +30,7 @@ public:
         }
 
         for(int i = 0; i < fields_num; i++) {
-            names.push_back(fields[i].name);
+            names.emplace_back(fields[i].name);
         }
         return true;
     }
@@ -89,7 +89,7 @@ private:
     MYSQL_RES *_res;
 };
 
-using sqlRes_ptr = SharedPtr<MySQLResult>;
+using sqlRes_ptr = shared_ptr<MySQLResult>;
 
 class MySQLClient {
 public:

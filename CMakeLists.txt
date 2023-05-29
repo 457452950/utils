@@ -49,20 +49,20 @@ if (UNIX)
 
         add_library(
                 wutils
-                src/WSystem.cpp
-                src/thread_pool/WThreadPool.cpp
+                src/System.cpp
+                src/threadpool/ThreadPool.cpp
 
                 src/network/NetWorkUtils.cpp
-                src/network/WEpoll.cpp
-                src/network/WChannel.cpp
-                src/network/WSingleTcpServer.cpp
+                src/network/Epoll.cpp
+                src/network/Channel.cpp
+                src/network/SingleTcpServer.cpp
 
                 src/logger/AsyncLogger.cpp
                 src/logger/LoggerBase.cpp
 
-                src/buffer/chainbuffer.cpp
-                src/buffer/ringbuffer.cpp
-                src/buffer/straightbuffer.cpp
+                src/buffer/ChainBuffer.cpp
+                src/buffer/RingBuffer.cpp
+                src/buffer/StraightBuffer.cpp
         )
         #        target_link_libraries(wutils pthread)
 

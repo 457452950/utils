@@ -181,7 +181,7 @@ func test_tcp2() {
 	}
 }
 
-// UDP 客户端
+// UDPPointer 客户端
 func main() {
 
 	testTcp()

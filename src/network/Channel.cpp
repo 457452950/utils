@@ -1,22 +1,22 @@
-#include "wutils/network/WChannel.h"
+#include "wutils/network/Channel.h"
 #include <cassert>
 #include <iostream>
 #include <utility>
 
-#include "wutils/WDebugger.hpp"
+#include "wutils/Debugger.hpp"
 #include "wutils/logger/AsyncLogger.h"
-#include "wutils/network/WNetFactory.h"
+#include "wutils/network/NetFactory.h"
 
 
 namespace wutils::network {
 
 using namespace debug;
 
-static auto in_cb = [](socket_t sock, WBaseChannel *data) {
+static auto in_cb = [](socket_t sock, BaseChannel *data) {
     auto *ch = (ReadChannel *)data;
     ch->ChannelIn();
 };
-static auto out_cb = [](socket_t sock, WBaseChannel *data) {
+static auto out_cb = [](socket_t sock, BaseChannel *data) {
     auto *ch = (WriteChannel *)data;
     ch->ChannelOut();
 };
@@ -30,21 +30,21 @@ void setCommonCallBack(ev_hdle_p handle) {
 /********************************************
  * Timer
  *********************************************/
-WTimer::WTimer(std::weak_ptr<ev_hdle_t> handle) {
+Timer::Timer(std::weak_ptr<ev_hdle_t> handle) {
     this->handler_             = std::make_unique<ev_hdler_t>();
     this->handler_->socket_    = CreateNewTimerfd();
     this->handler_->user_data_ = this;
     this->handler_->handle_    = std::move(handle);
     this->handler_->SetEvents(HandlerEventType::EV_IN);
-    DEBUGADD("WTimer");
+    DEBUGADD("Timer");
 }
 
-WTimer::~WTimer() {
-    DEBUGRM("WTimer");
+Timer::~Timer() {
+    DEBUGRM("Timer");
     this->Stop();
 }
 
-void WTimer::ChannelIn() {
+void Timer::ChannelIn() {
     uint64_t exp = 0;
     ::read(this->handler_->socket_, &exp, sizeof(exp));
     if(OnTime) {
@@ -52,7 +52,7 @@ void WTimer::ChannelIn() {
     }
 }
 
-bool WTimer::Start(long time_value, long interval) {
+bool Timer::Start(long time_value, long interval) {
     struct itimerspec next_time = {0};
 
     next_time.it_value.tv_sec     = time_value / 1000L;
@@ -72,9 +72,9 @@ bool WTimer::Start(long time_value, long interval) {
     return true;
 }
 
-void WTimer::Stop() {
+void Timer::Stop() {
     if(this->active_) {
-        std::cout << "WTimer::Stop() " << std::endl;
+        std::cout << "Timer::Stop() " << std::endl;
         this->handler_->DisEnable();
         this->active_ = false;
     }
@@ -82,23 +82,23 @@ void WTimer::Stop() {
 
 
 /***********************************************************
- * WAccepterChannel
+ * AcceptorChannel
  ************************************************************/
 
-WAccepterChannel::WAccepterChannel(std::weak_ptr<ev_hdle_t> handle) {
+AcceptorChannel::AcceptorChannel(std::weak_ptr<ev_hdle_t> handle) {
     this->handler_             = std::make_unique<ev_hdler_t>();
     this->handler_->handle_    = handle;
     this->handler_->user_data_ = this;
 }
 
-WAccepterChannel::~WAccepterChannel() {
+AcceptorChannel::~AcceptorChannel() {
     if(this->handler_) {
         if(this->handler_->IsEnable())
             this->handler_->DisEnable();
     }
 }
 
-bool wutils::network::WAccepterChannel::Start(const WEndPointInfo &local_endpoint, bool shared) {
+bool wutils::network::AcceptorChannel::Start(const EndPointInfo &local_endpoint, bool shared) {
     this->local_endpoint_ = local_endpoint;
 
     auto socket = MakeListenedSocket(local_endpoint_, shared);
@@ -114,12 +114,12 @@ bool wutils::network::WAccepterChannel::Start(const WEndPointInfo &local_endpoin
     return true;
 }
 
-void WAccepterChannel::ChannelIn() {
+void AcceptorChannel::ChannelIn() {
     std::cout << "accept channel in" << std::endl;
     assert(this->handler_);
 
-    WEndPointInfo ei;
-    auto          cli = wutils::network::Accept4(this->handler_->socket_, ei, SOCK_NONBLOCK);
+    EndPointInfo ei;
+    auto         cli = wutils::network::Accept4(this->handler_->socket_, ei, SOCK_NONBLOCK);
 
     if(cli <= 0) { // error
         if(OnError) {
@@ -139,25 +139,25 @@ void WAccepterChannel::ChannelIn() {
 }
 
 /***********************************************************
- * WUDP
+ * UDPPointer
  ************************************************************/
 
-WUDP::WUDP(std::weak_ptr<ev_hdle_t> handle) {
-    std::cout << "WUDP " << std::endl;
+UDPPointer::UDPPointer(std::weak_ptr<ev_hdle_t> handle) {
+    std::cout << "UDPPointer " << std::endl;
 
     this->handler_             = std::make_unique<ev_hdler_t>();
     this->handler_->handle_    = handle;
     this->handler_->user_data_ = this;
 }
 
-WUDP::~WUDP() {
+UDPPointer::~UDPPointer() {
     if(this->handler_) {
         if(this->handler_->IsEnable())
             this->handler_->DisEnable();
     }
 }
 
-bool wutils::network::WUDP::Start(const WEndPointInfo &local_endpoint, bool shared) {
+bool wutils::network::UDPPointer::Start(const EndPointInfo &local_endpoint, bool shared) {
     this->local_endpoint_ = local_endpoint;
 
     auto socket = MakeBindedSocket(local_endpoint_, shared);
@@ -172,11 +172,11 @@ bool wutils::network::WUDP::Start(const WEndPointInfo &local_endpoint, bool shar
     return true;
 }
 
-void WUDP::ChannelIn() {
+void UDPPointer::ChannelIn() {
     // std::cout << "accpet channel in" << std::endl;
 
-    WEndPointInfo ei;
-    uint8_t       buf[MAX_UDP_BUFFER_LEN]{0};
+    EndPointInfo ei;
+    uint8_t      buf[MAX_UDP_BUFFER_LEN]{0};
 
     auto recv_len = RecvFrom(this->handler_->socket_, buf, MAX_UDP_BUFFER_LEN, ei);
 
@@ -191,7 +191,7 @@ void WUDP::ChannelIn() {
     }
 }
 
-void WUDP::onErr(int err) {
+void UDPPointer::onErr(int err) {
     if(err != 0) {
         if(this->OnError) {
             this->OnError(ErrorToString(err));
@@ -199,12 +199,12 @@ void WUDP::onErr(int err) {
     }
 }
 
-bool WUDP::SendTo(const uint8_t *send_message, uint32_t message_len, const WEndPointInfo &remote) {
+bool UDPPointer::SendTo(const uint8_t *send_message, uint32_t message_len, const EndPointInfo &remote) {
     assert(this->handler_->IsEnable());
     assert(message_len <= MAX_WAN_UDP_PACKAGE_LEN);
 
-    auto [ip, port] = WEndPointInfo::Dump(remote);
-    std::cout << "WUDP::SendTo " << ip << " : " << port << " " << this->handler_->socket_ << " "
+    auto [ip, port] = EndPointInfo::Dump(remote);
+    std::cout << "UDPPointer::SendTo " << ip << " : " << port << " " << this->handler_->socket_ << " "
               << " msg:" << send_message << " size " << (size_t)message_len << std::endl;
 
     auto len = ::sendto(
@@ -220,23 +220,23 @@ bool WUDP::SendTo(const uint8_t *send_message, uint32_t message_len, const WEndP
 
 
 /***********************************************************
- * WUDPChannel
+ * UDPChannel
  ************************************************************/
 
-WUDPChannel::WUDPChannel(std::weak_ptr<ev_hdle_t> handle) {
+UDPChannel::UDPChannel(std::weak_ptr<ev_hdle_t> handle) {
     this->handler_             = std::make_unique<ev_hdler_t>();
     this->handler_->user_data_ = this;
     this->handler_->handle_    = handle;
 }
 
-WUDPChannel::~WUDPChannel() {
+UDPChannel::~UDPChannel() {
     if(this->handler_) {
         if(this->handler_->IsEnable())
             this->handler_->DisEnable();
     }
 }
 
-bool WUDPChannel::Start(const WEndPointInfo &local_ep, const WEndPointInfo &remote_ep, bool shared) {
+bool UDPChannel::Start(const EndPointInfo &local_ep, const EndPointInfo &remote_ep, bool shared) {
 
     this->local_endpoint_  = local_ep;
     this->remote_endpoint_ = remote_ep;
@@ -246,13 +246,13 @@ bool WUDPChannel::Start(const WEndPointInfo &local_ep, const WEndPointInfo &remo
         return false;
     }
 
-    std::cout << "WUDPChannel socket " << socket << std::endl;
+    std::cout << "UDPChannel socket " << socket << std::endl;
 
     bool ok = ConnectToHost(socket, remote_endpoint_);
     // like not be fail
     // if(!ok) {
-    //     assert("WUDPChannel ConnectToHost err ");
-    //     std::cout << "WUDPChannel ConnectToHost " << socket << std::endl;
+    //     assert("UDPChannel ConnectToHost err ");
+    //     std::cout << "UDPChannel ConnectToHost " << socket << std::endl;
     // }
 
     this->handler_->socket_ = socket;
@@ -262,11 +262,11 @@ bool WUDPChannel::Start(const WEndPointInfo &local_ep, const WEndPointInfo &remo
     return true;
 }
 
-void WUDPChannel::ChannelIn() {
+void UDPChannel::ChannelIn() {
     // std::cout << "accpet channel in" << std::endl;
 
-    WEndPointInfo ei;
-    uint8_t       buf[MAX_UDP_BUFFER_LEN]{0};
+    EndPointInfo ei;
+    uint8_t      buf[MAX_UDP_BUFFER_LEN]{0};
 
     // auto recv_len = RecvFrom(this->handler_->socket_, buf, MAX_UDP_BUFFER_LEN, &ei);
     auto recv_len = recv(this->handler_->socket_, buf, MAX_UDP_BUFFER_LEN, 0);
@@ -287,7 +287,7 @@ void WUDPChannel::ChannelIn() {
     }
 }
 
-void WUDPChannel::onErr(int err) {
+void UDPChannel::onErr(int err) {
     if(err != 0) {
         if(!listener_.expired()) {
             listener_.lock()->OnError(ErrorToString(err));
@@ -295,7 +295,7 @@ void WUDPChannel::onErr(int err) {
     }
 }
 
-bool WUDPChannel::Send(const uint8_t *send_message, uint32_t message_len) {
+bool UDPChannel::Send(const uint8_t *send_message, uint32_t message_len) {
     assert(message_len <= MAX_WAN_UDP_PACKAGE_LEN);
 
     // auto len = ::sendto(this->handler_->socket_,
@@ -317,12 +317,12 @@ bool WUDPChannel::Send(const uint8_t *send_message, uint32_t message_len) {
 
 
 /***********************************************************
- * WChannel
+ * Channel
  ************************************************************/
 
-WChannel::WChannel(const WEndPointInfo &local, const WEndPointInfo &remote, std::unique_ptr<ev_hdler_t> h) :
+Channel::Channel(const EndPointInfo &local, const EndPointInfo &remote, std::unique_ptr<ev_hdler_t> h) :
     local_endpoint_(local), remote_endpoint_(remote), event_handler_(std::move(h)) {
-    DEBUGADD("WChannel");
+    DEBUGADD("Channel");
 
     assert(this->event_handler_);
 
@@ -330,20 +330,20 @@ WChannel::WChannel(const WEndPointInfo &local, const WEndPointInfo &remote, std:
     this->event_handler_->SetEvents(HandlerEventType::EV_IN);
     this->event_handler_->Enable();
 
-    auto [ip, port] = WEndPointInfo::Dump(this->remote_endpoint_);
-    std::cout << "WChannel " << ip << port << std::endl;
+    auto [ip, port] = EndPointInfo::Dump(this->remote_endpoint_);
+    std::cout << "Channel " << ip << port << std::endl;
 }
 
-WChannel::~WChannel() {
-    DEBUGRM("WChannel");
-    auto [ip, port] = WEndPointInfo::Dump(this->remote_endpoint_);
-    std::cout << "~WChannel " << ip << port << std::endl;
+Channel::~Channel() {
+    DEBUGRM("Channel");
+    auto [ip, port] = EndPointInfo::Dump(this->remote_endpoint_);
+    std::cout << "Channel" << ip << port << std::endl;
 }
 
-bool WChannel::Init() { return true; }
+bool Channel::Init() { return true; }
 
-void WChannel::ShutDown(int how) {
-    // std::cout << "WChannel::ShutDown()" << std::endl;
+void Channel::ShutDown(int how) {
+    // std::cout << "Channel::ShutDown()" << std::endl;
 
     assert(how >= SHUT_RD);
     assert(how <= SHUT_RDWR);
@@ -351,9 +351,9 @@ void WChannel::ShutDown(int how) {
     ::shutdown(this->event_handler_->socket_, how);
 }
 
-void WChannel::CloseChannel() {}
+void Channel::CloseChannel() {}
 
-void WChannel::Send(const uint8_t *send_message, uint32_t message_len) {
+void Channel::Send(const uint8_t *send_message, uint32_t message_len) {
     assert(message_len <= MAX_CHANNEL_SEND_SIZE);
 
     // has buf
@@ -401,21 +401,21 @@ void WChannel::Send(const uint8_t *send_message, uint32_t message_len) {
     }
 }
 
-void WChannel::SetRecvBufferMaxSize(int page_count, int page_size) {
+void Channel::SetRecvBufferMaxSize(int page_count, int page_size) {
     this->max_recv_buf_size_ = page_count * page_size;
     assert(this->max_recv_buf_size_ <= MAX_CHANNEL_RECV_BUFFER_SIZE);
 
     recv_buf.Init(page_count, page_size);
 }
 
-void WChannel::SetSendBufferMaxSize(int page_count, int page_size) {
+void Channel::SetSendBufferMaxSize(int page_count, int page_size) {
     this->max_send_buf_size_ = page_count * page_size;
     assert(this->max_send_buf_size_ <= MAX_CHANNEL_SEND_BUFFER_SIZE);
 
     send_buf.Init(page_count, page_size);
 }
 
-void WChannel::ChannelIn() {
+void Channel::ChannelIn() {
     assert(this->event_handler_);
     assert(this->max_recv_buf_size_);
 
@@ -433,13 +433,13 @@ void WChannel::ChannelIn() {
         return rcv_len;
     });
     if(recv_len <= 0) { // has emitted in recv_buf.Write
-        std::cout << "WChannel ChannelIn recv_len " << recv_len << std::endl;
+        std::cout << "Channel ChannelIn recv_len " << recv_len << std::endl;
         return;
     }
 
 
     if(this->listener_.expired()) {
-        std::cout << "WChannel::ChannelIn() listener is nullptr." << std::endl;
+        std::cout << "Channel::ChannelIn() listener is nullptr." << std::endl;
         return;
     }
 
@@ -451,8 +451,8 @@ void WChannel::ChannelIn() {
 }
 
 // can write
-void WChannel::ChannelOut() {
-    // std::cout << "WChannel::ChannelOut " << std::endl;
+void Channel::ChannelOut() {
+    // std::cout << "Channel::ChannelOut " << std::endl;
 
     assert(this->event_handler_);
 
@@ -479,12 +479,12 @@ void WChannel::ChannelOut() {
     }
 }
 
-void WChannel::onChannelClose() {
+void Channel::onChannelClose() {
     if(!this->listener_.expired())
         this->listener_.lock()->onChannelDisConnect();
 }
 
-void WChannel::onChannelError(uint64_t error_code) {
+void Channel::onChannelError(uint64_t error_code) {
     std::cout << "error " << ErrorToString(error_code) << std::endl;
     if(!this->listener_.expired())
         this->listener_.lock()->onError(ErrorToString(error_code));

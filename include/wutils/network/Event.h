@@ -1,6 +1,6 @@
 #pragma once
-#ifndef UTILS_WEVENT_H
-#define UTILS_WEVENT_H
+#ifndef UTILS_EVENT_H
+#define UTILS_EVENT_H
 
 #include <cassert>
 #include <cstdint>
@@ -8,8 +8,8 @@
 #include <list>
 #include <memory>
 
-#include "WNetWorkDef.h"
-#include "WNetWorkUtils.h"
+#include "NetWorkDef.h"
+#include "NetWorkUtils.h"
 
 
 namespace wutils::network {
@@ -20,19 +20,19 @@ constexpr inline uint8_t EV_OUT = 1 << 1;
 }; // namespace HandlerEventType
 
 template <typename UserData>
-class WEventHandle {
+class EventHandle {
 public:
-    WEventHandle() {}
-    virtual ~WEventHandle() {}
+    EventHandle()          = default;
+    virtual ~EventHandle() = default;
 
-    // nocopyable
-    WEventHandle(const WEventHandle &)            = delete;
-    WEventHandle &operator=(const WEventHandle &) = delete;
+    // noncopyable
+    EventHandle(const EventHandle &)            = delete;
+    EventHandle &operator=(const EventHandle &) = delete;
 
     using user_data_type = UserData;
     using user_data_ptr  = user_data_type *;
 
-    class WEventHandler;
+    class EventHandler;
 
     // call back
     using callback_type = void (*)(socket_t sock, user_data_ptr data);
@@ -41,9 +41,9 @@ public:
     callback_type write_{nullptr};
 
     // control
-    virtual bool AddSocket(WEventHandler *handler)    = 0;
-    virtual bool ModifySocket(WEventHandler *handler) = 0;
-    virtual void DelSocket(WEventHandler *handler)    = 0;
+    virtual bool AddSocket(EventHandler *handler)    = 0;
+    virtual bool ModifySocket(EventHandler *handler) = 0;
+    virtual void DelSocket(EventHandler *handler)    = 0;
 
     // thread control
     virtual bool Init() = 0;
@@ -53,13 +53,13 @@ public:
 
 
 template <typename UserData>
-class WEventHandle<UserData>::WEventHandler {
+class EventHandle<UserData>::EventHandler {
 public:
     // DONE: 增加 events_ 修改的监听函数，自动调用ModifySocket
     // TODO: 增加 端信息
-    socket_t                              socket_{-1};         // native socket
-    user_data_ptr                         user_data_{nullptr}; // user data, void*
-    std::weak_ptr<WEventHandle<UserData>> handle_;
+    socket_t                             socket_{-1};         // native socket
+    user_data_ptr                        user_data_{nullptr}; // user data, void*
+    std::weak_ptr<EventHandle<UserData>> handle_;
 
 private:
     uint8_t events_{0}; // HandlerEventType
@@ -72,12 +72,12 @@ public:
     void SetEvents(uint8_t events);
     auto GetEvents();
 
-    ~WEventHandler();
+    ~EventHandler();
 };
 
 
 template <typename UserData>
-inline void WEventHandle<UserData>::WEventHandler::Enable() {
+inline void EventHandle<UserData>::EventHandler::Enable() {
     // events cant be 0
     assert(this->events_);
     assert(!this->handle_.expired());
@@ -90,22 +90,22 @@ inline void WEventHandle<UserData>::WEventHandler::Enable() {
 }
 
 template <typename UserData>
-inline void WEventHandle<UserData>::WEventHandler::DisEnable() {
+inline void EventHandle<UserData>::EventHandler::DisEnable() {
     assert(!this->handle_.expired());
     if(!enable_) {
-        std::cout << "WEventHandle<UserData>::WEventHandler::DisEnable is not enable now " << std::endl;
+        std::cout << "EventHandle<UserData>::EventHandler::DisEnable is not enable now " << std::endl;
         return;
     }
     this->handle_.lock()->DelSocket(this);
 }
 
 template <typename UserData>
-inline bool WEventHandle<UserData>::WEventHandler::IsEnable() {
+inline bool EventHandle<UserData>::EventHandler::IsEnable() {
     return this->enable_;
 }
 
 template <typename UserData>
-inline void WEventHandle<UserData>::WEventHandler::SetEvents(uint8_t events) {
+inline void EventHandle<UserData>::EventHandler::SetEvents(uint8_t events) {
     assert(!this->handle_.expired());
 
     if(this->events_ != events) {
@@ -117,12 +117,12 @@ inline void WEventHandle<UserData>::WEventHandler::SetEvents(uint8_t events) {
 }
 
 template <typename UserData>
-inline auto WEventHandle<UserData>::WEventHandler::GetEvents() {
+inline auto EventHandle<UserData>::EventHandler::GetEvents() {
     return this->events_;
 }
 
 template <typename UserData>
-inline WEventHandle<UserData>::WEventHandler::~WEventHandler() {
+inline EventHandle<UserData>::EventHandler::~EventHandler() {
     ::close(this->socket_);
 }
 
@@ -130,4 +130,4 @@ inline WEventHandle<UserData>::WEventHandler::~WEventHandler() {
 } // namespace wutils::network
 
 
-#endif // UTILS_WEVENT_H
+#endif // UTILS_EVENT_H

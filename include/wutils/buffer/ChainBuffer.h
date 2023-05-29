@@ -1,7 +1,7 @@
 #ifndef CHAINBUFFER_H
 #define CHAINBUFFER_H
 
-#include "wutils/buffer.h"
+#include "wutils/Buffer.h"
 
 #include <list>
 #include <memory>
@@ -14,9 +14,10 @@ constexpr uint64_t MAX_BUFFER_SIZE = PAGE_SIZE * PAGE_COUNT; // 4mb  2^22
 class ChainBuffer final : public Buffer {
 public:
     ChainBuffer();
-    virtual ~ChainBuffer() {}
+    ~ChainBuffer() override = default;
+
     ChainBuffer(const ChainBuffer &other);
-    ChainBuffer(const ChainBuffer &&other);
+    ChainBuffer(const ChainBuffer &&other) noexcept;
     ChainBuffer &operator=(const ChainBuffer &other);
 
 public:

@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "wutils/network/WNetWork.h"
+#include "wutils/network/NetWork.h"
 
 using namespace std;
 using namespace wutils::network;
@@ -42,20 +42,20 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 
 } // namespace cli
 
-inline auto in_cb = [](socket_t sock, WBaseChannel *data) {
+inline auto in_cb = [](socket_t sock, BaseChannel *data) {
     auto *ch = (ReadChannel *)data;
     // cout << "get channel call channel in" << std::endl;
     ch->ChannelIn();
 };
-inline auto out_cb = [](socket_t sock, WBaseChannel *data) {
+inline auto out_cb = [](socket_t sock, BaseChannel *data) {
     auto *ch = (WriteChannel *)data;
     // cout << "get channel call channel in" << std::endl;
     ch->ChannelOut();
 };
 
-class TestSession : public WChannel::Listener {
+class TestSession : public Channel::Listener {
 public:
-    TestSession(std::shared_ptr<WChannel> ch_) : ch(ch_) {}
+    TestSession(std::shared_ptr<Channel> ch_) : ch(ch_) {}
     virtual void onChannelDisConnect() { this->ch.reset(); }
     virtual void onReceive(const uint8_t *message, uint64_t message_len) {
         // cout << "recv " << std::string((char *)message, (int)message_len) << " size " << message_len << endl;
@@ -71,18 +71,18 @@ public:
     virtual void onError(const char *err_message) { std::cout << err_message << endl; }
 
     // private:
-    std::shared_ptr<WChannel> ch;
+    std::shared_ptr<Channel> ch;
 };
 
-std::shared_ptr<TestSession>          se;
-std::atomic_bool                      active{true};
-std::shared_ptr<WEpoll<WBaseChannel>> ep_;
+std::shared_ptr<TestSession>        se;
+std::atomic_bool                    active{true};
+std::shared_ptr<Epoll<BaseChannel>> ep_;
 
-inline auto ac_cb = [](const WEndPointInfo &local, const WEndPointInfo &remote, std::unique_ptr<ev_hdler_t> handler) {
-    auto info = WEndPointInfo::Dump(remote);
+inline auto ac_cb = [](const EndPointInfo &local, const EndPointInfo &remote, std::unique_ptr<ev_hdler_t> handler) {
+    auto info = EndPointInfo::Dump(remote);
 
     cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
-    auto ch = std::make_shared<WChannel>(local, remote, std::move(handler));
+    auto ch = std::make_shared<Channel>(local, remote, std::move(handler));
     ch->SetRecvBufferMaxSize(10, 1000);
     se = std::make_shared<TestSession>(ch);
     ch->SetListener(se);
@@ -92,18 +92,18 @@ inline auto ac_cb = [](const WEndPointInfo &local, const WEndPointInfo &remote, 
 void server_thread() {
     using namespace srv;
 
-    auto ep = std::make_shared<WEpoll<WBaseChannel>>();
+    auto ep = std::make_shared<Epoll<BaseChannel>>();
     ep->Init();
     ep_ = ep;
 
     setCommonCallBack(ep.get());
 
-    WEndPointInfo local_ed;
+    EndPointInfo local_ed;
     if(!local_ed.Assign(listen::ip, listen::port, listen::family)) {
         return;
     }
 
-    auto accp_channel = new WAccepterChannel(ep);
+    auto accp_channel = new AcceptorChannel(ep);
     accp_channel->Start(local_ed, true);
     accp_channel->OnAccept = ac_cb;
 
@@ -118,7 +118,7 @@ void server_thread() {
 void client_thread() {
     using namespace cli;
 
-    WEndPointInfo cli_ed;
+    EndPointInfo cli_ed;
     if(!cli_ed.Assign(connect::ip, connect::port, connect::family)) {
         return;
     }
@@ -150,7 +150,7 @@ void client_thread() {
         }
     });
 
-    WTimer t(ep_);
+    Timer t(ep_);
     t.OnTime = [cli, &t]() {
         // cout << std::chrono::duration_cast<std::chrono::milliseconds>(
         //                 std::chrono::system_clock::now().time_since_epoch())

@@ -20,8 +20,8 @@
 #include "test_timer.h"
 
 #include "Channel.h"
-#include "wutils/WDebugger.hpp"
-#include "wutils/network/WNetWork.h"
+#include "wutils/Debugger.hpp"
+#include "wutils/network/NetWork.h"
 #include "wutils/network/stdIOVec.h"
 
 using namespace std;

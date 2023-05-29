@@ -1,4 +1,4 @@
-#include "wutils/network/WNetWorkUtils.h"
+#include "wutils/network/NetWorkUtils.h"
 
 #include <cassert>
 #include <iostream>
@@ -130,9 +130,9 @@ bool MakeSockAddr_in6(const std::string &ip_address, uint16_t port, sockaddr_in6
     return true;
 }
 
-bool Bind(socket_t socket, const WEndPointInfo &serverInfo) {
+bool Bind(socket_t socket, const EndPointInfo &serverInfo) {
 
-    auto t = WEndPointInfo::Dump(serverInfo);
+    auto t = EndPointInfo::Dump(serverInfo);
     std::cout << socket << " Bind " << std::get<0>(t) << " : " << std::get<1>(t) << " " << serverInfo.GetSockSize()
               << std::endl;
 
@@ -145,11 +145,11 @@ bool Bind(socket_t socket, const WEndPointInfo &serverInfo) {
 }
 
 
-socket_t MakeBindedSocket(const WEndPointInfo &info, bool reuse) {
+socket_t MakeBindedSocket(const EndPointInfo &info, bool reuse) {
     socket_t bind_sock = -1;
     auto     fami      = info.GetFamily();
 
-    auto [ip, port] = WEndPointInfo::Dump(info);
+    auto [ip, port] = EndPointInfo::Dump(info);
 
     bind_sock = MakeSocket(fami, AF_PROTOL::UDP);
     if(bind_sock == -1) {
@@ -173,7 +173,7 @@ socket_t MakeBindedSocket(const WEndPointInfo &info, bool reuse) {
     return -1;
 }
 
-socket_t MakeListenedSocket(const WEndPointInfo &info, bool reuse) {
+socket_t MakeListenedSocket(const EndPointInfo &info, bool reuse) {
     socket_t listen_sock(-1);
     auto     fami = info.GetFamily();
 
@@ -198,7 +198,7 @@ socket_t MakeListenedSocket(const WEndPointInfo &info, bool reuse) {
     return -1;
 }
 
-socket_t Accept(socket_t socket, WEndPointInfo &info) {
+socket_t Accept(socket_t socket, EndPointInfo &info) {
     socklen_t    len = 0;
     sockaddr_in6 temp;
     socket_t     clientsock = ::accept(socket, (sockaddr *)&temp, &len);
@@ -214,7 +214,7 @@ socket_t Accept(socket_t socket, WEndPointInfo &info) {
     return clientsock;
 }
 
-socket_t Accept4(socket_t socket, WEndPointInfo &info, int flags) {
+socket_t Accept4(socket_t socket, EndPointInfo &info, int flags) {
     socklen_t    len = 0;
     sockaddr_in6 temp;
     socket_t     clientsock = ::accept4(socket, (sockaddr *)&temp, &len, flags);
@@ -231,7 +231,7 @@ socket_t Accept4(socket_t socket, WEndPointInfo &info, int flags) {
 }
 
 
-socket_t ConnectToHost(const WEndPointInfo &info, AF_PROTOL protol) {
+socket_t ConnectToHost(const EndPointInfo &info, AF_PROTOL protol) {
     auto lis_sock = MakeSocket(info.GetFamily(), protol);
     if(lis_sock == -1) {
         return -1;
@@ -239,7 +239,7 @@ socket_t ConnectToHost(const WEndPointInfo &info, AF_PROTOL protol) {
     return ConnectToHost(lis_sock, info);
 }
 
-bool ConnectToHost(socket_t socket, const WEndPointInfo &info) {
+bool ConnectToHost(socket_t socket, const EndPointInfo &info) {
     if(::connect(socket, info.GetAddr(), info.GetSockSize()) == 0) {
         return true;
     }
@@ -248,10 +248,10 @@ bool ConnectToHost(socket_t socket, const WEndPointInfo &info) {
 }
 
 /***************************************************
- * UDP Utils
+ * UDPPointer Utils
  ****************************************************/
 
-int32_t RecvFrom(socket_t socket, uint8_t *buf, uint32_t buf_len, WEndPointInfo &info) {
+int32_t RecvFrom(socket_t socket, uint8_t *buf, uint32_t buf_len, EndPointInfo &info) {
     socklen_t    len = 0;
     sockaddr_in6 temp{0};
     auto         recv_len = ::recvfrom(socket, buf, buf_len, 0, (sockaddr *)&temp, &len);
@@ -311,8 +311,8 @@ bool SetTcpSocketNoDelay(socket_t socket) {
     return false;
 }
 
-WEndPointInfo *WEndPointInfo::MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family) {
-    auto ep = new WEndPointInfo();
+EndPointInfo *EndPointInfo::MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family) {
+    auto ep = new EndPointInfo();
 
     if(ep->Assign(address, port, family)) {
         return ep;
@@ -322,7 +322,7 @@ WEndPointInfo *WEndPointInfo::MakeWEndPointInfo(const std::string &address, uint
     return nullptr;
 }
 
-std::tuple<std::string, uint16_t> WEndPointInfo::Dump(const WEndPointInfo &info) {
+std::tuple<std::string, uint16_t> EndPointInfo::Dump(const EndPointInfo &info) {
     std::string s;
     uint16_t    p;
     bool        ok = false;
@@ -358,7 +358,7 @@ err:
     return std::make_tuple<std::string, uint16_t>("error", 0);
 }
 
-bool WEndPointInfo::Assign(const std::string &address, uint16_t port, AF_FAMILY family) {
+bool EndPointInfo::Assign(const std::string &address, uint16_t port, AF_FAMILY family) {
     this->family_ = family;
     bool ok       = false;
 
@@ -392,7 +392,7 @@ err:
     return false;
 }
 
-bool WEndPointInfo::Assign(const sockaddr *addr, AF_FAMILY family) {
+bool EndPointInfo::Assign(const sockaddr *addr, AF_FAMILY family) {
     this->family_ = family;
 
     switch(this->family_) {
@@ -410,8 +410,8 @@ bool WEndPointInfo::Assign(const sockaddr *addr, AF_FAMILY family) {
     return true;
 }
 
-WEndPointInfo *WEndPointInfo::Emplace(const sockaddr *addr, AF_FAMILY family) {
-    auto info     = new WEndPointInfo();
+EndPointInfo *EndPointInfo::Emplace(const sockaddr *addr, AF_FAMILY family) {
+    auto info     = new EndPointInfo();
     info->family_ = family;
 
     switch(info->family_) {

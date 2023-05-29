@@ -16,13 +16,13 @@
 
 #include "LoggerBase.h"
 #include "wutils/SharedPtr.h"
-#include "wutils/WSystem.h"
+#include "wutils/System.h"
 
 
 namespace wutils::Log {
 
 class LogHelper;
-using Helper = SharedPtr<LogHelper>;
+using Helper = shared_ptr<LogHelper>;
 
 // 生产者-消费者模型
 class Logger {

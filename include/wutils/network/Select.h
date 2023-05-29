@@ -1,6 +1,6 @@
 #pragma once
-#ifndef UTILS_WSELECT_H
-#define UTILS_WSELECT_H
+#ifndef UTILS_SELECT_H
+#define UTILS_SELECT_H
 
 
 #include <iostream>
@@ -15,8 +15,8 @@
 #include <sys/time.h>
 #include <sys/timerfd.h>
 
-#include "WEvent.h"
-#include "WNetWorkUtils.h"
+#include "Event.h"
+#include "NetWorkUtils.h"
 
 namespace wutils::network {
 
@@ -40,7 +40,7 @@ inline bool SetCheckFd(socket_t fd, fd_set_ptr set) { return FD_ISSET(fd, set); 
 // #endif
 // };
 inline int32_t
-Select(int max_sock, fd_set_ptr read_set, fd_set_ptr wirte_set, fd_set_ptr err_set, int32_t timeout_ms = 0) {
+SelectWait(int max_sock, fd_set_ptr read_set, fd_set_ptr wirte_set, fd_set_ptr err_set, int32_t timeout_ms = 0) {
 
     if(timeout_ms == -1) {
         return ::select(max_sock, read_set, wirte_set, err_set, nullptr);
@@ -55,17 +55,17 @@ Select(int max_sock, fd_set_ptr read_set, fd_set_ptr wirte_set, fd_set_ptr err_s
 
 // not thread safe
 template <typename UserData>
-class WSelect final : public WEventHandle<UserData> {
+class Select final : public EventHandle<UserData> {
 public:
-    WSelect()  = default;
-    ~WSelect() = default;
+    Select()  = default;
+    ~Select() = default;
 
-    using WEventHandler = typename WEventHandle<UserData>::WEventHandler;
+    using EventHandler = typename EventHandle<UserData>::EventHandler;
 
     // control
-    bool AddSocket(WEventHandler *handler) override;
-    bool ModifySocket(WEventHandler *handler) override;
-    void DelSocket(WEventHandler *handler) override;
+    bool AddSocket(EventHandler *handler) override;
+    bool ModifySocket(EventHandler *handler) override;
+    void DelSocket(EventHandler *handler) override;
     // thread control
     bool Init() override;
     void Loop() override;
@@ -91,10 +91,10 @@ private:
     fd_set_type read_set_{};
     fd_set_type write_set_{};
 
-    std::unordered_set<WEventHandler *> handler_set;
-    std::stack<WEventHandler *>         rubish_stack_;
-    uint32_t                            fd_count_{0};
-    socket_t                            max_fd_number{0};
+    std::unordered_set<EventHandler *> handler_set;
+    std::stack<EventHandler *>         rubish_stack_;
+    uint32_t                           fd_count_{0};
+    socket_t                           max_fd_number{0};
 
     int  wakeup_fd_{-1};
     bool active_{false};
@@ -102,7 +102,7 @@ private:
 
 
 template <typename UserData>
-bool WSelect<UserData>::AddSocket(WEventHandler *handler) {
+bool Select<UserData>::AddSocket(EventHandler *handler) {
     // select fd 上限 1024
     if(this->fd_count_ >= 1024) {
         return false;
@@ -118,7 +118,7 @@ bool WSelect<UserData>::AddSocket(WEventHandler *handler) {
 }
 
 template <typename UserData>
-bool WSelect<UserData>::ModifySocket(WEventHandler *handler) {
+bool Select<UserData>::ModifySocket(EventHandler *handler) {
     auto it = handler_set.find(handler);
     if(it != handler_set.end()) { // found
         ParseAndSetEvents(handler->socket_, handler->GetEvents());
@@ -128,7 +128,7 @@ bool WSelect<UserData>::ModifySocket(WEventHandler *handler) {
 }
 
 template <typename UserData>
-void WSelect<UserData>::DelSocket(WEventHandler *handler) {
+void Select<UserData>::DelSocket(EventHandler *handler) {
     auto it = this->handler_set.find(handler);
     if(it == this->handler_set.end()) {
         return;
@@ -144,7 +144,7 @@ void WSelect<UserData>::DelSocket(WEventHandler *handler) {
 
 
 template <typename UserData>
-inline bool WSelect<UserData>::Init() {
+inline bool Select<UserData>::Init() {
     this->wakeup_fd_ = eventfd(0, 0);
     if(this->wakeup_fd_ == -1) {
         return false;
@@ -155,23 +155,23 @@ inline bool WSelect<UserData>::Init() {
 }
 
 template <typename UserData>
-void WSelect<UserData>::Loop() {
+void Select<UserData>::Loop() {
     this->active_ = true;
     this->EventLoop();
 }
 template <typename UserData>
-inline void WSelect<UserData>::Wake() {
+inline void Select<UserData>::Wake() {
     eventfd_write(this->wakeup_fd_, 1);
 };
 
 template <typename UserData>
-void WSelect<UserData>::EventLoop() {
+void Select<UserData>::EventLoop() {
     int res = 0;
 
     while(this->active_) {
         InitAllToSet();
 
-        res = Select(max_fd_number, &read_set_, &write_set_, nullptr, -1);
+        res = SelectWait(max_fd_number, &read_set_, &write_set_, nullptr, -1);
 
         if(res == -1) {
             std::cerr << "error : " << strerror(errno) << std::endl;
@@ -193,7 +193,7 @@ void WSelect<UserData>::EventLoop() {
         // 迭代器失效
 
         for(auto it = this->handler_set.begin(); it != temp_end; ++it) {
-            WEventHandler *i = it.operator*();
+            EventHandler *i = it.operator*();
 
             if(this->write_) {
                 if(SetCheckFd(i->socket_, &write_set_)) {
@@ -215,13 +215,13 @@ void WSelect<UserData>::EventLoop() {
 };
 
 template <typename UserData>
-void WSelect<UserData>::ClearAllSet() {
+void Select<UserData>::ClearAllSet() {
     SetClearFd(&read_set_);
     SetClearFd(&write_set_);
 };
 
 template <typename UserData>
-void WSelect<UserData>::InitAllToSet() {
+void Select<UserData>::InitAllToSet() {
     ClearAllSet();
 
     max_fd_number = wakeup_fd_;
@@ -242,7 +242,7 @@ void WSelect<UserData>::InitAllToSet() {
 }
 
 template <typename UserData>
-void WSelect<UserData>::ParseAndSetEvents(socket_t socket, uint8_t events) {
+void Select<UserData>::ParseAndSetEvents(socket_t socket, uint8_t events) {
     if(HasEventIN(events)) {
         SetAddFd(socket, &read_set_);
     } else {
@@ -258,4 +258,4 @@ void WSelect<UserData>::ParseAndSetEvents(socket_t socket, uint8_t events) {
 } // namespace wutils::network
 
 
-#endif // UTILS_WSELECT_H
+#endif // UTILS_SELECT_H

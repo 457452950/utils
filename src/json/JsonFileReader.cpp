@@ -2,8 +2,8 @@
 
 namespace wutils {
 
-SharedPtr<JsonFileReader> JsonFileReader::FromFile(const std::string &file_name) {
-    auto r = wutils::SharedPtr<JsonFileReader>();
+shared_ptr<JsonFileReader> JsonFileReader::FromFile(const std::string &file_name) {
+    auto r = shared_ptr<JsonFileReader>();
 
     if(r->OpenFile(file_name)) {
         return r;

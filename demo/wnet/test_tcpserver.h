@@ -12,10 +12,10 @@ using namespace wutils::network;
 /**
  * test_tcpserver
  */
-// auto acc_cb = [](wutils::network::socket_t socket, wutils::network::WEndPointInfo &endpoint) -> bool {
+// auto acc_cb = [](wutils::network::socket_t socket, wutils::network::EndPointInfo &endpoint) -> bool {
 //     // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
 
-//     // ch = new WChannel(socket, endpoint);
+//     // ch = new Channel(socket, endpoint);
 //     return true;
 // };
 
@@ -27,9 +27,9 @@ using namespace wutils::network;
 
 //     signal(SIGINT, sin_handle);
 
-//     WSingleTcpServer ser;
+//     SingleTcpServer ser;
 //     ser.SetOnAccept(acc_cb);
-//     ser.AddAccepter(*WEndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 4000, AF_FAMILY::INET6));
+//     ser.AddAccepter(*EndPointInfo::MakeWEndPointInfo("0:0:0:0:0:0:0:0", 4000, AF_FAMILY::INET6));
 
 
 //     auto cli = MakeSocket(AF_FAMILY::INET6, AF_PROTOL::TCP);

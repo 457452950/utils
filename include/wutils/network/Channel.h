@@ -1,62 +1,61 @@
 #pragma once
-#ifndef UTILS_WCHANNEL_H
-#define UTILS_WCHANNEL_H
+#ifndef UTILS_CHANNEL_H
+#define UTILS_CHANNEL_H
 
-#include <memory>
+#include <utility>
 
-
-#include "WEpoll.h"
-#include "WEvent.h"
-#include "WNetWorkDef.h"
-#include "WSelect.h"
+#include "Epoll.h"
+#include "Event.h"
+#include "NetWorkDef.h"
+#include "Select.h"
 #include "stdIOVec.h"
 
+#include "wutils/SharedPtr.h"
 
 namespace wutils::network {
-
 
 /**
  *
  */
-class WBaseChannel;
+class BaseChannel;
 
-using ev_hdle_t = WEventHandle<WBaseChannel>;
+using ev_hdle_t = EventHandle<BaseChannel>;
 using ev_hdle_p = ev_hdle_t *;
 
-using ev_hdler_t = ev_hdle_t::WEventHandler;
+using ev_hdler_t = ev_hdle_t::EventHandler;
 using ev_hdler_p = ev_hdler_t *;
 
 void setCommonCallBack(ev_hdle_p handle);
 
 /**************************************************
- * WBaseChannel interface
+ * BaseChannel interface
  ***************************************************/
-class WBaseChannel {
+class BaseChannel {
 public:
-    WBaseChannel() {}
-    virtual ~WBaseChannel() {}
+    BaseChannel()          = default;
+    virtual ~BaseChannel() = default;
 
     // nocopy
-    WBaseChannel(const WBaseChannel &other)            = delete;
-    WBaseChannel &operator=(const WBaseChannel &other) = delete;
+    BaseChannel(const BaseChannel &other)            = delete;
+    BaseChannel &operator=(const BaseChannel &other) = delete;
 
     virtual void ChannelIn()  = 0;
     virtual void ChannelOut() = 0;
 };
 
-class ReadChannel : public WBaseChannel {
+class ReadChannel : public BaseChannel {
 public:
-    ReadChannel(){};
-    ~ReadChannel() override {}
+    ReadChannel()           = default;
+    ~ReadChannel() override = default;
 
 private:
     void ChannelOut() final{};
 };
 
-class WriteChannel : public WBaseChannel {
+class WriteChannel : public BaseChannel {
 public:
-    WriteChannel(){};
-    ~WriteChannel() override {}
+    WriteChannel()           = default;
+    ~WriteChannel() override = default;
 
 private:
     void ChannelIn() final{};
@@ -66,12 +65,12 @@ private:
 /* Impl */
 
 /***********************************************************
- * WTimer
+ * Timer
  ************************************************************/
-class WTimer : public ReadChannel {
+class Timer : public ReadChannel {
 public:
-    explicit WTimer(std::weak_ptr<ev_hdle_t> handle);
-    ~WTimer() override;
+    explicit Timer(weak_ptr<ev_hdle_t> handle);
+    ~Timer() override;
 
     std::function<void()> OnTime;
 
@@ -86,21 +85,21 @@ private:
     void ChannelIn() final;
 
 private:
-    std::unique_ptr<ev_hdler_t> handler_{nullptr};
-    bool                        active_{false};
+    unique_ptr<ev_hdler_t> handler_{nullptr};
+    bool                   active_{false};
 };
 
 /***********************************************************
- * WAccepterChannel
+ * AcceptorChannel
  ************************************************************/
-class WAccepterChannel : public ReadChannel {
+class AcceptorChannel : public ReadChannel {
 public:
-    explicit WAccepterChannel(std::weak_ptr<ev_hdle_t> handle);
-    ~WAccepterChannel() override;
+    explicit AcceptorChannel(weak_ptr<ev_hdle_t> handle);
+    ~AcceptorChannel() override;
 
-    bool Start(const WEndPointInfo &local_endpoint, bool shared);
+    bool Start(const EndPointInfo &local_endpoint, bool shared);
 
-    using accept_cb = std::function<void(const WEndPointInfo &, const WEndPointInfo &, std::unique_ptr<ev_hdler_t>)>;
+    using accept_cb = std::function<void(const EndPointInfo &, const EndPointInfo &, unique_ptr<ev_hdler_t>)>;
     accept_cb                         OnAccept;
     std::function<void(const char *)> OnError;
 
@@ -108,28 +107,28 @@ private:
     void ChannelIn() final;
 
 private:
-    std::unique_ptr<ev_hdler_t> handler_{nullptr};
-    WEndPointInfo               local_endpoint_;
+    unique_ptr<ev_hdler_t> handler_{nullptr};
+    EndPointInfo           local_endpoint_;
 };
 
 
 /***********************************************************
- * WUDP
+ * UDPPointer
  ************************************************************/
-// HACK: 逻辑上 WUDP not "is a" WBaseChannel.
-class WUDP : public WBaseChannel {
+// XXX: 逻辑上 UDPPointer not "is a" BaseChannel.
+class UDPPointer : public BaseChannel {
 public:
-    explicit WUDP(std::weak_ptr<ev_hdle_t> handle);
-    ~WUDP() override;
+    explicit UDPPointer(weak_ptr<ev_hdle_t> handle);
+    ~UDPPointer() override;
 
-    bool Start(const WEndPointInfo &local_endpoint, bool shared);
+    bool Start(const EndPointInfo &local_endpoint, bool shared);
 
-    using message_cb = std::function<void(const WEndPointInfo &, const WEndPointInfo &, const uint8_t *, uint32_t)>;
+    using message_cb = std::function<void(const EndPointInfo &, const EndPointInfo &, const uint8_t *, uint32_t)>;
     message_cb                        OnMessage;
     std::function<void(const char *)> OnError;
 
     // unreliable
-    bool SendTo(const uint8_t *send_message, uint32_t message_len, const WEndPointInfo &remote);
+    bool SendTo(const uint8_t *send_message, uint32_t message_len, const EndPointInfo &remote);
 
 private:
     void ChannelIn() final;
@@ -138,19 +137,19 @@ private:
     void onErr(int err);
 
 private:
-    std::unique_ptr<ev_hdler_t> handler_{nullptr};
-    WEndPointInfo               local_endpoint_;
+    unique_ptr<ev_hdler_t> handler_{nullptr};
+    EndPointInfo           local_endpoint_;
 };
 
 /***********************************************************
- * WUDPChannel
+ * UDPChannel
  ************************************************************/
-class WUDPChannel : public WBaseChannel {
+class UDPChannel : public BaseChannel {
 public:
-    explicit WUDPChannel(std::weak_ptr<ev_hdle_t> handle);
-    ~WUDPChannel() override;
+    explicit UDPChannel(weak_ptr<ev_hdle_t> handle);
+    ~UDPChannel() override;
 
-    bool Start(const WEndPointInfo &local_ep, const WEndPointInfo &remote_ep, bool shared);
+    bool Start(const EndPointInfo &local_ep, const EndPointInfo &remote_ep, bool shared);
 
     // listener
 public:
@@ -160,10 +159,10 @@ public:
         virtual void OnError(const char *err_message)                        = 0;
     };
 
-    inline void SetListener(std::weak_ptr<Listener> listener) { this->listener_ = listener; }
+    inline void SetListener(weak_ptr<Listener> listener) { this->listener_ = std::move(listener); }
 
 protected:
-    std::weak_ptr<Listener> listener_;
+    weak_ptr<Listener> listener_;
 
 public:
     // unreliable
@@ -176,18 +175,18 @@ private:
     void onErr(int err);
 
 protected:
-    std::unique_ptr<ev_hdler_t> handler_{nullptr};
-    WEndPointInfo               local_endpoint_;
-    WEndPointInfo               remote_endpoint_;
+    unique_ptr<ev_hdler_t> handler_{nullptr};
+    EndPointInfo           local_endpoint_;
+    EndPointInfo           remote_endpoint_;
 };
 
 /*****************************************
- *  WChannel
+ *  Channel
  ******************************************/
-class WChannel : public WBaseChannel {
+class Channel : public BaseChannel {
 public:
-    explicit WChannel(const WEndPointInfo &, const WEndPointInfo &, std::unique_ptr<ev_hdler_t>);
-    ~WChannel() override;
+    explicit Channel(const EndPointInfo &, const EndPointInfo &, unique_ptr<ev_hdler_t>);
+    ~Channel() override;
 
     bool Init();
     void ShutDown(int how); // Async
@@ -195,29 +194,30 @@ public:
 
     virtual void Send(const uint8_t *send_message, uint32_t message_len);
 
-    const WEndPointInfo &GetLocalInfo() { return local_endpoint_; }
-    const WEndPointInfo &GetRemoteInfo() { return remote_endpoint_; }
+    const EndPointInfo &GetLocalInfo() { return local_endpoint_; }
+    const EndPointInfo &GetRemoteInfo() { return remote_endpoint_; }
 
 protected:
-    WEndPointInfo               local_endpoint_;
-    WEndPointInfo               remote_endpoint_;
-    std::unique_ptr<ev_hdler_t> event_handler_{nullptr};
+    EndPointInfo           local_endpoint_;
+    EndPointInfo           remote_endpoint_;
+    unique_ptr<ev_hdler_t> event_handler_{nullptr};
 
     // listener
 public:
     class Listener {
     public:
-        // virtual void onChannelConnect(std::shared_ptr<WChannel>)             = 0;
+        // virtual void onChannelConnect(std::shared_ptr<Channel>)             = 0;
         virtual void onChannelDisConnect()                                   = 0;
         virtual void onReceive(const uint8_t *message, uint64_t message_len) = 0;
         virtual void onError(const char *err_message)                        = 0;
-        virtual ~Listener() {}
+
+        virtual ~Listener() = default;
     };
 
-    inline void SetListener(std::weak_ptr<Listener> listener) { this->listener_ = listener; }
+    inline void SetListener(weak_ptr<Listener> listener) { this->listener_ = std::move(listener); }
 
 protected:
-    std::weak_ptr<Listener> listener_;
+    weak_ptr<Listener> listener_;
 
     // buffer
 public:
@@ -246,4 +246,4 @@ protected:
 } // namespace wutils::network
 
 
-#endif // UTILS_WCHANNEL_H
+#endif // UTILS_CHANNEL_H

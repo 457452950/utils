@@ -2,7 +2,7 @@
 #ifndef UTILS_WDEBUGGER_H
 #define UTILS_WDEBUGGER_H
 
-#include "network/WChannel.h"
+#include "network/Channel.h"
 #include <atomic>
 #include <iostream>
 #include <thread>
@@ -12,14 +12,12 @@ namespace wutils::debug {
 
 using namespace network;
 
-using WTimerHandle                  = ev_hdle_t;
-inline WTimerHandle *debuggerHandle = new WEpoll<WBaseChannel>;
+using TimerHandle                  = ev_hdle_t;
+inline TimerHandle *debuggerHandle = new Epoll<BaseChannel>;
 
-static auto handle_read_callback = [](socket_t sock, WEpoll<WBaseChannel>::user_data_ptr data) {
+static auto handle_read_callback = [](socket_t sock, Epoll<BaseChannel>::user_data_ptr data) {
     auto *ch = (ReadChannel *)data;
-    // std::cout << "get channel call channel in [" << ch << "]" << std::endl;
     ch->ChannelIn();
-    // std::cout << "get channel call channel in end" << std::endl;
 };
 
 class Debugger;
@@ -35,7 +33,7 @@ public:
     bool Init(long timeout) {
         debuggerHandle->read_ = handle_read_callback;
 
-        // this->_timer         = new WTimer(debuggerHandle);
+        // this->_timer         = new Timer(debuggerHandle);
         this->_timer->OnTime = []() {
             // std::cout << "on time" << std::endl;
             for(auto &item : debugger->_memberMap) {
@@ -59,8 +57,8 @@ public:
     void MemberAdd(const std::string &name) { _memberMap[name]++; };
     void MemberRemove(const std::string &name) { _memberMap[name]--; };
 
-    WTimer *_timer{nullptr};
-    bool    _isActive{false};
+    Timer *_timer{nullptr};
+    bool   _isActive{false};
     //
     std::unordered_map<std::string, std::atomic<int64_t>> _memberMap;
 };
@@ -103,8 +101,7 @@ public:
     WTimeDebugger() { this->_stamp = this->GetTime(); }
 
     void tick() {
-        int64_t now = this->GetTime();
-        // std::cout << now - this->_stamp << std::endl;
+        int64_t now  = this->GetTime();
         this->_stamp = now;
     }
 

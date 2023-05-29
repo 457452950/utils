@@ -14,7 +14,7 @@
 #include <thread>
 #include <unistd.h> // access()
 
-#include "wutils/WSystem.h"
+#include "wutils/System.h"
 
 #define FILENAME(x) strrchr(x, '/') ? (strrchr(x, '/') + 1) : x
 #define FILENAME_ FILENAME(__FILE__)

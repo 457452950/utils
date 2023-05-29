@@ -1,6 +1,6 @@
 #pragma once
-#ifndef UTILS_WEPOLL_H
-#define UTILS_WEPOLL_H
+#ifndef UTILS_EPOLL_H
+#define UTILS_EPOLL_H
 
 #include <atomic>
 #include <cassert>
@@ -13,8 +13,8 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
-#include "WEvent.h"
-#include "WNetWorkUtils.h"
+#include "Event.h"
+#include "NetWorkUtils.h"
 
 
 namespace wutils::network {
@@ -138,13 +138,13 @@ int32_t EpollGetEvents(epoll_type epoll, struct epoll_event *events, int32_t eve
 void    CloseEpoll(epoll_type epoll);
 
 // not thread safe
-class WBaseEpoll final {
+class BaseEpoll final {
 public:
-    WBaseEpoll();
-    ~WBaseEpoll();
+    BaseEpoll();
+    ~BaseEpoll();
     // no copyable
-    WBaseEpoll(const WBaseEpoll &other)            = delete;
-    WBaseEpoll &operator=(const WBaseEpoll &other) = delete;
+    BaseEpoll(const BaseEpoll &other)            = delete;
+    BaseEpoll &operator=(const BaseEpoll &other) = delete;
 
     bool Init();
     void Close();
@@ -164,18 +164,18 @@ protected:
 
 
 template <typename UserData>
-class WEpoll final : public WEventHandle<UserData> {
+class Epoll final : public EventHandle<UserData> {
 public:
-    WEpoll();
-    ~WEpoll();
+    Epoll();
+    ~Epoll();
 
-    using WEventHandler = typename WEventHandle<UserData>::WEventHandler;
+    using EventHandler = typename EventHandle<UserData>::EventHandler;
 
 
     // control
-    bool AddSocket(WEventHandler *handler) override;
-    bool ModifySocket(WEventHandler *handler) override;
-    void DelSocket(WEventHandler *handler) override;
+    bool AddSocket(EventHandler *handler) override;
+    bool ModifySocket(EventHandler *handler) override;
+    void DelSocket(EventHandler *handler) override;
 
     bool Init() override;
     void Loop() override;
@@ -187,18 +187,18 @@ private:
     void            EventLoop();
 
 private:
-    WBaseEpoll ep;
-    uint32_t   fd_count_{0};
-    int        wakeup_fd_{-1}; // event_fd
-    bool       active_{false};
+    BaseEpoll ep;
+    uint32_t  fd_count_{0};
+    int       wakeup_fd_{-1}; // event_fd
+    bool      active_{false};
 };
 
 
 template <typename UserData>
-WEpoll<UserData>::WEpoll() {}
+Epoll<UserData>::Epoll() = default;
 
 template <typename UserData>
-WEpoll<UserData>::~WEpoll() {
+Epoll<UserData>::~Epoll() {
     this->Stop();
 
     ::close(wakeup_fd_);
@@ -208,7 +208,7 @@ WEpoll<UserData>::~WEpoll() {
 
 
 template <typename UserData>
-bool WEpoll<UserData>::Init() {
+bool Epoll<UserData>::Init() {
     // DONE: 独立出Init函数
     if(!ep.Init()) {
         // std::cerr << "epoll init failed!" << std::endl;
@@ -229,8 +229,8 @@ bool WEpoll<UserData>::Init() {
 
 
 template <typename UserData>
-bool WEpoll<UserData>::AddSocket(WEventHandler *handler) {
-    epoll_data_t ep_data{0};
+bool Epoll<UserData>::AddSocket(EventHandler *handler) {
+    epoll_data_t ep_data;
 
     ep_data.ptr = handler;
     auto ev     = this->ParseToEpollEvent(handler->GetEvents());
@@ -245,8 +245,8 @@ bool WEpoll<UserData>::AddSocket(WEventHandler *handler) {
 }
 
 template <typename UserData>
-bool WEpoll<UserData>::ModifySocket(WEventHandler *handler) {
-    epoll_data_t ep_data = {0};
+bool Epoll<UserData>::ModifySocket(EventHandler *handler) {
+    epoll_data_t ep_data;
 
     ep_data.ptr = handler->user_data_;
     auto ev     = this->ParseToEpollEvent(handler->GetEvents());
@@ -255,10 +255,9 @@ bool WEpoll<UserData>::ModifySocket(WEventHandler *handler) {
 }
 
 template <typename UserData>
-void WEpoll<UserData>::DelSocket(WEventHandler *handler) {
+void Epoll<UserData>::DelSocket(EventHandler *handler) {
 
     if(!this->ep.RemoveSocket(handler->socket_)) {
-        std::cout << "DelSocket RemoveSocket err " << ErrorToString(GetError()) << std::endl;
         return;
     }
 
@@ -266,24 +265,24 @@ void WEpoll<UserData>::DelSocket(WEventHandler *handler) {
 }
 
 template <typename UserData>
-void WEpoll<UserData>::Loop() {
+void Epoll<UserData>::Loop() {
     this->active_ = true;
     this->EventLoop();
 }
 
 template <typename UserData>
-inline void WEpoll<UserData>::Stop() {
+inline void Epoll<UserData>::Stop() {
     this->active_ = false;
     this->Wake();
 }
 
 template <typename UserData>
-inline void WEpoll<UserData>::Wake() {
+inline void Epoll<UserData>::Wake() {
     eventfd_write(this->wakeup_fd_, 1);
 }
 
 template <typename UserData>
-uint32_t WEpoll<UserData>::ParseToEpollEvent(uint8_t events) {
+uint32_t Epoll<UserData>::ParseToEpollEvent(uint8_t events) {
     uint32_t ev = 0;
     if(events & HandlerEventType::EV_IN) {
         ev |= EPOLLIN;
@@ -296,7 +295,7 @@ uint32_t WEpoll<UserData>::ParseToEpollEvent(uint8_t events) {
 
 
 template <typename UserData>
-void WEpoll<UserData>::EventLoop() {
+void Epoll<UserData>::EventLoop() {
 
     std::unique_ptr<epoll_event[]> events;
 
@@ -328,7 +327,7 @@ void WEpoll<UserData>::EventLoop() {
             }
 
             uint32_t ev   = events[i].events;
-            auto    *data = (typename WEventHandle<UserData>::WEventHandler *)events[i].data.ptr;
+            auto    *data = (typename EventHandle<UserData>::EventHandler *)events[i].data.ptr;
 
             assert(data);
             socket_t sock = data->socket_;
@@ -353,4 +352,4 @@ void WEpoll<UserData>::EventLoop() {
 
 } // namespace wutils::network
 
-#endif // UTILS_WEPOLL_H
+#endif // UTILS_EPOLL_H

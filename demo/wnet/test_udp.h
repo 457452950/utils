@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "wutils/network/WNetWork.h"
+#include "wutils/network/NetWork.h"
 
 using namespace std;
 using namespace wutils::network;
@@ -48,54 +48,54 @@ constexpr AF_PROTOL protol = AF_PROTOL::UDP;
 } // namespace cli
 
 
-inline auto in_cb = [](socket_t sock, WBaseChannel *data) {
+inline auto in_cb = [](socket_t sock, BaseChannel *data) {
     auto *ch = (ReadChannel *)data;
     // cout << "get channel call channel in" << std::endl;
     ch->ChannelIn();
 };
-inline auto out_cb = [](socket_t sock, WBaseChannel *data) {
+inline auto out_cb = [](socket_t sock, BaseChannel *data) {
     auto *ch = (WriteChannel *)data;
     // cout << "get channel call channel in" << std::endl;
     ch->ChannelOut();
 };
 
-std::shared_ptr<WEpoll<WBaseChannel>> ep_;
+std::shared_ptr<Epoll<BaseChannel>> ep_;
 
 void server_thread() {
     using namespace srv;
 
-    auto ep = std::make_shared<WEpoll<WBaseChannel>>();
+    auto ep = std::make_shared<Epoll<BaseChannel>>();
     ep_     = ep;
     ep->Init();
     ep->read_  = in_cb;
     ep->write_ = out_cb;
 
-    WEndPointInfo srv_ed;
+    EndPointInfo srv_ed;
     // srv_ed.Assign("::1", 4000, AF_FAMILY::INET6);
     if(!srv_ed.Assign(bind::ip, bind::port, bind::family)) {
         return;
     }
 
-    auto [ip, port] = WEndPointInfo::Dump(srv_ed);
+    auto [ip, port] = EndPointInfo::Dump(srv_ed);
     cout << "[" << ip << ":" << port << "]" << std::endl;
 
-    WEndPointInfo cli_ed;
+    EndPointInfo cli_ed;
     // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
     if(!cli_ed.Assign(send::ip, send::port, send::family)) {
         return;
     }
 
-    auto udp_srv = std::make_shared<WUDP>(ep);
+    auto udp_srv = std::make_shared<UDPPointer>(ep);
     if(!udp_srv->Start(srv_ed, true)) {
         return;
     }
 
-    auto onmsg = [&](const wutils::network::WEndPointInfo &local,
-                     const wutils::network::WEndPointInfo &remote,
-                     const uint8_t                        *msg,
-                     uint32_t                              msg_len) {
-        auto [lip, lport] = WEndPointInfo::Dump(local);
-        auto [rip, rport] = WEndPointInfo::Dump(remote);
+    auto onmsg = [&](const wutils::network::EndPointInfo &local,
+                     const wutils::network::EndPointInfo &remote,
+                     const uint8_t                       *msg,
+                     uint32_t                             msg_len) {
+        auto [lip, lport] = EndPointInfo::Dump(local);
+        auto [rip, rport] = EndPointInfo::Dump(remote);
 
         fprintf(stdout,
                 "remote[%s:%d] --> local[%s:%d] msg:[%s] len:%d\n",
@@ -123,7 +123,7 @@ void server_thread() {
 void client_thread() {
     using namespace cli;
 
-    WEndPointInfo cli_ed;
+    EndPointInfo cli_ed;
     // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
     if(!cli_ed.Assign(bind::ip, bind::port, bind::family)) {
         return;
@@ -134,7 +134,7 @@ void client_thread() {
         return;
     }
 
-    WEndPointInfo srv_ed;
+    EndPointInfo srv_ed;
     // srv_ed.Assign("::1", 4000, AF_FAMILY::INET6);
     if(!srv_ed.Assign(send::ip, send::port, send::family)) {
         return;
@@ -143,9 +143,9 @@ void client_thread() {
     std::thread th2([&]() {
         char send_msg[] = "afsafsfsfagrtgtbgfbstrbsrbrtbrbstrgbtrbsfdsvbfsdsvbsrtbv";
 
-        WEndPointInfo srv_;
-        char          cli_buf[1500] = {0};
-        int32_t       len           = 0;
+        EndPointInfo srv_;
+        char         cli_buf[1500] = {0};
+        int32_t      len           = 0;
 
         sendto(cli, send_msg, strlen(send_msg), 0, srv_ed.GetAddr(), srv_ed.GetSockSize());
 
@@ -153,7 +153,7 @@ void client_thread() {
         if(len <= 0) {
             std::cout << "cli recv from err " << ErrorToString(GetError()) << endl;
         } else {
-            auto [ip, port] = WEndPointInfo::Dump(srv_);
+            auto [ip, port] = EndPointInfo::Dump(srv_);
             cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
         }
 
@@ -163,7 +163,7 @@ void client_thread() {
         if(len <= 0) {
             std::cout << "cli recv from err " << ErrorToString(GetError()) << endl;
         } else {
-            auto [ip, port] = WEndPointInfo::Dump(srv_);
+            auto [ip, port] = EndPointInfo::Dump(srv_);
             cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
         }
     });

@@ -19,7 +19,7 @@ namespace wutils {
 
 class JsonFileReader {
 public:
-    SharedPtr<JsonFileReader> FromFile(const std::string &file_name);
+    shared_ptr<JsonFileReader> FromFile(const std::string &file_name);
     ~JsonFileReader() = default;
 
 private:

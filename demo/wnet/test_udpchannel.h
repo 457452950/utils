@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "wutils/network/WNetWork.h"
+#include "wutils/network/NetWork.h"
 
 using namespace std;
 using namespace wutils::network;
@@ -49,21 +49,21 @@ constexpr AF_PROTOL protol = AF_PROTOL::UDP;
 } // namespace cli
 
 
-inline auto in_cb = [](socket_t sock, WBaseChannel *data) {
+inline auto in_cb = [](socket_t sock, BaseChannel *data) {
     auto *ch = (ReadChannel *)data;
     // cout << "get channel call channel in" << std::endl;
     ch->ChannelIn();
 };
-inline auto out_cb = [](socket_t sock, WBaseChannel *data) {
+inline auto out_cb = [](socket_t sock, BaseChannel *data) {
     auto *ch = (WriteChannel *)data;
     // cout << "get channel call channel in" << std::endl;
     ch->ChannelOut();
 };
-struct udpSession : public WUDPChannel::Listener {
+struct udpSession : public UDPChannel::Listener {
 
     virtual void OnMessage(const uint8_t *message, uint64_t message_len) {
-        auto [lip, lport] = WEndPointInfo::Dump(srv_ed);
-        auto [rip, rport] = WEndPointInfo::Dump(cli_ed);
+        auto [lip, lport] = EndPointInfo::Dump(srv_ed);
+        auto [rip, rport] = EndPointInfo::Dump(cli_ed);
 
         fprintf(stdout,
                 "remote[%s:%d] --> local[%s:%d] msg:[%s] len:%ld\n",
@@ -79,37 +79,37 @@ struct udpSession : public WUDPChannel::Listener {
     };
     virtual void OnError(const char *err_message) { cout << "[test_udp]onerr err : " << err_message << endl; }
 
-    WEndPointInfo                srv_ed;
-    WEndPointInfo                cli_ed;
-    std::unique_ptr<WUDPChannel> udp_chl;
+    EndPointInfo                srv_ed;
+    EndPointInfo                cli_ed;
+    std::unique_ptr<UDPChannel> udp_chl;
 };
 
-std::shared_ptr<WEpoll<WBaseChannel>> ep_;
+std::shared_ptr<Epoll<BaseChannel>> ep_;
 
 void server_thread() {
     using namespace srv;
 
-    auto ep = std::make_shared<WEpoll<WBaseChannel>>();
+    auto ep = std::make_shared<Epoll<BaseChannel>>();
     ep_     = ep;
     ep->Init();
     ep->read_  = in_cb;
     ep->write_ = out_cb;
 
-    WEndPointInfo srv_ed;
+    EndPointInfo srv_ed;
     if(!srv_ed.Assign(bind::ip, bind::port, bind::family)) {
         return;
     }
 
-    auto [ip, port] = WEndPointInfo::Dump(srv_ed);
+    auto [ip, port] = EndPointInfo::Dump(srv_ed);
     cout << "[" << ip << ":" << port << "]" << std::endl;
 
-    WEndPointInfo cli_ed;
+    EndPointInfo cli_ed;
     // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
     if(!cli_ed.Assign(send::ip, send::port, send::family)) {
         return;
     }
 
-    auto udp_srv = std::make_unique<WUDPChannel>(ep);
+    auto udp_srv = std::make_unique<UDPChannel>(ep);
     udp_srv->Start(srv_ed, cli_ed, true);
 
     std::shared_ptr<udpSession> sess = std::make_shared<udpSession>();
@@ -124,7 +124,7 @@ void server_thread() {
 void client_thread() {
     using namespace cli;
 
-    WEndPointInfo cli_ed;
+    EndPointInfo cli_ed;
     // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
     cli_ed.Assign(bind::ip, bind::port, bind::family);
     auto cli = MakeBindedSocket(cli_ed, true);
@@ -132,22 +132,22 @@ void client_thread() {
         return;
     }
 
-    WEndPointInfo srv_ed;
+    EndPointInfo srv_ed;
     if(!srv_ed.Assign(send::ip, send::port, send::family)) {
         return;
     }
 
     char send_msg[] = "afsafsfsfagrtgtbgfbstrbsrbrtbrbstrgbtrbsfdsvbfsdsvbsrtbv";
 
-    WEndPointInfo srv_;
-    char          cli_buf[1500] = {0};
-    int32_t       len           = 0;
+    EndPointInfo srv_;
+    char         cli_buf[1500] = {0};
+    int32_t      len           = 0;
 
     len = sendto(cli, send_msg, strlen(send_msg), 0, srv_ed.GetAddr(), srv_ed.GetSockSize());
     if(len <= 0) {
         std::cout << "cli sendto err " << ErrorToString(GetError()) << endl;
     } else {
-        auto [ip, port] = WEndPointInfo::Dump(srv_ed);
+        auto [ip, port] = EndPointInfo::Dump(srv_ed);
         cout << "cli sendto [" << ip << " : " << port << "] " << std::string(send_msg, strlen(send_msg)).c_str()
              << endl;
     }
@@ -157,7 +157,7 @@ void client_thread() {
     if(len <= 0) {
         std::cout << "cli recv from err " << ErrorToString(GetError()) << endl;
     } else {
-        auto [ip, port] = WEndPointInfo::Dump(srv_);
+        auto [ip, port] = EndPointInfo::Dump(srv_);
         cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
     }
 
@@ -167,7 +167,7 @@ void client_thread() {
     if(len <= 0) {
         std::cout << "cli recv from err " << ErrorToString(GetError()) << endl;
     } else {
-        auto [ip, port] = WEndPointInfo::Dump(srv_);
+        auto [ip, port] = EndPointInfo::Dump(srv_);
         cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
     }
 

@@ -1,6 +1,6 @@
 #pragma once
-#ifndef UTILS_WNETWORK_UTILS_H
-#define UTILS_WNETWORK_UTILS_H
+#ifndef UTILS_NETWORK_UTILS_H
+#define UTILS_NETWORK_UTILS_H
 
 #include <cerrno>
 #include <cstdint>
@@ -20,7 +20,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h> // tcp_nodelay
 
-#include "wutils/WOS.h"
+#include "wutils/OS.h"
 
 
 namespace wutils::network {
@@ -31,7 +31,7 @@ const char *ErrorToString(int error);
 enum AF_FAMILY { INET = AF_INET, INET6 = AF_INET6 };
 enum AF_PROTOL { TCP = IPPROTO_TCP, UDP = IPPROTO_UDP };
 
-struct WEndPointInfo;
+struct EndPointInfo;
 
 using socket_t = int32_t;
 using socket_p = socket_t *;
@@ -79,27 +79,27 @@ bool MakeSockAddr_in6(const std::string &ip_address, uint16_t port, sockaddr_in6
 
 // server methods
 // bool Bind(socket_t socket, const std::string &host, uint16_t port, bool isv4 = true);
-bool Bind(socket_t socket, const WEndPointInfo &serverInfo);
+bool Bind(socket_t socket, const EndPointInfo &serverInfo);
 
-socket_t MakeBindedSocket(const WEndPointInfo &info, bool reuse);
-socket_t MakeListenedSocket(const WEndPointInfo &info, bool reuse);
+socket_t MakeBindedSocket(const EndPointInfo &info, bool reuse);
+socket_t MakeListenedSocket(const EndPointInfo &info, bool reuse);
 
 /***************************************************
  * TCP Utils
  ****************************************************/
 // return -1 if fail
-socket_t Accept(socket_t socket, WEndPointInfo &info);
-socket_t Accept4(socket_t socket, WEndPointInfo &info, int flags);
+socket_t Accept(socket_t socket, EndPointInfo &info);
+socket_t Accept4(socket_t socket, EndPointInfo &info, int flags);
 
 // tcp is default and return -1 if fail
-socket_t ConnectToHost(const WEndPointInfo &info, AF_PROTOL = AF_PROTOL::TCP);
-bool     ConnectToHost(socket_t socket, const WEndPointInfo &info);
+socket_t ConnectToHost(const EndPointInfo &info, AF_PROTOL = AF_PROTOL::TCP);
+bool     ConnectToHost(socket_t socket, const EndPointInfo &info);
 
 /***************************************************
  * UDP Utils
  ****************************************************/
 
-int32_t RecvFrom(socket_t socket, uint8_t *buf, uint32_t buf_len, WEndPointInfo &info);
+int32_t RecvFrom(socket_t socket, uint8_t *buf, uint32_t buf_len, EndPointInfo &info);
 
 /***************************************************
  * Socket Utils
@@ -114,29 +114,15 @@ bool SetSocketKeepAlive(socket_t socket);
 // tcp socket function
 bool SetTcpSocketNoDelay(socket_t socket);
 
-// IP + port + isv4
-// struct WEndPointInfo {
-//     std::string ip_address;
-//     uint16_t    port;
-//     bool        isv4;
-//     WEndPointInfo(const std::string &_address = "", uint16_t _port = 0, bool _isv4 = true);
-
-//     static WEndPointInfo FromNet(const sockaddr_in &net);
-//     static WEndPointInfo FromNet(const sockaddr_in6 &net);
-//     bool                 ToNet4(sockaddr_in *_sockaddr_in);
-//     bool                 ToNet6(sockaddr_in6 *_socketaddr_in6);
-// };
-
-
 // IP + port + family
-struct WEndPointInfo {
+struct EndPointInfo {
 
-    static WEndPointInfo *MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family);
+    static EndPointInfo *MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family);
 
     bool Assign(const std::string &address, uint16_t port, AF_FAMILY family);
     bool Assign(const sockaddr *sock, AF_FAMILY family);
 
-    static WEndPointInfo *Emplace(const sockaddr *addr, AF_FAMILY family);
+    static EndPointInfo *Emplace(const sockaddr *addr, AF_FAMILY family);
 
     const sockaddr *GetAddr() const { return (sockaddr *)&addr_; }
     AF_FAMILY       GetFamily() const { return family_; }
@@ -144,10 +130,10 @@ struct WEndPointInfo {
         return family_ == AF_FAMILY::INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
     }
 
-    static std::tuple<std::string, uint16_t> Dump(const WEndPointInfo &);
+    static std::tuple<std::string, uint16_t> Dump(const EndPointInfo &);
 
 private:
-    AF_FAMILY family_;
+    AF_FAMILY family_{AF_FAMILY::INET};
     uint8_t   addr_[sizeof(sockaddr_in6)]{0};
 
 private:
@@ -205,9 +191,9 @@ private:
 
         // note:no safed protocol
         // Override least significant bit with protocol information:
-        // - If UDP, start with 0.
+        // - If UDPPointer, start with 0.
         // - If TCP, start with 1.
-        // if (this->protocol == AF_PROTOL::UDP)
+        // if (this->protocol == AF_PROTOL::UDPPointer)
         // {
         // 	this->hash |= 0x0000;
         // }
@@ -219,8 +205,8 @@ private:
 
 public:
     uint64_t hash{0u};
-    bool     operator==(const WEndPointInfo &other) const noexcept { return this->hash == other.hash; }
-    bool     operator!=(const WEndPointInfo &other) const noexcept { return this->hash != other.hash; }
+    bool     operator==(const EndPointInfo &other) const noexcept { return this->hash == other.hash; }
+    bool     operator!=(const EndPointInfo &other) const noexcept { return this->hash != other.hash; }
 };
 
 
@@ -228,10 +214,10 @@ public:
 
 namespace std {
 template <>
-class hash<wutils::network::WEndPointInfo> {
+class hash<wutils::network::EndPointInfo> {
 public:
-    size_t operator()(const wutils::network::WEndPointInfo &it) const noexcept { return it.hash; }
+    size_t operator()(const wutils::network::EndPointInfo &it) const noexcept { return it.hash; }
 };
 } // namespace std
 
-#endif // UTILS_WNETWORK_UTILS_H
+#endif // UTILS_NETWORK_UTILS_H

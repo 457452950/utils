@@ -3,9 +3,9 @@
 #include <cstring>
 #include <iostream>
 
-#include "wutils/buffer/chainbuffer.h"
-#include "wutils/buffer/ringbuffer.h"
-#include "wutils/buffer/straightbuffer.h"
+#include "wutils/buffer/ChainBuffer.h"
+#include "wutils/buffer/RingBuffer.h"
+#include "wutils/buffer/StraightBuffer.h"
 
 inline void test_straightbuffer() {
     using namespace std;
@@ -13,7 +13,7 @@ inline void test_straightbuffer() {
     char        temp[65536]{0};
     std::string str_temp;
 
-    auto buffer = std::unique_ptr<Buffer>(new Straightbuffer);
+    auto buffer = std::unique_ptr<Buffer>(new StraightBuffer);
     if(!buffer->Init(UINT16_MAX)) {
         cout << "init false. " << strerror(errno) << endl;
         return;

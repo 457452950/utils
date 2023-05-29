@@ -3,7 +3,7 @@
 #include <set>
 #include <string>
 
-#include "wutils/network/WChannel.h"
-#include "wutils/network/WNetFactory.h"
+#include "wutils/network/Channel.h"
+#include "wutils/network/NetFactory.h"
 
 using namespace wutils::network;

@@ -1,35 +1,17 @@
-#ifndef RINGBUFFER_H
-#define RINGBUFFER_H
+#ifndef STRAIGHTBUFFER_H
+#define STRAIGHTBUFFER_H
 
-#include "../buffer.h"
+#include "../Buffer.h"
 
 #include <vector>
 
-/**
- * [================================================]
- * |        |               |                       |
- * 0      r_offset       w_offset                   max
- *
- * readable  area: [r_offset, w_offset)
- * writeable area: [w_offset, max)  U  [0, r_offset)
- *
- *
- * [================================================]
- * |        |               |                       |
- * 0      w_offset       r_offset                   max
- *
- * readable  area: [r_offset, max)  U  [0, w_offset)
- * writeable area: [w_offset, r_offset)
- *
- */
-class RingBuffer final : public Buffer {
+class StraightBuffer final : public Buffer {
 public:
-    RingBuffer();
-    virtual ~RingBuffer() {}
-    RingBuffer(const RingBuffer &other);
-    RingBuffer(const RingBuffer &&other);
-    RingBuffer &operator=(const RingBuffer &other);
-
+    StraightBuffer();
+    ~StraightBuffer() override { this->Release(); }
+    StraightBuffer(const StraightBuffer &other);
+    StraightBuffer(const StraightBuffer &&other) noexcept;
+    StraightBuffer &operator=(const StraightBuffer &other);
 
 public:
     bool Init(uint64_t max_buffer_byte) override;
@@ -64,9 +46,7 @@ public:
 
 private:
     std::vector<uint8_t> buffer_;
-    uint64_t             read_offset_{0};
-    uint64_t             write_offset_{0};
-    bool                 is_full_{false};
+    uint64_t             offset_{0};
 };
 
-#endif // RINGBUFFER_H
+#endif // STRAIGHTBUFFER_H

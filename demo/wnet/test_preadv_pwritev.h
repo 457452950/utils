@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "wutils/network/WNetWork.h"
+#include "wutils/network/NetWork.h"
 
 using namespace std;
 using namespace wutils::network;
@@ -39,7 +39,7 @@ void server_thread() {
     SetSocketReuseAddr(sock);
     // int  res  = Bind(sock, "0:0:0:0:0:0:0:0", 4000, 0);
 
-    WEndPointInfo srv_ed;
+    EndPointInfo srv_ed;
     if(!srv_ed.Assign(srv::listen::ip, srv::listen::port, srv::listen::family)) {
         return;
     }
@@ -59,7 +59,7 @@ void server_thread() {
         cout << "listen ok" << endl;
     }
 
-    WEndPointInfo en;
+    EndPointInfo en;
     srv = Accept4(sock, en, SOCK_NONBLOCK);
     // ok  = SetSocketNoBlock(srv);
     // if(!ok) {
@@ -76,7 +76,7 @@ void server_thread() {
     }
 
     int totol       = 0;
-    auto [ip, port] = WEndPointInfo::Dump(en);
+    auto [ip, port] = EndPointInfo::Dump(en);
     cout << "client : ip " << ip << " port:" << port << endl;
 
     const char  str0[]    = "helasdadafsafaafsadfdsaasfasfafafasfaufasnukfgagfasnjknfajkfbjasbfab,"
@@ -129,7 +129,7 @@ void server_thread() {
 }
 
 void client_thread() {
-    WEndPointInfo srv_ed;
+    EndPointInfo srv_ed;
     if(!srv_ed.Assign(cli::connect::ip, cli::connect::port, cli::connect::family)) {
         return;
     }

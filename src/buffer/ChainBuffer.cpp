@@ -1,13 +1,12 @@
-#include "wutils/buffer/chainbuffer.h"
+#include "wutils/buffer/ChainBuffer.h"
 
 #include <cassert>
-#include <iostream>
 
 ChainBuffer::ChainBuffer() { this->pages_.emplace_back(); }
 
 ChainBuffer::ChainBuffer(const ChainBuffer &other) : pages_(other.pages_) {}
 
-ChainBuffer::ChainBuffer(const ChainBuffer &&other) : pages_(std::move(other.pages_)) {}
+ChainBuffer::ChainBuffer(const ChainBuffer &&other) noexcept : pages_(std::move(other.pages_)) {}
 
 ChainBuffer &ChainBuffer::operator=(const ChainBuffer &other) {
     if(this == &other) {
@@ -56,7 +55,7 @@ uint64_t ChainBuffer::UsedBytes() const {
     // return total;
     // clang-format on
 
-    // more faster
+    // be faster
     assert(!this->pages_.empty());
 
     auto bg = this->pages_.begin();

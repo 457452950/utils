@@ -1,9 +1,9 @@
-#include <chrono>
-#include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <cassert>
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
 
 #include <openssl/bio.h>
 #include <openssl/bn.h>
@@ -15,7 +15,7 @@
 
 using namespace std;
 
-#include "ssl/WRSA.h"
+#include "wutils/ssl/RSA.h"
 
 auto Now() {
     return chrono::duration_cast<std::chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
@@ -24,80 +24,81 @@ auto Now() {
 void testRun();
 
 int main(int argc, char **argv) {
-    WRSA rsa;
-    rsa.Init(2048);
 
-    auto pubk = rsa.GetPublicKey();
-    auto prik = rsa.GetPrivatecKey();
+    wutils::RSA myrsa;
+    myrsa.Init(2048);
+
+    auto pubk = myrsa.GetPublicKey();
+    auto prik = myrsa.GetPrivatecKey();
 
     pubk->WriteFormatToFile("pubkey.pem");
     prik->WriteFormatToFile("prikey1.pem");
     prik->WriteFormatToFile("prikey2.pem", "123");
 
-    WRSAPubKey pubk2;
-    WRSAPriKey prik2;
-    WRSAPriKey prik3;
+    wutils::RSAPubKey pubk2;
+    wutils::RSAPriKey prik2;
+    wutils::RSAPriKey prik3;
     assert(pubk2.ReadFromFormatFile("pubkey.pem"));
     cout << "pubk2.ReadFromFormatFile ok" << endl;
     assert(prik2.ReadFromFormatFile("prikey1.pem"));
     cout << "prik2.ReadFromFormatFile ok" << endl;
     assert(prik3.ReadFromFormatFile("prikey2.pem", "123"));
     cout << "prik3.ReadFromFormatFile ok" << endl;
-    
-    char text[] = "41864841564s23fsef65se41f65se1f56se1f51se1f5s1e56f1e6s51seg151s6g1s65g18656116515615611sd56f1e6r51eg561er6g1g65er1g56er1g65er1g";
+
+    char text[] = "41864841564s23fsef65se41f65se1f56se1f51se1f5s1e56f1e6s51seg151s6g1s65g18656116515615611sd56f1e6r51eg"
+                  "561er6g1g65er1g56er1g65er1g";
     char pub_en[1024];
     char pri_de[1024];
 
-    int res = pubk2.Encode((uint8_t*)text, strlen(text), (uint8_t*)pub_en);
+    int res = pubk2.Encode((uint8_t *)text, strlen(text), (uint8_t *)pub_en);
     cout << "res : " << res << endl;
 
-    res = prik2.Decode((uint8_t*)pub_en, (uint8_t*)pri_de);
+    res = prik2.Decode((uint8_t *)pub_en, (uint8_t *)pri_de);
     cout << "res : " << res << endl;
 
     cout << "after decode : " << pri_de << endl;
-    
 
-    res = prik2.Encode((uint8_t*)text, strlen(text), (uint8_t*)pub_en);
+
+    res = prik2.Encode((uint8_t *)text, strlen(text), (uint8_t *)pub_en);
     cout << "res : " << res << endl;
 
-    res = pubk2.Decode((uint8_t*)pub_en, (uint8_t*)pri_de);
+    res = pubk2.Decode((uint8_t *)pub_en, (uint8_t *)pri_de);
     cout << "res : " << res << endl;
 
     cout << "after decode : " << pri_de << endl;
 
     auto now = Now();
-    for (int i = 0; i < 100; ++i) {
-        int res = pubk2.Encode((uint8_t*)text, strlen(text), (uint8_t*)pub_en);
+    for(int i = 0; i < 100; ++i) {
+        int res = pubk2.Encode((uint8_t *)text, strlen(text), (uint8_t *)pub_en);
         // cout << "res : " << res << endl;
 
-        res = prik2.Decode((uint8_t*)pub_en, (uint8_t*)pri_de);
+        res = prik2.Decode((uint8_t *)pub_en, (uint8_t *)pri_de);
         // cout << "res : " << res << endl;
     }
     now = Now() - now;
-    cout << "pass : " <<  now << endl;
+    cout << "pass : " << now << endl;
     cout << "pass : " << 100 * strlen(text) / now * 1000 << endl;
 
     return 0;
 }
 
 
-
 void testRun() {
     // basic
-    RSA *   rsa     = RSA_new();
+    RSA    *rsa     = RSA_new();
     BIGNUM *rsa_3   = BN_new();
-    RSA *   pub_rsa = nullptr;
-    RSA *   pri_rsa = nullptr;
+    RSA    *pub_rsa = nullptr;
+    RSA    *pri_rsa = nullptr;
     char    cout_text[5024];
 
     // remote endpoint
-    BIO *bio_mem_temp = BIO_new(BIO_s_mem());
+    BIO *bio_mem_temp   = BIO_new(BIO_s_mem());
     RSA *remote_pri_rsa = nullptr;
 
     // message
-    char pub_en[1024];
-    char pri_de[1024];
-    char text[] = "1234567890";
+    char        pub_en[1024];
+    char        pri_de[1024];
+    char        text[] = "1234567890";
     std::string ret;
 
 
@@ -141,7 +142,7 @@ void testRun() {
      */
     // base 64 encode
     ret.resize((5024 + 2) / 3 * 4);
-    EVP_EncodeBlock((unsigned char*)ret.data(), (unsigned char*)cout_text, 5024);
+    EVP_EncodeBlock((unsigned char *)ret.data(), (unsigned char *)cout_text, 5024);
     cout << "after base64:" << ret << endl;
 
 

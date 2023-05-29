@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-#include "wutils/network/WNetWork.h"
+#include "wutils/network/NetWork.h"
 
 using namespace std;
 using namespace wutils::network;
@@ -39,7 +39,7 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 void server_thread() {
     // bind and listen
 
-    WEndPointInfo srv_ed;
+    EndPointInfo srv_ed;
     if(!srv_ed.Assign(srv::listen::ip, srv::listen::port, srv::listen::family)) {
         return;
     }
@@ -67,7 +67,7 @@ void server_thread() {
 
     // accept
 
-    WEndPointInfo en;
+    EndPointInfo en;
     res = Accept(sock, en);
 
     if(res == -1) {
@@ -77,12 +77,12 @@ void server_thread() {
         cout << "Accept ok" << endl;
     }
 
-    auto [ip, port] = WEndPointInfo::Dump(en);
+    auto [ip, port] = EndPointInfo::Dump(en);
     cout << "client : ip " << ip << " port:" << port << endl;
 }
 
 void client_thread() {
-    WEndPointInfo cli_ed;
+    EndPointInfo cli_ed;
     if(!cli_ed.Assign(cli::connect::ip, cli::connect::port, cli::connect::family)) {
         return;
     }

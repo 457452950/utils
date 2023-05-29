@@ -1,8 +1,8 @@
-#include "wutils/WThreadPool.h"
+#include "wutils/ThreadPool.h"
 
 namespace wutils {
 
-bool WThreadPool::Start(uint16_t threads_count) {
+bool ThreadPool::Start(uint16_t threads_count) {
     // 检查,不可重复启动
     if(this->is_active_)
         return false;
@@ -11,13 +11,13 @@ bool WThreadPool::Start(uint16_t threads_count) {
 
     this->is_active_ = true;
     for(size_t index = 0; index < threads_count; ++index) {
-        this->threads_.push_back(new std::thread(&WThreadPool::ConsumerThread, this));
+        this->threads_.push_back(new std::thread(&ThreadPool::ConsumerThread, this));
     }
 
     return true;
 }
 
-void WThreadPool::WaitToStop() {
+void ThreadPool::WaitToStop() {
     for(auto &thread : this->threads_) {
         if(thread->joinable()) {
             thread->join();
@@ -25,7 +25,7 @@ void WThreadPool::WaitToStop() {
     }
 }
 
-void WThreadPool::Destroy() {
+void ThreadPool::Destroy() {
     for(auto &thread : this->threads_) {
         delete thread;
     }
@@ -36,7 +36,7 @@ void WThreadPool::Destroy() {
     }
 }
 
-void WThreadPool::AddTask(const user_function_t &function, user_data_t user_data) {
+void ThreadPool::AddTask(const user_function_t &function, user_data_t user_data) {
     {
         std::unique_lock<std::mutex> _unique_lock(this->mutex_);
         this->tasks_.emplace(function, user_data);
@@ -44,7 +44,7 @@ void WThreadPool::AddTask(const user_function_t &function, user_data_t user_data
     this->condition_.notify_all();
 }
 
-void WThreadPool::ConsumerThread() {
+void ThreadPool::ConsumerThread() {
     while(this->is_active_) {
         // 持锁
         std::unique_lock<std::mutex> _unique_lock(this->mutex_);

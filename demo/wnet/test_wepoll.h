@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "wutils/network/WNetWork.h"
+#include "wutils/network/NetWork.h"
 
 using namespace std;
 using namespace wutils::network;
@@ -43,8 +43,8 @@ struct test_s {
 inline auto r_cb = [](socket_t sock, test_s *data) -> void {
     cout << "in" << sock << endl;
 
-    WEndPointInfo en;
-    int           res = Accept(sock, en);
+    EndPointInfo en;
+    int          res = Accept(sock, en);
 
     if(res == -1) {
         cout << "Accept error : " << strerror(errno) << endl;
@@ -53,7 +53,7 @@ inline auto r_cb = [](socket_t sock, test_s *data) -> void {
         cout << "Accept ok" << endl;
     }
 
-    auto [ip, port] = WEndPointInfo::Dump(en);
+    auto [ip, port] = EndPointInfo::Dump(en);
     cout << "client : ip " << ip << " port:" << port << endl;
 
     auto t = (test_s *)data;
@@ -61,14 +61,14 @@ inline auto r_cb = [](socket_t sock, test_s *data) -> void {
 };
 
 
-inline void server_thread(std::shared_ptr<WEpoll<test_s>> ep) {
+inline void server_thread(std::shared_ptr<Epoll<test_s>> ep) {
     using namespace srv;
 
     auto sock = MakeSocket(listen::family, listen::protol);
     SetSocketReuseAddr(sock);
     SetSocketReusePort(sock);
 
-    WEndPointInfo lis;
+    EndPointInfo lis;
     if(!lis.Assign(listen::ip, listen::port, listen::family)) {
         return;
     }
@@ -90,7 +90,7 @@ inline void server_thread(std::shared_ptr<WEpoll<test_s>> ep) {
     }
 
     test_s i{.f = [](int n) { cout << "heppy " << n << endl; }, .n = 3};
-    auto   handler      = std::make_unique<WEventHandle<test_s>::WEventHandler>();
+    auto   handler      = std::make_unique<EventHandle<test_s>::EventHandler>();
     handler->socket_    = sock;
     handler->user_data_ = &i;
     handler->handle_    = ep;
@@ -103,7 +103,7 @@ inline void server_thread(std::shared_ptr<WEpoll<test_s>> ep) {
 inline void client_thread() {
     using namespace cli;
 
-    WEndPointInfo cli_ed;
+    EndPointInfo cli_ed;
     if(!cli_ed.Assign(connect::ip, connect::port, connect::family)) {
         return;
     }
@@ -117,7 +117,7 @@ inline void client_thread() {
     }
 }
 
-std::shared_ptr<WEpoll<test_s>> ep_;
+std::shared_ptr<Epoll<test_s>> ep_;
 
 void handle_pipe(int signal) {
     cout << "signal" << endl;
@@ -134,7 +134,7 @@ inline void test_wepoll() {
     signal(SIGINT, handle_pipe);  // 自定义处理函数
 
     cout << "test wepoll " << endl;
-    auto ep = std::make_shared<WEpoll<test_s>>();
+    auto ep = std::make_shared<Epoll<test_s>>();
 
     ep_ = ep;
     ep->Init();

@@ -1,8 +1,8 @@
-#include "wutils/network//WEpoll.h"
+#include "wutils/network//Epoll.h"
 #include <cassert>
 #include <iostream>
 
-#include "wutils/WDebugger.hpp"
+#include "wutils/Debugger.hpp"
 
 namespace wutils::network {
 
@@ -77,13 +77,13 @@ void CloseEpoll(epoll_type epoll) { ::close(epoll); }
  * base epoll
  **************************************************/
 
-WBaseEpoll::WBaseEpoll() { DEBUGADD("WBaseEpoll"); }
-WBaseEpoll::~WBaseEpoll() {
+BaseEpoll::BaseEpoll() { DEBUGADD("BaseEpoll"); }
+BaseEpoll::~BaseEpoll() {
     this->Close();
-    DEBUGRM("WBaseEpoll");
+    DEBUGRM("BaseEpoll");
 }
 
-bool WBaseEpoll::Init() {
+bool BaseEpoll::Init() {
     this->epoll_fd_ = CreateNewEpollFd();
     if(this->epoll_fd_ == -1) {
         return false;
@@ -91,14 +91,14 @@ bool WBaseEpoll::Init() {
     return true;
 }
 
-void WBaseEpoll::Close() {
+void BaseEpoll::Close() {
     if(this->epoll_fd_ != -1) {
         CloseEpoll(this->epoll_fd_);
         this->epoll_fd_ = -1;
     }
 }
 
-bool WBaseEpoll::AddSocket(socket_t socket, uint32_t events) {
+bool BaseEpoll::AddSocket(socket_t socket, uint32_t events) {
     assert(socket != -1);
     assert(events > 0);
 
@@ -108,7 +108,7 @@ bool WBaseEpoll::AddSocket(socket_t socket, uint32_t events) {
     return true;
 }
 
-bool WBaseEpoll::ModifySocket(socket_t socket, uint32_t events) {
+bool BaseEpoll::ModifySocket(socket_t socket, uint32_t events) {
     assert(socket != -1);
 
     if(!EpollModifySocket(this->epoll_fd_, socket, events)) {
@@ -117,7 +117,7 @@ bool WBaseEpoll::ModifySocket(socket_t socket, uint32_t events) {
     return true;
 }
 
-bool WBaseEpoll::AddSocket(socket_t socket, uint32_t events, epoll_data_t data) {
+bool BaseEpoll::AddSocket(socket_t socket, uint32_t events, epoll_data_t data) {
     assert(socket != -1);
     assert(events > 0);
 
@@ -127,7 +127,7 @@ bool WBaseEpoll::AddSocket(socket_t socket, uint32_t events, epoll_data_t data) 
     return true;
 }
 
-bool WBaseEpoll::ModifySocket(socket_t socket, uint32_t events, epoll_data_t data) {
+bool BaseEpoll::ModifySocket(socket_t socket, uint32_t events, epoll_data_t data) {
     assert(socket != -1);
     assert(events > 0);
 
@@ -137,13 +137,13 @@ bool WBaseEpoll::ModifySocket(socket_t socket, uint32_t events, epoll_data_t dat
     return true;
 }
 
-bool WBaseEpoll::RemoveSocket(socket_t socket) {
+bool BaseEpoll::RemoveSocket(socket_t socket) {
     assert(socket != -1);
 
     return EpollRemoveSocket(this->epoll_fd_, socket);
 }
 
-int32_t WBaseEpoll::GetEvents(epoll_event *events, int32_t events_size, int32_t timeout) {
+int32_t BaseEpoll::GetEvents(epoll_event *events, int32_t events_size, int32_t timeout) {
     auto res = EpollGetEvents(this->epoll_fd_, events, events_size, timeout);
     return res;
 }

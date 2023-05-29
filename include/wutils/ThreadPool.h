@@ -31,15 +31,15 @@ struct task {
 };
 
 // 线程池
-class WThreadPool {
+class ThreadPool {
     using task_list   = std::queue<task>;           // 任务队列格式
     using thread_list = std::vector<std::thread *>; // 线程队列
 public:
-    WThreadPool() = default;
-    ~WThreadPool() { this->Destroy(); }
+    ThreadPool() = default;
+    ~ThreadPool() { this->Destroy(); }
     // no copyable
-    WThreadPool(const WThreadPool &)            = delete;
-    WThreadPool &operator=(const WThreadPool &) = delete;
+    ThreadPool(const ThreadPool &)            = delete;
+    ThreadPool &operator=(const ThreadPool &) = delete;
 
     // lifetime
     // return true if the pool start success

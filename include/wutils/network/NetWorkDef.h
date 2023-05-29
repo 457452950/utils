@@ -1,8 +1,8 @@
 #pragma once
-#ifndef UTILS_WNETWORK_DEF_H
-#define UTILS_WNETWORK_DEF_H
+#ifndef UTILS_NETWORK_DEF_H
+#define UTILS_NETWORK_DEF_H
 
-#include "wutils/WOS.h"
+#include "wutils/OS.h"
 #include <cstdint>
 
 namespace wutils::network {
@@ -42,4 +42,4 @@ using event_context_p = event_context_t *;
 } // namespace wutils::network
 
 
-#endif // UTILS_WNETWORK_DEF_H
+#endif // UTILS_NETWORK_DEF_H

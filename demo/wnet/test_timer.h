@@ -2,7 +2,7 @@
 #define UTILS_DEMO_WNET_TEST_TIMER_H
 
 #include "wutils/logger/AsyncLogger.h"
-#include "wutils/network/WChannel.h"
+#include "wutils/network/Channel.h"
 
 using namespace wutils::Log;
 
@@ -10,12 +10,12 @@ int tag = 0;
 
 inline void test_timer() {
     Logger::Init(LOG_TYPE::L_STDOUT, LDEBUG, nullptr);
-    auto handle = std::make_shared<WEpoll<WBaseChannel>>();
+    auto handle = std::make_shared<Epoll<BaseChannel>>();
     setCommonCallBack(handle.get());
 
     handle->Init();
 
-    auto timer = std::make_shared<WTimer>(handle);
+    auto timer = std::make_shared<Timer>(handle);
 
     timer->OnTime = [timer]() {
         using namespace std::chrono;

@@ -13,7 +13,7 @@
 #include <hiredis/async.h>
 #include <hiredis/hiredis.h>
 
-#include "../SharedPtr.h"
+#include "wutils/SharedPtr.h"
 
 namespace wutils {
 
