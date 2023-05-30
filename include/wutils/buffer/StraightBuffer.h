@@ -1,9 +1,11 @@
-#ifndef STRAIGHTBUFFER_H
-#define STRAIGHTBUFFER_H
+#ifndef UTILS_STRAIGHT_BUFFER_H
+#define UTILS_STRAIGHT_BUFFER_H
 
 #include "../Buffer.h"
 
 #include <vector>
+
+namespace wutils {
 
 class StraightBuffer final : public Buffer {
 public:
@@ -45,8 +47,10 @@ public:
     void ReadUntil(readcb cb) override;
 
 private:
-    std::vector<uint8_t> buffer_;
-    uint64_t             offset_{0};
+    ByteArray buffer_;
+    uint64_t  offset_{0};
 };
 
-#endif // STRAIGHTBUFFER_H
+} // namespace wutils
+
+#endif // UTILS_STRAIGHT_BUFFER_H

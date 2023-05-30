@@ -1,6 +1,6 @@
 #pragma once
-#ifndef UTILS_WDEBUGGER_H
-#define UTILS_WDEBUGGER_H
+#ifndef UTILS_DEBUGGER_H
+#define UTILS_DEBUGGER_H
 
 #include "network/Channel.h"
 #include <atomic>
@@ -120,4 +120,4 @@ private:
 
 } // namespace wutils::debug
 
-#endif // UTILS_WDEBUGGER_H
+#endif // UTILS_DEBUGGER_H

@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+namespace wutils {
+
 StraightBuffer::StraightBuffer() {}
 
 StraightBuffer::StraightBuffer(const StraightBuffer &other) : buffer_(other.buffer_), offset_(other.offset_) {}
@@ -124,3 +126,5 @@ void StraightBuffer::ReadUntil(readcb cb) {
     assert(len > this->GetReadableBytes());
     this->SkipReadBytes(len);
 }
+
+} // namespace wutils

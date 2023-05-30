@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+namespace wutils {
+
 RingBuffer::RingBuffer() {}
 
 // clang-format off
@@ -211,3 +213,5 @@ void RingBuffer::ReadUntil(readcb cb) {
         this->SkipReadBytes(len);
     } while(!this->IsEmpty() && len != 0);
 }
+
+} // namespace wutils

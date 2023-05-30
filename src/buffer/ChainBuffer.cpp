@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+namespace wutils {
+
 ChainBuffer::ChainBuffer() { this->pages_.emplace_back(); }
 
 ChainBuffer::ChainBuffer(const ChainBuffer &other) : pages_(other.pages_) {}
@@ -216,3 +218,5 @@ void ChainBuffer::check() {
         this->pages_.emplace_back();
     }
 }
+
+} // namespace wutils

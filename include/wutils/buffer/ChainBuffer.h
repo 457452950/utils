@@ -1,10 +1,13 @@
-#ifndef CHAINBUFFER_H
-#define CHAINBUFFER_H
+#ifndef UTILS_CHAIN_BUFFER_H
+#define UTILS_CHAIN_BUFFER_H
 
 #include "wutils/Buffer.h"
+#include "wutils/ByteArray.h"
 
 #include <list>
 #include <memory>
+
+namespace wutils {
 
 constexpr uint16_t PAGE_SIZE       = UINT16_MAX;             // 64kb 2^16
 constexpr uint16_t PAGE_COUNT      = 64;                     // 64   2^6
@@ -64,12 +67,14 @@ private:
      * writeable area: [w_offset, max)
      */
     struct Page {
-        std::vector<uint8_t> start;
-        uint16_t             r_offset;
-        uint16_t             w_offset;
+        ByteArray start;
+        uint16_t  r_offset;
+        uint16_t  w_offset;
         Page() : start(PAGE_SIZE, 0), r_offset(0), w_offset(0) {}
     };
     std::list<Page> pages_;
 };
 
-#endif // CHAINBUFFER_H
+} // namespace wutils
+
+#endif // UTILS_CHAIN_BUFFER_H

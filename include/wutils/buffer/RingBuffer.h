@@ -1,9 +1,12 @@
-#ifndef RINGBUFFER_H
-#define RINGBUFFER_H
+#ifndef UTILS_RING_BUFFER_H
+#define UTILS_RING_BUFFER_H
 
 #include "../Buffer.h"
+#include "wutils/ByteArray.h"
 
 #include <vector>
+
+namespace wutils {
 
 /**
  * [================================================]
@@ -63,10 +66,12 @@ public:
     void ReadUntil(readcb cb) override;
 
 private:
-    std::vector<uint8_t> buffer_;
-    uint64_t             read_offset_{0};
-    uint64_t             write_offset_{0};
-    bool                 is_full_{false};
+    ByteArray buffer_;
+    uint64_t  read_offset_{0};
+    uint64_t  write_offset_{0};
+    bool      is_full_{false};
 };
 
-#endif // RINGBUFFER_H
+} // namespace wutils
+
+#endif // UTILS_RING_BUFFER_H

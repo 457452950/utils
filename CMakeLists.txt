@@ -50,6 +50,8 @@ if (UNIX)
         add_library(
                 wutils
                 src/System.cpp
+                src/ByteArray.cpp
+
                 src/threadpool/ThreadPool.cpp
 
                 src/network/NetWorkUtils.cpp
@@ -63,6 +65,8 @@ if (UNIX)
                 src/buffer/ChainBuffer.cpp
                 src/buffer/RingBuffer.cpp
                 src/buffer/StraightBuffer.cpp
+
+                src/ssl/md5.cpp
         )
         #        target_link_libraries(wutils pthread)
 

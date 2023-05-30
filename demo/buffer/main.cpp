@@ -9,6 +9,7 @@
 
 inline void test_straightbuffer() {
     using namespace std;
+    using namespace wutils;
 
     char        temp[65536]{0};
     std::string str_temp;
@@ -182,6 +183,7 @@ inline void test_straightbuffer() {
 
 inline void test_ringbuffer() {
     using namespace std;
+    using namespace wutils;
 
     char        temp[65536]{0};
     std::string str_temp;
@@ -350,6 +352,7 @@ inline void test_ringbuffer() {
 
 inline void test_chainbuffer() {
     using namespace std;
+    using namespace wutils;
 
     char        temp[65536]{0};
     std::string str_temp;
