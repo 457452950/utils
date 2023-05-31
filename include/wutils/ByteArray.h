@@ -13,6 +13,8 @@ class ByteArrayView;
 class ByteArray final {
 public:
     ByteArray();
+    ByteArray(const ByteArray &other);
+    ByteArray(ByteArray &&other) noexcept;
     explicit ByteArray(uint64_t len, uint8_t value);
     explicit ByteArray(const uint8_t *data, uint64_t len);
     ~ByteArray() = default;
@@ -41,12 +43,16 @@ public:
     ByteArrayView(const uint8_t *data, uint64_t len);
     ~ByteArrayView() = default;
 
+    ByteArrayView(ByteArrayView &&other) = delete;
+    ByteArrayView(ByteArray &&other)     = delete;
+
     ByteArray toByteArray();
 
     auto data() const { return this->pointer_; }
     auto size() const { return this->len_; }
 
     ByteArrayView sliced(uint64_t start, uint64_t end);
+    ByteArrayView sliced(uint64_t start);
 
 private:
     const uint8_t *pointer_{nullptr};

@@ -2,6 +2,7 @@
 #define UTILS_DEMO_WNET_TEST_TCPCHANNEL_H
 
 #include <iostream>
+#include <utility>
 
 #include "wutils/network/NetWork.h"
 
@@ -55,17 +56,11 @@ inline auto out_cb = [](socket_t sock, BaseChannel *data) {
 
 class TestSession : public Channel::Listener {
 public:
-    TestSession(std::shared_ptr<Channel> ch_) : ch(ch_) {}
-    virtual void onChannelDisConnect() { this->ch.reset(); }
-    virtual void onReceive(const uint8_t *message, uint64_t message_len) {
+    TestSession(std::shared_ptr<Channel> ch_) : ch(std::move(ch_)) {}
+
+    void onChannelDisConnect() override { this->ch.reset(); }
+    void onReceive(const uint8_t *message, uint64_t message_len) override {
         // cout << "recv " << std::string((char *)message, (int)message_len) << " size " << message_len << endl;
-        ch->Send(message, message_len);
-        ch->Send(message, message_len);
-        ch->Send(message, message_len);
-        ch->Send(message, message_len);
-        ch->Send(message, message_len);
-        ch->Send(message, message_len);
-        ch->Send(message, message_len);
         ch->Send(message, message_len);
     }
     virtual void onError(const char *err_message) { std::cout << err_message << endl; }
@@ -83,7 +78,7 @@ inline auto ac_cb = [](const EndPointInfo &local, const EndPointInfo &remote, st
 
     cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
     auto ch = std::make_shared<Channel>(local, remote, std::move(handler));
-    ch->SetRecvBufferMaxSize(10, 1000);
+    ch->SetRecvBufferMaxSize(16000);
     se = std::make_shared<TestSession>(ch);
     ch->SetListener(se);
 };

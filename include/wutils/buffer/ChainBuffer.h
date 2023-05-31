@@ -1,11 +1,18 @@
 #ifndef UTILS_CHAIN_BUFFER_H
 #define UTILS_CHAIN_BUFFER_H
 
+#include <list>
+#include <memory>
+
+#ifdef OS_IS_LINUX
+#include <bits/types/struct_iovec.h>
+#include <sys/uio.h>
+#endif
+
+
 #include "wutils/Buffer.h"
 #include "wutils/ByteArray.h"
 
-#include <list>
-#include <memory>
 
 namespace wutils {
 
@@ -53,6 +60,12 @@ public:
 
     void WriteUntil(writecb cb) override;
     void ReadUntil(readcb cb) override;
+
+#ifdef OS_IS_LINUX
+    // TODO:
+    // const iovec *GetIOVec() const;
+
+#endif
 
 private:
     void check();

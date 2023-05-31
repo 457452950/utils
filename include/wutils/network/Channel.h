@@ -10,6 +10,7 @@
 #include "Select.h"
 #include "stdIOVec.h"
 
+#include "wutils/Buffer.h"
 #include "wutils/SharedPtr.h"
 
 namespace wutils::network {
@@ -223,23 +224,23 @@ protected:
 public:
     uint64_t GetRecvBufferSize() const { return max_recv_buf_size_; }
     uint64_t GetSendBufferSize() const { return max_send_buf_size_; }
-    void     SetRecvBufferMaxSize(int page_count, int page_size);
-    void     SetSendBufferMaxSize(int page_count, int page_size);
+    void     SetRecvBufferMaxSize(uint64_t max_size);
+    void     SetSendBufferMaxSize(uint64_t max_size);
 
 private:
     // receive buffer
-    IOVec    recv_buf;
-    uint64_t max_recv_buf_size_{0};
+    RingBuffer recv_buf;
+    uint64_t   max_recv_buf_size_{0};
     // send buffer
-    IOVec    send_buf;
-    uint64_t max_send_buf_size_{0};
+    RingBuffer send_buf;
+    uint64_t   max_send_buf_size_{0};
 
 protected:
     // can override
     void ChannelIn() override;
     void ChannelOut() override;
     void onChannelClose();
-    void onChannelError(uint64_t error_code);
+    void onChannelError(int error_code);
 };
 
 

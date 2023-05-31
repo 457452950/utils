@@ -361,7 +361,7 @@ void Channel::Send(const uint8_t *send_message, uint32_t message_len) {
         // push data to buf
         auto l = this->send_buf.Write(send_message, message_len);
         if(l != message_len) {
-            this->onChannelError(EAGAIN);
+            abort();
             return;
         }
 
@@ -376,20 +376,23 @@ void Channel::Send(const uint8_t *send_message, uint32_t message_len) {
     // try to send
     auto res = ::send(this->event_handler_->socket_, send_message, message_len, 0);
     if(res < 0) {
-        this->onChannelError(GetError());
+        auto eno = GetError();
+        if(eno == EAGAIN || eno == EWOULDBLOCK) {
+        } else {
+            this->onChannelError(GetError());
+        }
         return;
     }
 
-
     if(res < message_len) {
         if(max_send_buf_size_ == 0) {
-            this->onChannelError(EAGAIN);
+            abort();
             return;
         }
 
         auto l = this->send_buf.Write(send_message + res, message_len - (uint32_t)res);
         if(l != (message_len - res)) {
-            this->onChannelError(EAGAIN);
+            abort();
             return;
         }
 
@@ -397,53 +400,46 @@ void Channel::Send(const uint8_t *send_message, uint32_t message_len) {
         events |= (HandlerEventType::EV_OUT);
         this->event_handler_->SetEvents(events);
     } else {
-        // std::cout << "send all " << res << std::endl;
+        //        std::cout << "send all " << message_len << std::endl;
     }
 }
 
-void Channel::SetRecvBufferMaxSize(int page_count, int page_size) {
-    this->max_recv_buf_size_ = page_count * page_size;
-    assert(this->max_recv_buf_size_ <= MAX_CHANNEL_RECV_BUFFER_SIZE);
+void Channel::SetRecvBufferMaxSize(uint64_t max_size) {
+    this->max_recv_buf_size_ = std::min<uint64_t>(max_size, MAX_CHANNEL_RECV_BUFFER_SIZE);
 
-    recv_buf.Init(page_count, page_size);
+    recv_buf.Init(this->max_recv_buf_size_);
 }
 
-void Channel::SetSendBufferMaxSize(int page_count, int page_size) {
-    this->max_send_buf_size_ = page_count * page_size;
-    assert(this->max_send_buf_size_ <= MAX_CHANNEL_SEND_BUFFER_SIZE);
+void Channel::SetSendBufferMaxSize(uint64_t max_size) {
+    this->max_send_buf_size_ = std::min<uint64_t>(max_size, MAX_CHANNEL_SEND_BUFFER_SIZE);
 
-    send_buf.Init(page_count, page_size);
+    send_buf.Init(this->max_send_buf_size_);
 }
 
 void Channel::ChannelIn() {
     assert(this->event_handler_);
     assert(this->max_recv_buf_size_);
+    assert(this->recv_buf.GetWriteableBytes() != 0);
+    assert(!this->listener_.expired());
 
     ssize_t recv_len = 0;
-
-    recv_len = recv_buf.Write([&](iovec *vec, int len) -> int64_t {
-        auto rcv_len = readv(this->event_handler_->socket_, vec, len);
-
-        if(rcv_len == 0) {
-            this->onChannelClose();
-        } else if(rcv_len < 0) {
-            this->onChannelError(GetError());
+    recv_len = ::recv(this->event_handler_->socket_, this->recv_buf.PeekWrite(), this->recv_buf.GetWriteableBytes(), 0);
+    //    std::cout << "Channel ChannelIn recv_len " << recv_len << std::endl;
+    if(recv_len == 0) { // has emitted in recv_buf.Write
+        this->onChannelClose();
+        return;
+    } else if(recv_len == -1) {
+        auto eno = GetError();
+        if(eno == EAGAIN || eno == EWOULDBLOCK) {
+        } else {
+            this->onChannelError(eno);
         }
-
-        return rcv_len;
-    });
-    if(recv_len <= 0) { // has emitted in recv_buf.Write
-        std::cout << "Channel ChannelIn recv_len " << recv_len << std::endl;
         return;
     }
 
+    this->recv_buf.UpdateWriteBytes(recv_len);
 
-    if(this->listener_.expired()) {
-        std::cout << "Channel::ChannelIn() listener is nullptr." << std::endl;
-        return;
-    }
-
-    recv_buf.Read([&](const uint8_t *msg, uint32_t len) -> int64_t {
+    recv_buf.ReadUntil([&](const uint8_t *msg, uint32_t len) -> int64_t {
         this->listener_.lock()->onReceive(msg, len);
         return len;
     });
@@ -452,29 +448,38 @@ void Channel::ChannelIn() {
 
 // can write
 void Channel::ChannelOut() {
-    // std::cout << "Channel::ChannelOut " << std::endl;
-
     assert(this->event_handler_);
 
+    // 无缓冲设计或无缓冲数据
     if(this->max_send_buf_size_ == 0 || this->send_buf.IsEmpty()) {
         auto events = this->event_handler_->GetEvents();
-        events &= (!HandlerEventType::EV_OUT);
+        events |= (~HandlerEventType::EV_OUT);
         this->event_handler_->SetEvents(events);
         return;
     }
 
-    send_buf.Read([&](const iovec *vec, int len) {
-        auto send_len = ::writev(this->event_handler_->socket_, vec, len);
+    // 发送缓冲数据
+    send_buf.ReadUntil([&](const uint8_t *data, int len) -> int64_t {
+        auto send_len = ::send(this->event_handler_->socket_, data, len, 0);
+        if(send_len == 0) {
+            this->onChannelClose();
+            return 0;
+        }
         if(send_len < 0) {
+            auto eno = GetError();
+            if(eno == EAGAIN || eno == EWOULDBLOCK) {
+                return 0;
+            }
             this->onChannelError(GetError());
         }
 
         return send_len;
     });
 
+    // 无缓冲数据时，停止
     if(this->send_buf.IsEmpty()) {
         auto events = this->event_handler_->GetEvents();
-        events      = events & (!HandlerEventType::EV_OUT);
+        events      = events | (~HandlerEventType::EV_OUT);
         this->event_handler_->SetEvents(events);
     }
 }
@@ -484,7 +489,7 @@ void Channel::onChannelClose() {
         this->listener_.lock()->onChannelDisConnect();
 }
 
-void Channel::onChannelError(uint64_t error_code) {
+void Channel::onChannelError(int error_code) {
     std::cout << "error " << ErrorToString(error_code) << std::endl;
     if(!this->listener_.expired())
         this->listener_.lock()->onError(ErrorToString(error_code));
