@@ -19,6 +19,9 @@ public:
     explicit ByteArray(const uint8_t *data, uint64_t len);
     ~ByteArray() = default;
 
+    ByteArray &operator=(const ByteArray &other) = default;
+
+
     auto size() const { return this->buffer_.size(); }
     void resize(uint64_t new_size) { this->buffer_.resize(new_size); }
     void clear() { this->buffer_.clear(); }
@@ -30,8 +33,12 @@ public:
     auto begin() { return this->buffer_.begin(); }
     auto end() { return this->buffer_.end(); }
 
-    void append(uint8_t *data, uint64_t len);
+    void append(const uint8_t *data, uint64_t len);
     void append(ByteArrayView view);
+    void append(const ByteArray &other);
+
+    ByteArray sliced(uint64_t start, uint64_t end);
+    ByteArray sliced(uint64_t start);
 
 private:
     std::vector<uint8_t> buffer_;
@@ -39,9 +46,11 @@ private:
 
 class ByteArrayView final {
 public:
+    ~ByteArrayView()                     = default;
+    ByteArrayView(const ByteArrayView &) = default;
     ByteArrayView(const ByteArray &array);
     ByteArrayView(const uint8_t *data, uint64_t len);
-    ~ByteArrayView() = default;
+
 
     ByteArrayView(ByteArrayView &&other) = delete;
     ByteArrayView(ByteArray &&other)     = delete;

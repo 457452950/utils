@@ -5,9 +5,11 @@ namespace wutils {
 ByteArray::ByteArray() : buffer_() {}
 ByteArray::ByteArray(uint64_t len, uint8_t value) : buffer_(len, value) {}
 ByteArray::ByteArray(const uint8_t *data, uint64_t len) : buffer_(data, data + len) {}
+ByteArray::ByteArray(ByteArray &&other) noexcept : buffer_(other.buffer_) {}
+ByteArray::ByteArray(const ByteArray &other) : buffer_(other.buffer_) {}
 
 
-void ByteArray::append(uint8_t *data, uint64_t len) {
+void ByteArray::append(const uint8_t *data, uint64_t len) {
     auto olen = this->buffer_.size();
 
     this->buffer_.resize(olen + len);
@@ -23,10 +25,13 @@ void ByteArray::append(ByteArrayView view) {
     std::copy(view.data(), view.data() + view.size(), &this->buffer_[olen]);
 }
 
-ByteArray::ByteArray(ByteArray &&other) noexcept : buffer_(other.buffer_) {}
-
-ByteArray::ByteArray(const ByteArray &other) : buffer_(other.buffer_) {}
-
+void ByteArray::append(const ByteArray &other) {
+    auto old_len = this->buffer_.size();
+    this->buffer_.resize(old_len + other.size());
+    std::copy(other.buffer_.begin(), other.buffer_.end(), this->buffer_.data() + old_len);
+}
+ByteArray ByteArray::sliced(uint64_t start, uint64_t end) { return ByteArray(this->data() + start, end - start); }
+ByteArray ByteArray::sliced(uint64_t start) { return ByteArray(this->data() + start, this->size() - start); }
 
 ByteArrayView::ByteArrayView(const ByteArray &array) : pointer_(array.data()), len_(array.size()) {}
 
