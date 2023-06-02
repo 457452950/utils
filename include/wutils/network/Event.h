@@ -93,10 +93,10 @@ template <typename UserData>
 inline void EventHandle<UserData>::EventHandler::DisEnable() {
     assert(!this->handle_.expired());
     if(!enable_) {
-        std::cout << "EventHandle<UserData>::EventHandler::DisEnable is not enable now " << std::endl;
         return;
     }
     this->handle_.lock()->DelSocket(this);
+    this->enable_ = false;
 }
 
 template <typename UserData>
@@ -123,6 +123,9 @@ inline auto EventHandle<UserData>::EventHandler::GetEvents() {
 
 template <typename UserData>
 inline EventHandle<UserData>::EventHandler::~EventHandler() {
+    if(this->IsEnable()) {
+        this->DisEnable();
+    }
     ::close(this->socket_);
 }
 

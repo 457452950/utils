@@ -322,7 +322,6 @@ bool UDPChannel::Send(const uint8_t *send_message, uint32_t message_len) {
 
 Channel::Channel(const EndPointInfo &local, const EndPointInfo &remote, std::unique_ptr<ev_hdler_t> h) :
     local_endpoint_(local), remote_endpoint_(remote), event_handler_(std::move(h)) {
-    DEBUGADD("Channel");
 
     assert(this->event_handler_);
 
@@ -335,9 +334,8 @@ Channel::Channel(const EndPointInfo &local, const EndPointInfo &remote, std::uni
 }
 
 Channel::~Channel() {
-    DEBUGRM("Channel");
-    auto [ip, port] = EndPointInfo::Dump(this->remote_endpoint_);
-    std::cout << "Channel" << ip << port << std::endl;
+    this->event_handler_->DisEnable();
+    this->ShutDown(SHUT_RDWR);
 }
 
 bool Channel::Init() { return true; }
@@ -350,8 +348,6 @@ void Channel::ShutDown(int how) {
 
     ::shutdown(this->event_handler_->socket_, how);
 }
-
-void Channel::CloseChannel() {}
 
 void Channel::Send(const uint8_t *send_message, uint32_t message_len) {
     assert(message_len <= MAX_CHANNEL_SEND_SIZE);

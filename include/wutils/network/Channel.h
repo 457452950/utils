@@ -191,7 +191,6 @@ public:
 
     bool Init();
     void ShutDown(int how); // Async
-    void CloseChannel();    // TODO: Sync
 
     virtual void Send(const uint8_t *send_message, uint32_t message_len);
 
