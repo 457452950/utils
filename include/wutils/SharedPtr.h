@@ -9,6 +9,7 @@ namespace wutils {
 using std::enable_shared_from_this;
 using std::make_shared;
 using std::shared_ptr;
+using std::static_pointer_cast;
 
 using std::weak_ptr;
 

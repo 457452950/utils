@@ -116,7 +116,7 @@ bool SetTcpSocketNoDelay(socket_t socket);
 
 // IP + port + family
 struct EndPointInfo {
-
+    
     static EndPointInfo *MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family);
 
     bool Assign(const std::string &address, uint16_t port, AF_FAMILY family);

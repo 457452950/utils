@@ -106,7 +106,6 @@ void Logger::Loop() {
         }
 
         const std::string &str = log_string_list_.front();
-        log_string_list_.pop_front();
 
         if(this->log_type_ & LOG_TYPE::L_FILE) {
             file_stream_ << str;
@@ -116,6 +115,7 @@ void Logger::Loop() {
             std::cout << str;
             std::cout.flush();
         }
+        log_string_list_.pop_front();
 
         if((++check_times_ %= max_check_times) == 0) {
             if(getFileSize() >= max_file_size_) {
