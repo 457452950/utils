@@ -421,7 +421,7 @@ EndPointInfo *EndPointInfo::Emplace(const sockaddr *addr, AF_FAMILY family) {
     case AF_INET6:
         memcpy(info->addr_, addr, sizeof(sockaddr_in6));
     default:
-        assert("never acheive");
+        assert("never achieve");
         break;
     }
 

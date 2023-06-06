@@ -3,6 +3,8 @@
 
 #include <functional>
 
+namespace wutils {
+
 class Helper {
 public:
     Helper(std::function<void()> f) : f_(f){};
@@ -12,7 +14,9 @@ public:
 
 #define DEFER(func)                                                                                                    \
     do {                                                                                                               \
-        std::make_shared<Helper>(func);                                                                                \
+        std::make_shared<wutils::Helper>(func);                                                                        \
     } while(0)
+
+} // namespace wutils
 
 #endif // DEFER_H

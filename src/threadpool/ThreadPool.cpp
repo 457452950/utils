@@ -36,12 +36,12 @@ void ThreadPool::Destroy() {
     }
 }
 
-void ThreadPool::AddTask(const user_function_t &function, user_data_t user_data) {
+void ThreadPool::AddTask(Task_f function) {
     {
         std::unique_lock<std::mutex> _unique_lock(this->mutex_);
-        this->tasks_.emplace(function, user_data);
+        this->tasks_.push(std::move(function));
     }
-    this->condition_.notify_all();
+    this->cv_.notify_all();
 }
 
 void ThreadPool::ConsumerThread() {
@@ -57,20 +57,20 @@ void ThreadPool::ConsumerThread() {
             if(!this->is_active_) {
                 return;
             }
-            this->condition_.wait(_unique_lock);
+            this->cv_.wait(_unique_lock);
         }
 
         if(!this->is_active_) {
             break;
         }
 
-        task _task = std::move(this->tasks_.front());
+        auto _task = this->tasks_.front();
         this->tasks_.pop();
 
         _unique_lock.unlock();
 
-        if(_task._function) {
-            _task._function(_task._userData);
+        if(_task) {
+            _task();
         }
     }
 }

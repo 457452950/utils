@@ -91,7 +91,7 @@ private:
 
     std::thread                *thread_{nullptr};
     std::recursive_mutex        mutex_;
-    std::condition_variable_any con_variable_;
+    std::condition_variable_any cv_;
 
     // Logger helper
 public:

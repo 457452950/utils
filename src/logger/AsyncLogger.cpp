@@ -58,7 +58,7 @@ void Logger::Stop() {
     }
     this_->mutex_.unlock();
 
-    this_->con_variable_.notify_all();
+    this_->cv_.notify_all();
 }
 
 void Logger::Wait2Exit() {
@@ -98,7 +98,7 @@ void Logger::Loop() {
         std::unique_lock<std::recursive_mutex> ulock(mutex_);
 
         while(log_string_list_.empty()) {
-            con_variable_.wait(ulock);
+            cv_.wait(ulock);
             //
             if(!running_ && log_string_list_.empty()) {
                 return;
@@ -145,7 +145,7 @@ void Logger::commit() {
     string_stream_.clear();
 
     mutex_.unlock();
-    con_variable_.notify_all();
+    cv_.notify_all();
 }
 
 } // namespace wutils::Log

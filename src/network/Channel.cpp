@@ -53,7 +53,7 @@ void Timer::ChannelIn() {
 }
 
 bool Timer::Start(long time_value, long interval) {
-    struct itimerspec next_time = {0};
+    struct itimerspec next_time;
 
     next_time.it_value.tv_sec     = time_value / 1000L;
     next_time.it_value.tv_nsec    = (time_value % 1000L) * 1000'000L;
@@ -115,7 +115,6 @@ bool wutils::network::AcceptorChannel::Start(const EndPointInfo &local_endpoint,
 }
 
 void AcceptorChannel::ChannelIn() {
-    std::cout << "accept channel in" << std::endl;
     assert(this->handler_);
 
     EndPointInfo ei;

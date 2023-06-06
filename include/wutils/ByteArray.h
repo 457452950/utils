@@ -26,8 +26,8 @@ public:
     void resize(uint64_t new_size) { this->buffer_.resize(new_size); }
     void clear() { this->buffer_.clear(); }
 
-    auto data() { return this->buffer_.data(); }
-    auto data() const { return this->buffer_.data(); }
+    uint8_t       *data() { return this->buffer_.data(); }
+    const uint8_t *data() const { return this->buffer_.data(); }
 
     // iterator
     auto begin() { return this->buffer_.begin(); }
@@ -37,7 +37,7 @@ public:
     void append(ByteArrayView view);
     void append(const ByteArray &other);
 
-    ByteArray sliced(uint64_t start, uint64_t end);
+    ByteArray sliced(uint64_t start, uint64_t len);
     ByteArray sliced(uint64_t start);
 
 private:
@@ -57,15 +57,15 @@ public:
 
     ByteArray toByteArray();
 
-    auto data() const { return this->pointer_; }
-    auto size() const { return this->len_; }
+    const uint8_t *data() const { return this->pointer_; }
+    uint64_t       size() const { return this->len_; }
 
-    ByteArrayView sliced(uint64_t start, uint64_t end);
+    ByteArrayView sliced(uint64_t start, uint64_t len);
     ByteArrayView sliced(uint64_t start);
 
 private:
     const uint8_t *pointer_{nullptr};
-    uint64_t       len_;
+    uint64_t       len_{0};
 };
 
 
