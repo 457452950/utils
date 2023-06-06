@@ -228,11 +228,11 @@ public:
 
 private:
     // receive buffer
-    RingBuffer recv_buf;
-    uint64_t   max_recv_buf_size_{0};
+    shared_ptr<RingBuffer> recv_buf{new RingBuffer()};
+    uint64_t               max_recv_buf_size_{0};
     // send buffer
-    RingBuffer send_buf;
-    uint64_t   max_send_buf_size_{0};
+    shared_ptr<RingBuffer> send_buf{new RingBuffer()};
+    uint64_t               max_send_buf_size_{0};
 
 protected:
     // can override

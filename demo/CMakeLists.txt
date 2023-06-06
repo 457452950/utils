@@ -10,6 +10,7 @@ if (LINUX)
     add_subdirectory(libevent)
     add_subdirectory(safe)
     add_subdirectory(buffer)
+    add_subdirectory(json)
 endif ()
 
 if (WINDOWS)

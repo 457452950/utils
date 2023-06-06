@@ -352,9 +352,9 @@ void Channel::Send(const uint8_t *send_message, uint32_t message_len) {
     assert(message_len <= MAX_CHANNEL_SEND_SIZE);
 
     // has buf
-    if(max_send_buf_size_ != 0 && !send_buf.IsEmpty() > 0) {
+    if(max_send_buf_size_ != 0 && !send_buf->IsEmpty() > 0) {
         // push data to buf
-        auto l = this->send_buf.Write(send_message, message_len);
+        auto l = this->send_buf->Write(send_message, message_len);
         if(l != message_len) {
             abort();
             return;
@@ -385,7 +385,7 @@ void Channel::Send(const uint8_t *send_message, uint32_t message_len) {
             return;
         }
 
-        auto l = this->send_buf.Write(send_message + res, message_len - (uint32_t)res);
+        auto l = this->send_buf->Write(send_message + res, message_len - (uint32_t)res);
         if(l != (message_len - res)) {
             abort();
             return;
@@ -402,25 +402,26 @@ void Channel::Send(const uint8_t *send_message, uint32_t message_len) {
 void Channel::SetRecvBufferMaxSize(uint64_t max_size) {
     this->max_recv_buf_size_ = std::min<uint64_t>(max_size, MAX_CHANNEL_RECV_BUFFER_SIZE);
 
-    recv_buf.Init(this->max_recv_buf_size_);
+    recv_buf->Init(this->max_recv_buf_size_);
 }
 
 void Channel::SetSendBufferMaxSize(uint64_t max_size) {
     this->max_send_buf_size_ = std::min<uint64_t>(max_size, MAX_CHANNEL_SEND_BUFFER_SIZE);
 
-    send_buf.Init(this->max_send_buf_size_);
+    send_buf->Init(this->max_send_buf_size_);
 }
 
 void Channel::ChannelIn() {
     assert(this->event_handler_);
     assert(this->max_recv_buf_size_);
-    assert(this->recv_buf.GetWriteableBytes() != 0);
+    assert(this->recv_buf->GetWriteableBytes() != 0);
     assert(!this->listener_.expired());
 
-    ssize_t recv_len = 0;
-    recv_len = ::recv(this->event_handler_->socket_, this->recv_buf.PeekWrite(), this->recv_buf.GetWriteableBytes(), 0);
-    //    std::cout << "Channel ChannelIn recv_len " << recv_len << std::endl;
-    if(recv_len == 0) { // has emitted in recv_buf.Write
+    auto r_buff = recv_buf;
+
+    int64_t recv_len = 0;
+    recv_len         = ::recv(this->event_handler_->socket_, r_buff->PeekWrite(), r_buff->GetWriteableBytes(), 0);
+    if(recv_len == 0) { // has emitted in recv_buf->Write
         this->onChannelClose();
         return;
     } else if(recv_len == -1) {
@@ -432,13 +433,17 @@ void Channel::ChannelIn() {
         return;
     }
 
-    this->recv_buf.UpdateWriteBytes(recv_len);
+    r_buff->UpdateWriteBytes(recv_len);
 
-    recv_buf.ReadUntil([&](const uint8_t *msg, uint32_t len) -> int64_t {
+    r_buff->ReadUntil([&](const uint8_t *msg, uint32_t len) -> int64_t {
         this->listener_.lock()->onReceive(msg, len);
         return len;
     });
-    assert(this->recv_buf.IsEmpty());
+
+    //    while(!this->recv_buf->IsEmpty()) {
+    //        this->listener_.lock()->onReceive(this->recv_buf->ConstPeekRead(), this->recv_buf->GetReadableBytes());
+    //        this->recv_buf->SkipReadBytes(this->recv_buf->GetReadableBytes());
+    //    }
 }
 
 // can write
@@ -446,7 +451,7 @@ void Channel::ChannelOut() {
     assert(this->event_handler_);
 
     // 无缓冲设计或无缓冲数据
-    if(this->max_send_buf_size_ == 0 || this->send_buf.IsEmpty()) {
+    if(this->max_send_buf_size_ == 0 || this->send_buf->IsEmpty()) {
         auto events = this->event_handler_->GetEvents();
         events |= (~HandlerEventType::EV_OUT);
         this->event_handler_->SetEvents(events);
@@ -454,7 +459,7 @@ void Channel::ChannelOut() {
     }
 
     // 发送缓冲数据
-    send_buf.ReadUntil([&](const uint8_t *data, int len) -> int64_t {
+    send_buf->ReadUntil([&](const uint8_t *data, int len) -> int64_t {
         auto send_len = ::send(this->event_handler_->socket_, data, len, 0);
         if(send_len == 0) {
             this->onChannelClose();
@@ -472,7 +477,7 @@ void Channel::ChannelOut() {
     });
 
     // 无缓冲数据时，停止
-    if(this->send_buf.IsEmpty()) {
+    if(this->send_buf->IsEmpty()) {
         auto events = this->event_handler_->GetEvents();
         events      = events | (~HandlerEventType::EV_OUT);
         this->event_handler_->SetEvents(events);
