@@ -60,12 +60,13 @@ public:
     Select()  = default;
     ~Select() = default;
 
-    using EventHandler = typename EventHandle<UserData>::EventHandler;
+    using EventHandler   = typename EventHandle<UserData>::EventHandler;
+    using EventHandler_p = shared_ptr<EventHandler>;
 
     // control
-    bool AddSocket(EventHandler *handler) override;
-    bool ModifySocket(EventHandler *handler) override;
-    void DelSocket(EventHandler *handler) override;
+    bool AddSocket(EventHandler_p handler) override;
+    bool ModifySocket(EventHandler_p handler) override;
+    void DelSocket(EventHandler_p handler) override;
     // thread control
     bool Init() override;
     void Loop() override;
@@ -91,8 +92,8 @@ private:
     fd_set_type read_set_{};
     fd_set_type write_set_{};
 
-    std::unordered_set<EventHandler *> handler_set;
-    std::stack<EventHandler *>         rubish_stack_;
+    std::unordered_set<EventHandler_p> handler_set;
+    std::set<EventHandler_p>           rubish_map_;
     uint32_t                           fd_count_{0};
     socket_t                           max_fd_number{0};
 
@@ -102,7 +103,7 @@ private:
 
 
 template <typename UserData>
-bool Select<UserData>::AddSocket(EventHandler *handler) {
+bool Select<UserData>::AddSocket(EventHandler_p handler) {
     // select fd 上限 1024
     if(this->fd_count_ >= 1024) {
         return false;
@@ -118,7 +119,7 @@ bool Select<UserData>::AddSocket(EventHandler *handler) {
 }
 
 template <typename UserData>
-bool Select<UserData>::ModifySocket(EventHandler *handler) {
+bool Select<UserData>::ModifySocket(EventHandler_p handler) {
     auto it = handler_set.find(handler);
     if(it != handler_set.end()) { // found
         ParseAndSetEvents(handler->socket_, handler->GetEvents());
@@ -128,13 +129,13 @@ bool Select<UserData>::ModifySocket(EventHandler *handler) {
 }
 
 template <typename UserData>
-void Select<UserData>::DelSocket(EventHandler *handler) {
+void Select<UserData>::DelSocket(EventHandler_p handler) {
     auto it = this->handler_set.find(handler);
     if(it == this->handler_set.end()) {
         return;
     }
 
-    this->rubish_stack_.push(handler);
+    this->rubish_map_.insert(handler);
 
     SetDelFd(handler->socket_, &read_set_);
     SetDelFd(handler->socket_, &write_set_);
@@ -193,13 +194,22 @@ void Select<UserData>::EventLoop() {
         // 迭代器失效
 
         for(auto it = this->handler_set.begin(); it != temp_end; ++it) {
-            EventHandler *i = it.operator*();
+            EventHandler_p i = it.operator*();
+
+            if(this->rubish_map_.count(i)) {
+                break;
+            }
 
             if(this->write_) {
                 if(SetCheckFd(i->socket_, &write_set_)) {
                     this->write_(i->socket_, i->user_data_);
                 }
             }
+
+            if(this->rubish_map_.count(i)) {
+                break;
+            }
+
             if(this->read_) {
                 if(SetCheckFd(i->socket_, &read_set_)) {
                     this->read_(i->socket_, i->user_data_);
@@ -207,10 +217,10 @@ void Select<UserData>::EventLoop() {
             }
         }
 
-        while(!this->rubish_stack_.empty()) {
-            this->handler_set.erase(this->rubish_stack_.top());
-            this->rubish_stack_.pop();
+        while(!this->rubish_map_.empty()) {
+            this->handler_set.erase(this->rubish_map_.begin().operator*());
         }
+        this->rubish_map_.clear();
     }
 };
 

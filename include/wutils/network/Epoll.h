@@ -7,7 +7,9 @@
 #include <functional>
 #include <iostream>
 #include <list>
+#include <map>
 #include <mutex>
+#include <set>
 #include <thread>
 
 #include <sys/epoll.h>
@@ -169,13 +171,14 @@ public:
     Epoll();
     ~Epoll();
 
-    using EventHandler = typename EventHandle<UserData>::EventHandler;
+    using EventHandler   = typename EventHandle<UserData>::EventHandler;
+    using EventHandler_p = shared_ptr<EventHandler>;
 
 
     // control
-    bool AddSocket(EventHandler *handler) override;
-    bool ModifySocket(EventHandler *handler) override;
-    void DelSocket(EventHandler *handler) override;
+    bool AddSocket(EventHandler_p handler) override;
+    bool ModifySocket(EventHandler_p handler) override;
+    void DelSocket(EventHandler_p handler) override;
 
     bool Init() override;
     void Loop() override;
@@ -185,13 +188,26 @@ public:
 private:
     static uint32_t ParseToEpollEvent(uint8_t events);
     void            EventLoop();
+    void            DelCrash();
 
 private:
     BaseEpoll ep;
     uint32_t  fd_count_{0};
     int       wakeup_fd_{-1}; // event_fd
     bool      active_{false};
+
+    std::map<EventHandler *, EventHandler_p> ready_to_del_;
 };
+template <typename UserData>
+void Epoll<UserData>::DelCrash() {
+    for(auto &item : ready_to_del_) {
+        if(!this->ep.RemoveSocket(item.first->socket_)) {
+            return;
+        }
+        --this->fd_count_;
+    }
+    this->ready_to_del_.clear();
+}
 
 
 template <typename UserData>
@@ -229,10 +245,19 @@ bool Epoll<UserData>::Init() {
 
 
 template <typename UserData>
-bool Epoll<UserData>::AddSocket(EventHandler *handler) {
+bool Epoll<UserData>::AddSocket(EventHandler_p handler) {
+    //    std::cout << "Add Socket " << handler.get() << std::endl;
+
+    auto it = this->ready_to_del_.find(handler.get());
+    if(it != this->ready_to_del_.end()) {
+        ep.RemoveSocket(handler->socket_);
+        this->ready_to_del_.erase(it);
+        --this->fd_count_;
+    }
+
     epoll_data_t ep_data;
 
-    ep_data.ptr = handler;
+    ep_data.ptr = handler.get();
     auto ev     = this->ParseToEpollEvent(handler->GetEvents());
 
     if(!ep.AddSocket(handler->socket_, ev, ep_data)) {
@@ -245,8 +270,9 @@ bool Epoll<UserData>::AddSocket(EventHandler *handler) {
 }
 
 template <typename UserData>
-bool Epoll<UserData>::ModifySocket(EventHandler *handler) {
-    epoll_data_t ep_data;
+bool Epoll<UserData>::ModifySocket(EventHandler_p handler) {
+    //    std::cout << "Mod Socket " << handler.get() << std::endl;
+    epoll_data_t ep_data{.ptr = nullptr};
 
     ep_data.ptr = handler->user_data_;
     auto ev     = this->ParseToEpollEvent(handler->GetEvents());
@@ -255,13 +281,9 @@ bool Epoll<UserData>::ModifySocket(EventHandler *handler) {
 }
 
 template <typename UserData>
-void Epoll<UserData>::DelSocket(EventHandler *handler) {
-
-    if(!this->ep.RemoveSocket(handler->socket_)) {
-        return;
-    }
-
-    --this->fd_count_;
+void Epoll<UserData>::DelSocket(EventHandler_p handler) {
+    //    std::cout << "Del Socket " << handler.get() << std::endl;
+    this->ready_to_del_.insert({handler.get(), handler});
 }
 
 template <typename UserData>
@@ -278,6 +300,7 @@ inline void Epoll<UserData>::Stop() {
 
 template <typename UserData>
 inline void Epoll<UserData>::Wake() {
+    //    std::cout << "Epoll Wake" << std::endl;
     eventfd_write(this->wakeup_fd_, 1);
 }
 
@@ -303,6 +326,7 @@ void Epoll<UserData>::EventLoop() {
         int events_size = fd_count_;
         events.reset(new epoll_event[events_size]);
 
+        //        std::cout << "epoll wait !!! " << fd_count_ << std::endl;
         events_size = ep.GetEvents(events.get(), events_size, -1);
 
         if(!this->active_) {
@@ -329,24 +353,39 @@ void Epoll<UserData>::EventLoop() {
             uint32_t ev   = events[i].events;
             auto    *data = (typename EventHandle<UserData>::EventHandler *)events[i].data.ptr;
 
+            assert(this->wakeup_fd_ != events[i].data.fd);
+
+            if(this->ready_to_del_.count(data)) {
+                break;
+            }
+
+            //            std::cout << "data " << data << std::endl;
             assert(data);
+            assert(data->socket_ > 0);
             socket_t sock = data->socket_;
             uint8_t  eev  = data->GetEvents();
-
-            assert(sock > 0);
 
             // FIXME: write_ 中可能释放 data
             if(ev & EPOLLOUT && eev & HandlerEventType::EV_OUT) {
                 if(this->write_) {
+                    //                    std::cout << "write " << data << std::endl;
                     this->write_(sock, data->user_data_);
                 }
             }
+
+            if(this->ready_to_del_.count(data)) {
+                break;
+            }
+
             if(ev & EPOLLIN && eev & HandlerEventType::EV_IN) {
                 if(this->read_) {
+                    //                    std::cout << "read " << data << std::endl;
                     this->read_(sock, data->user_data_);
                 }
             }
         }
+
+        this->DelCrash();
     }
 }
 

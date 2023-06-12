@@ -11,6 +11,7 @@
 #include "test_wepoll.h"
 #include "test_wselect.h"
 
+#include "test_aschannel.h"
 #include "test_mychannel.h"
 #include "test_tcpchannel.h"
 #include "test_tcpserver.h"
@@ -42,6 +43,7 @@ int main() {
     //    test_timer();
 
     test_tcpchannel();
+    //    test_aschannel();
     // test_udp();
     // test_udpchannel();
     // test_tcpserver();

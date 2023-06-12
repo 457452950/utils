@@ -27,7 +27,7 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 namespace cli {
 
 namespace connect {
-constexpr char     *ip     = "0.0.0.0";
+constexpr char     *ip     = "127.0.0.1";
 constexpr int       port   = 4000;
 constexpr AF_FAMILY family = AF_FAMILY::INET;
 constexpr AF_PROTOL protol = AF_PROTOL::TCP;
@@ -90,7 +90,7 @@ inline void server_thread(std::shared_ptr<Epoll<test_s>> ep) {
     }
 
     test_s i{.f = [](int n) { cout << "heppy " << n << endl; }, .n = 3};
-    auto   handler      = std::make_unique<EventHandle<test_s>::EventHandler>();
+    auto   handler      = make_shared<EventHandle<test_s>::EventHandler>();
     handler->socket_    = sock;
     handler->user_data_ = &i;
     handler->handle_    = ep;

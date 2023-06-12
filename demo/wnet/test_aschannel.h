@@ -1,7 +1,10 @@
-#ifndef UTILS_DEMO_WNET_TEST_TCPCHANNEL_H
-#define UTILS_DEMO_WNET_TEST_TCPCHANNEL_H
+#pragma once
+#ifndef UTIL_TEST_ASCHANNEL_H
+#define UTIL_TEST_ASCHANNEL_H
+
 
 #include <iostream>
+#include <signal.h>
 #include <utility>
 
 #include "wutils/network/NetWork.h"
@@ -11,9 +14,9 @@ using namespace wutils::network;
 
 
 /**
- * test_tcpchannel
+ * test_aschannel
  */
-namespace test_tcpchannel_config {
+namespace test_aschannel_config {
 
 namespace srv {
 namespace listen {
@@ -43,33 +46,30 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 
 } // namespace cli
 
-inline auto in_cb = [](socket_t sock, BaseChannel *data) {
-    auto *ch = (ReadChannel *)data;
-    // cout << "get channel call channel in" << std::endl;
-    ch->ChannelIn();
-};
-inline auto out_cb = [](socket_t sock, BaseChannel *data) {
-    auto *ch = (WriteChannel *)data;
-    // cout << "get channel call channel in" << std::endl;
-    ch->ChannelOut();
-};
-
-class TestSession : public Channel::Listener {
+class TestSession : public ASChannel::Listener {
 public:
-    TestSession(std::shared_ptr<Channel> ch_) : ch(std::move(ch_)) {}
+    TestSession(shared_ptr<ASChannel> ch_) : ch(std::move(ch_)) {
+        buffer.buffer  = new uint8_t[4096];
+        buffer.buf_len = 4096;
+
+        ch->ARecv(buffer);
+    }
 
     void onChannelDisConnect() override {
         std::cout << "disconnect" << std::endl;
         this->ch.reset();
     }
-    void onReceive(const uint8_t *message, uint64_t message_len) override {
-        //        cout << "recv " << std::string((char *)message, (int)message_len) << " size " << message_len << endl;
-        ch->Send(message, message_len);
+    void onSend(ASChannel::ABuffer buf) override { ch->ARecv(this->buffer); }
+    void onReceive(ASChannel::ABuffer buf) override {
+        //        cout << "recv " << std::string((char *)buf.buffer, (int)buf.buf_len) << " size " << buf.buf_len <<
+        //        endl; ch->ARecv(this->buffer);
+        ch->ASend(buf);
     }
     virtual void onError(const char *err_message) { std::cout << err_message << endl; }
 
     // private:
-    std::shared_ptr<Channel> ch;
+    std::shared_ptr<ASChannel> ch;
+    ASChannel::ABuffer         buffer;
 };
 
 std::shared_ptr<TestSession>        se;
@@ -80,9 +80,10 @@ inline auto ac_cb = [](const EndPointInfo &local, const EndPointInfo &remote, ev
     auto info = EndPointInfo::Dump(remote);
 
     cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
-    auto ch = std::make_shared<Channel>(local, remote, handler);
-    ch->SetRecvBufferMaxSize(16000);
+    auto ch = std::make_shared<ASChannel>(local, remote, handler);
+
     se = std::make_shared<TestSession>(ch);
+
     ch->SetListener(se);
 };
 
@@ -109,7 +110,7 @@ void server_thread() {
     cout << wutils::network::ErrorToString(GetError()) << endl;
 
     // 激活客户端的 阻塞recv
-    se->ch->Send((uint8_t *)"s", 1);
+    se->ch->ASend({(uint8_t *)"1", 2});
     delete accp_channel;
 }
 
@@ -133,7 +134,7 @@ void client_thread() {
     }
 
     std::thread thr1([cli]() {
-        // ::send(cli, "hello", 5, 0);
+        //        ::send(cli, "hello", 5, 0);
         int  total = 0;
         char buf[1500];
         while(active) {
@@ -141,29 +142,36 @@ void client_thread() {
             total += l;
             // clang-format off
 //            cout
-                // << "cli recv :" << std::string(buf, l) 
+//                 << "cli recv :" << std::string(buf, l)
 //                << " total : " << total
 //                << endl;
             // clang-format on
         }
     });
 
-    Timer t(ep_);
-    t.OnTime = [cli, &t]() {
-        // cout << std::chrono::duration_cast<std::chrono::milliseconds>(
-        //                 std::chrono::system_clock::now().time_since_epoch())
-        //                 .count()
-        //      << " ontime!!!" << endl;
-        static int i = 0;
+    int i = 100;
+    while(i--) {
+        auto len = ::send(cli, "hello123hello123hello123hello123hello123hello123hello123hello123hello123", 72, 0);
+        std::cout << "client send len " << len << std::endl;
+        std::this_thread::sleep_for(100ms);
+    }
 
-        ::send(cli, "hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73, 0);
-        ::send(cli, "hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73, 0);
-        ::send(cli, "hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73, 0);
-        ++i;
-        if(i == 10000)
-            t.Stop();
-    };
-    t.Start(100, 1);
+    //    Timer t(ep_);
+    //    t.OnTime = [cli, &t]() {
+    //        //        cout << std::chrono::duration_cast<std::chrono::milliseconds>(
+    //        //                        std::chrono::system_clock::now().time_since_epoch())
+    //        //                        .count()
+    //        //             << " ontime!!!" << endl;
+    //        static int i = 0;
+    //
+    //        ::send(cli, "hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73, 0);
+    //        ::send(cli, "hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73, 0);
+    //        ::send(cli, "hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73, 0);
+    //        ++i;
+    //        if(i == 2)
+    //            t.Stop();
+    //    };
+    //    t.Start(100, 1);
 
     thr1.join();
     ::close(cli);
@@ -177,11 +185,11 @@ void handle_pipe(int signal) {
 }
 
 
-} // namespace test_tcpchannel_config
+} // namespace test_aschannel_config
 
 
-inline void test_tcpchannel() {
-    using namespace test_tcpchannel_config;
+inline void test_aschannel() {
+    using namespace test_aschannel_config;
     cout << "test channel " << endl;
 
     signal(SIGPIPE, handle_pipe); // 自定义处理函数
@@ -195,4 +203,4 @@ inline void test_tcpchannel() {
 }
 
 
-#endif
+#endif // UTIL_TEST_ASCHANNEL_H

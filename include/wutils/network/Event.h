@@ -10,6 +10,7 @@
 
 #include "NetWorkDef.h"
 #include "NetWorkUtils.h"
+#include "wutils/SharedPtr.h"
 
 
 namespace wutils::network {
@@ -33,17 +34,18 @@ public:
     using user_data_ptr  = user_data_type *;
 
     class EventHandler;
+    using EventHandler_p = shared_ptr<EventHandler>;
 
     // call back
-    using callback_type = void (*)(socket_t sock, user_data_ptr data);
+    using callback_type = std::function<void(socket_t sock, user_data_ptr data)>;
 
-    callback_type read_{nullptr};
-    callback_type write_{nullptr};
+    callback_type read_;
+    callback_type write_;
 
     // control
-    virtual bool AddSocket(EventHandler *handler)    = 0;
-    virtual bool ModifySocket(EventHandler *handler) = 0;
-    virtual void DelSocket(EventHandler *handler)    = 0;
+    virtual bool AddSocket(EventHandler_p handler)    = 0;
+    virtual bool ModifySocket(EventHandler_p handler) = 0;
+    virtual void DelSocket(EventHandler_p handler)    = 0;
 
     // thread control
     virtual bool Init() = 0;
@@ -53,13 +55,14 @@ public:
 
 
 template <typename UserData>
-class EventHandle<UserData>::EventHandler {
+class EventHandle<UserData>::EventHandler : public enable_shared_from_this<EventHandler> {
 public:
     // DONE: 增加 events_ 修改的监听函数，自动调用ModifySocket
     // TODO: 增加 端信息
     socket_t                             socket_{-1};         // native socket
     user_data_ptr                        user_data_{nullptr}; // user data, void*
     std::weak_ptr<EventHandle<UserData>> handle_;
+
 
 private:
     uint8_t events_{0}; // HandlerEventType
@@ -69,6 +72,7 @@ public:
     void Enable();
     void DisEnable();
     bool IsEnable();
+
     void SetEvents(uint8_t events);
     auto GetEvents();
 
@@ -86,16 +90,20 @@ inline void EventHandle<UserData>::EventHandler::Enable() {
         return;
     }
     this->enable_ = true;
-    this->handle_.lock()->AddSocket(this);
+    this->handle_.lock()->AddSocket(this->shared_from_this());
 }
 
 template <typename UserData>
 inline void EventHandle<UserData>::EventHandler::DisEnable() {
-    assert(!this->handle_.expired());
+    if(this->handle_.expired()) {
+        return;
+    }
+
     if(!enable_) {
         return;
     }
-    this->handle_.lock()->DelSocket(this);
+
+    this->handle_.lock()->DelSocket(this->shared_from_this());
     this->enable_ = false;
 }
 
@@ -109,9 +117,16 @@ inline void EventHandle<UserData>::EventHandler::SetEvents(uint8_t events) {
     assert(!this->handle_.expired());
 
     if(this->events_ != events) {
+        //        std::cout << "event from " << (int)this->events_ << " to " << (int)events << std::endl;
         this->events_ = events;
+
         if(this->enable_) {
-            this->handle_.lock()->ModifySocket(this);
+            if(this->events_ != 0)
+                this->handle_.lock()->ModifySocket(this->shared_from_this());
+            else {
+                this->enable_ = false;
+                this->handle_.lock()->DelSocket(this->shared_from_this());
+            }
         }
     }
 }

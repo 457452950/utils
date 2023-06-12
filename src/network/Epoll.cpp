@@ -77,11 +77,8 @@ void CloseEpoll(epoll_type epoll) { ::close(epoll); }
  * base epoll
  **************************************************/
 
-BaseEpoll::BaseEpoll() { DEBUGADD("BaseEpoll"); }
-BaseEpoll::~BaseEpoll() {
-    this->Close();
-    DEBUGRM("BaseEpoll");
-}
+BaseEpoll::BaseEpoll() {}
+BaseEpoll::~BaseEpoll() { this->Close(); }
 
 bool BaseEpoll::Init() {
     this->epoll_fd_ = CreateNewEpollFd();

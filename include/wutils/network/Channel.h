@@ -24,7 +24,7 @@ using ev_hdle_t = EventHandle<BaseChannel>;
 using ev_hdle_p = ev_hdle_t *;
 
 using ev_hdler_t = ev_hdle_t::EventHandler;
-using ev_hdler_p = ev_hdler_t *;
+using ev_hdler_p = shared_ptr<ev_hdler_t>;
 
 void setCommonCallBack(ev_hdle_p handle);
 
@@ -80,14 +80,13 @@ public:
     bool Start(long time_value, long interval = 0);
     void Stop();
     // 定时器是否活跃，即是否已完成定时任务
-    bool IsActive() const { return this->active_; }
+    bool IsActive() const { return this->handler_->IsEnable(); }
 
 private:
     void ChannelIn() final;
 
 private:
-    unique_ptr<ev_hdler_t> handler_{nullptr};
-    bool                   active_{false};
+    ev_hdler_p handler_;
 };
 
 /***********************************************************
@@ -100,7 +99,7 @@ public:
 
     bool Start(const EndPointInfo &local_endpoint, bool shared);
 
-    using accept_cb = std::function<void(const EndPointInfo &, const EndPointInfo &, unique_ptr<ev_hdler_t>)>;
+    using accept_cb = std::function<void(const EndPointInfo &, const EndPointInfo &, ev_hdler_p)>;
     accept_cb                         OnAccept;
     std::function<void(const char *)> OnError;
 
@@ -108,8 +107,8 @@ private:
     void ChannelIn() final;
 
 private:
-    unique_ptr<ev_hdler_t> handler_{nullptr};
-    EndPointInfo           local_endpoint_;
+    ev_hdler_p   handler_{nullptr};
+    EndPointInfo local_endpoint_;
 };
 
 
@@ -138,8 +137,8 @@ private:
     void onErr(int err);
 
 private:
-    unique_ptr<ev_hdler_t> handler_{nullptr};
-    EndPointInfo           local_endpoint_;
+    ev_hdler_p   handler_{nullptr};
+    EndPointInfo local_endpoint_;
 };
 
 /***********************************************************
@@ -176,9 +175,9 @@ private:
     void onErr(int err);
 
 protected:
-    unique_ptr<ev_hdler_t> handler_{nullptr};
-    EndPointInfo           local_endpoint_;
-    EndPointInfo           remote_endpoint_;
+    ev_hdler_p   handler_;
+    EndPointInfo local_endpoint_;
+    EndPointInfo remote_endpoint_;
 };
 
 /*****************************************
@@ -186,7 +185,7 @@ protected:
  ******************************************/
 class Channel : public BaseChannel {
 public:
-    explicit Channel(const EndPointInfo &, const EndPointInfo &, unique_ptr<ev_hdler_t>);
+    explicit Channel(const EndPointInfo &, const EndPointInfo &, ev_hdler_p);
     ~Channel() override;
 
     bool Init();
@@ -198,9 +197,9 @@ public:
     const EndPointInfo &GetRemoteInfo() { return remote_endpoint_; }
 
 protected:
-    EndPointInfo           local_endpoint_;
-    EndPointInfo           remote_endpoint_;
-    unique_ptr<ev_hdler_t> event_handler_{nullptr};
+    EndPointInfo local_endpoint_;
+    EndPointInfo remote_endpoint_;
+    ev_hdler_p   event_handler_;
 
     // listener
 public:
@@ -242,24 +241,59 @@ protected:
     void onChannelError(int error_code);
 };
 
+/**
+ *  异步IO，参考 ASIO
+ */
 // TODO: like asio
-class ASChannel {
+class ASChannel : public BaseChannel {
 public:
-    ASChannel(const EndPointInfo &, const EndPointInfo &, unique_ptr<ev_hdler_t>);
-    ~ASChannel();
+    ASChannel(const EndPointInfo &, const EndPointInfo &, ev_hdler_p);
+    ~ASChannel() override;
 
-    bool Init();
-    void ShutDown(int how); // Async
-
-    virtual void Send(const uint8_t *send_message, uint32_t message_len);
+    bool Init() { return true; }
+    void ShutDown(int how);
 
     const EndPointInfo &GetLocalInfo() { return local_endpoint_; }
     const EndPointInfo &GetRemoteInfo() { return remote_endpoint_; }
 
 protected:
-    EndPointInfo           local_endpoint_;
-    EndPointInfo           remote_endpoint_;
-    unique_ptr<ev_hdler_t> event_handler_{nullptr};
+    EndPointInfo local_endpoint_;
+    EndPointInfo remote_endpoint_;
+    ev_hdler_p   event_handler_;
+
+public:
+    struct ABuffer {
+        uint8_t *buffer{nullptr};
+        uint64_t buf_len{0};
+    };
+    void ARecv(ABuffer buffer);
+    void ASend(ABuffer buffer);
+
+protected:
+    ABuffer recv_buffer_;
+    ABuffer send_buffer_;
+
+    // listener
+public:
+    class Listener {
+    public:
+        virtual void onChannelDisConnect()            = 0;
+        virtual void onReceive(ABuffer buffer)        = 0;
+        virtual void onSend(ABuffer buffer)           = 0;
+        virtual void onError(const char *err_message) = 0;
+
+        virtual ~Listener() = default;
+    };
+
+    inline void SetListener(weak_ptr<Listener> listener) { this->listener_ = std::move(listener); }
+
+protected:
+    weak_ptr<Listener> listener_;
+
+    void ChannelIn() override;
+    void ChannelOut() override;
+    void onChannelClose();
+    void onChannelError(int error_code);
 };
 
 

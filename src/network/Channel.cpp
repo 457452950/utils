@@ -26,7 +26,7 @@ void setCommonCallBack(ev_hdle_p handle) {
  * Timer
  *********************************************/
 Timer::Timer(std::weak_ptr<ev_hdle_t> handle) {
-    this->handler_             = std::make_unique<ev_hdler_t>();
+    this->handler_             = make_shared<ev_hdler_t>();
     this->handler_->socket_    = CreateNewTimerfd();
     this->handler_->user_data_ = this;
     this->handler_->handle_    = std::move(handle);
@@ -36,6 +36,7 @@ Timer::Timer(std::weak_ptr<ev_hdle_t> handle) {
 Timer::~Timer() { this->Stop(); }
 
 void Timer::ChannelIn() {
+    std::cout << " timer channelin" << std::endl;
     uint64_t exp = 0;
     ::read(this->handler_->socket_, &exp, sizeof(exp));
     if(OnTime) {
@@ -55,19 +56,17 @@ bool Timer::Start(long time_value, long interval) {
         return false;
     }
 
-    if(!this->active_) {
+    if(!this->handler_->IsEnable()) {
         this->handler_->Enable();
-        this->active_ = true;
     }
 
     return true;
 }
 
 void Timer::Stop() {
-    if(this->active_) {
+    if(this->handler_->IsEnable()) {
         std::cout << "Timer::Stop() " << std::endl;
         this->handler_->DisEnable();
-        this->active_ = false;
     }
 }
 
@@ -77,7 +76,7 @@ void Timer::Stop() {
  ************************************************************/
 
 AcceptorChannel::AcceptorChannel(std::weak_ptr<ev_hdle_t> handle) {
-    this->handler_             = std::make_unique<ev_hdler_t>();
+    this->handler_             = make_shared<ev_hdler_t>();
     this->handler_->handle_    = std::move(handle);
     this->handler_->user_data_ = this;
 }
@@ -106,6 +105,7 @@ bool wutils::network::AcceptorChannel::Start(const EndPointInfo &local_endpoint,
 }
 
 void AcceptorChannel::ChannelIn() {
+    std::cout << " AcceptorChannel channelin" << std::endl;
     assert(this->handler_);
 
     EndPointInfo ei;
@@ -120,11 +120,11 @@ void AcceptorChannel::ChannelIn() {
             return;
         }
 
-        auto handler     = std::make_unique<ev_hdler_t>();
+        auto handler     = make_shared<ev_hdler_t>();
         handler->socket_ = cli;
         handler->handle_ = this->handler_->handle_;
 
-        OnAccept(local_endpoint_, ei, std::move(handler));
+        OnAccept(local_endpoint_, ei, handler);
     }
 }
 
@@ -135,7 +135,7 @@ void AcceptorChannel::ChannelIn() {
 UDPPointer::UDPPointer(std::weak_ptr<ev_hdle_t> handle) {
     std::cout << "UDPPointer " << std::endl;
 
-    this->handler_             = std::make_unique<ev_hdler_t>();
+    this->handler_             = make_shared<ev_hdler_t>();
     this->handler_->handle_    = std::move(handle);
     this->handler_->user_data_ = this;
 }
@@ -250,7 +250,7 @@ bool UDPChannel::Start(const EndPointInfo &local_ep, const EndPointInfo &remote_
 }
 
 void UDPChannel::ChannelIn() {
-    // std::cout << "accpet channel in" << std::endl;
+    std::cout << "UDPChannel channel in" << std::endl;
 
     EndPointInfo ei;
     uint8_t      buf[MAX_UDP_BUFFER_LEN]{0};
@@ -307,7 +307,7 @@ bool UDPChannel::Send(const uint8_t *send_message, uint32_t message_len) {
  * Channel
  ************************************************************/
 
-Channel::Channel(const EndPointInfo &local, const EndPointInfo &remote, std::unique_ptr<ev_hdler_t> h) :
+Channel::Channel(const EndPointInfo &local, const EndPointInfo &remote, ev_hdler_p h) :
     local_endpoint_(local), remote_endpoint_(remote), event_handler_(std::move(h)) {
 
     assert(this->event_handler_);
@@ -321,8 +321,12 @@ Channel::Channel(const EndPointInfo &local, const EndPointInfo &remote, std::uni
 }
 
 Channel::~Channel() {
-    this->event_handler_->DisEnable();
     this->ShutDown(SHUT_RDWR);
+
+    if(this->event_handler_) {
+        if(this->event_handler_->IsEnable())
+            this->event_handler_->DisEnable();
+    }
 }
 
 bool Channel::Init() { return true; }
@@ -400,6 +404,8 @@ void Channel::SetSendBufferMaxSize(uint64_t max_size) {
 }
 
 void Channel::ChannelIn() {
+    //    std::cout << "Channel channel in" << std::endl;
+
     assert(this->event_handler_);
     assert(this->max_recv_buf_size_);
     assert(this->recv_buf->GetWriteableBytes() != 0);
@@ -407,14 +413,21 @@ void Channel::ChannelIn() {
 
     auto r_buff = recv_buf;
 
-    int64_t recv_len = 0;
-    recv_len         = ::recv(this->event_handler_->socket_, r_buff->PeekWrite(), r_buff->GetWriteableBytes(), 0);
+    int64_t recv_len = ::recv(this->event_handler_->socket_, r_buff->PeekWrite(), r_buff->GetWriteableBytes(), 0);
+
+    //    std::cout << "Channel channel in recv " << recv_len << std::endl;
+
     if(recv_len == 0) { // has emitted in recv_buf->Write
         this->onChannelClose();
         return;
     } else if(recv_len == -1) {
         auto eno = GetError();
+        if(eno == ECONNRESET) {
+            this->onChannelClose();
+            return;
+        }
         if(eno == EAGAIN || eno == EWOULDBLOCK) {
+
         } else {
             this->onChannelError(eno);
         }
@@ -436,12 +449,13 @@ void Channel::ChannelIn() {
 
 // can write
 void Channel::ChannelOut() {
+    //    std::cout << "Channel channel out" << std::endl;
     assert(this->event_handler_);
 
     // 无缓冲设计或无缓冲数据
     if(this->max_send_buf_size_ == 0 || this->send_buf->IsEmpty()) {
         auto events = this->event_handler_->GetEvents();
-        events |= (~HandlerEventType::EV_OUT);
+        events &= (~HandlerEventType::EV_OUT);
         this->event_handler_->SetEvents(events);
         return;
     }
@@ -458,6 +472,10 @@ void Channel::ChannelOut() {
             if(eno == EAGAIN || eno == EWOULDBLOCK) {
                 return 0;
             }
+            if(eno == ECONNRESET) {
+                this->onChannelClose();
+                return 0;
+            }
             this->onChannelError(GetError());
         }
 
@@ -467,7 +485,7 @@ void Channel::ChannelOut() {
     // 无缓冲数据时，停止
     if(this->send_buf->IsEmpty()) {
         auto events = this->event_handler_->GetEvents();
-        events      = events | (~HandlerEventType::EV_OUT);
+        events      = events & (~HandlerEventType::EV_OUT);
         this->event_handler_->SetEvents(events);
     }
 }
@@ -478,6 +496,121 @@ void Channel::onChannelClose() {
 }
 
 void Channel::onChannelError(int error_code) {
+    std::cout << "error " << ErrorToString(error_code) << std::endl;
+    if(!this->listener_.expired())
+        this->listener_.lock()->onError(ErrorToString(error_code));
+}
+
+
+/***********************************************************
+ * ASChannel
+ ************************************************************/
+
+ASChannel::ASChannel(const EndPointInfo &local, const EndPointInfo &remote, ev_hdler_p h) :
+    local_endpoint_(local), remote_endpoint_(remote), event_handler_(std::move(h)) {
+
+    assert(this->event_handler_);
+
+    this->event_handler_->user_data_ = this;
+
+    auto [ip, port] = EndPointInfo::Dump(this->remote_endpoint_);
+    std::cout << "ASChannel " << ip << port << std::endl;
+}
+ASChannel::~ASChannel() {
+    this->ShutDown(SHUT_RDWR);
+
+    if(this->event_handler_) {
+        if(this->event_handler_->IsEnable())
+            this->event_handler_->DisEnable();
+    }
+}
+void ASChannel::ShutDown(int how) {
+    // std::cout << "Channel::ShutDown()" << std::endl;
+
+    assert(how >= SHUT_RD);
+    assert(how <= SHUT_RDWR);
+
+    ::shutdown(this->event_handler_->socket_, how);
+}
+void ASChannel::ARecv(ASChannel::ABuffer buffer) {
+    //    std::cout << "ASChannel ARecv " << std::endl;
+    assert(this->event_handler_);
+
+    recv_buffer_ = buffer;
+
+    this->event_handler_->SetEvents(this->event_handler_->GetEvents() | HandlerEventType::EV_IN);
+    if(!this->event_handler_->IsEnable())
+        this->event_handler_->Enable();
+}
+void ASChannel::ASend(ASChannel::ABuffer buffer) {
+    //    std::cout << "ASChannel ASend " << std::endl;
+    assert(this->event_handler_);
+
+    send_buffer_ = buffer;
+
+    this->event_handler_->SetEvents(this->event_handler_->GetEvents() | HandlerEventType::EV_OUT);
+    if(!this->event_handler_->IsEnable())
+        this->event_handler_->Enable();
+}
+
+void ASChannel::ChannelIn() {
+    //    std::cout << "ASChannel Channel in" << std::endl;
+    auto len = ::recv(this->event_handler_->socket_, recv_buffer_.buffer, recv_buffer_.buf_len, 0);
+
+    if(len == 0 & recv_buffer_.buf_len != 0) {
+        this->onChannelClose();
+        return;
+    }
+    if(len < 0) {
+        auto eno = GetError();
+        if(eno == ECONNRESET) {
+            this->onChannelClose();
+            return;
+        }
+        this->onChannelError(eno);
+        return;
+    }
+
+    this->event_handler_->SetEvents(this->event_handler_->GetEvents() & (~HandlerEventType::EV_IN));
+
+    recv_buffer_.buf_len = len;
+
+    if(!this->listener_.expired()) {
+        this->listener_.lock()->onReceive(recv_buffer_);
+    }
+}
+void ASChannel::ChannelOut() {
+    auto len = ::send(this->event_handler_->socket_, send_buffer_.buffer, send_buffer_.buf_len, 0);
+    if(len == 0 && send_buffer_.buf_len != 0) {
+        this->onChannelClose();
+        return;
+    }
+    if(len < 0) {
+        auto eno = GetError();
+        if(eno == ECONNRESET) {
+            this->onChannelClose();
+            return;
+        }
+        this->onChannelError(eno);
+        return;
+    }
+
+    if(len == this->send_buffer_.buf_len) {
+        this->event_handler_->SetEvents(this->event_handler_->GetEvents() & (~HandlerEventType::EV_OUT));
+
+        if(!this->listener_.expired()) {
+            this->listener_.lock()->onSend(send_buffer_);
+        }
+    } else {
+        send_buffer_.buffer = send_buffer_.buffer + len;
+        send_buffer_.buf_len -= len;
+    }
+}
+void ASChannel::onChannelClose() {
+    if(!this->listener_.expired())
+        this->listener_.lock()->onChannelDisConnect();
+}
+void ASChannel::onChannelError(int error_code) {
     std::cout << "error " << ErrorToString(error_code) << std::endl;
     if(!this->listener_.expired())
         this->listener_.lock()->onError(ErrorToString(error_code));
