@@ -3,14 +3,9 @@
 #include <iostream>
 #include <utility>
 
-#include "wutils/Debugger.hpp"
-#include "wutils/logger/AsyncLogger.h"
 #include "wutils/network/NetFactory.h"
 
-
 namespace wutils::network {
-
-using namespace debug;
 
 static auto in_cb = [](socket_t sock, BaseChannel *data) {
     auto *ch = (ReadChannel *)data;
@@ -36,13 +31,9 @@ Timer::Timer(std::weak_ptr<ev_hdle_t> handle) {
     this->handler_->user_data_ = this;
     this->handler_->handle_    = std::move(handle);
     this->handler_->SetEvents(HandlerEventType::EV_IN);
-    DEBUGADD("Timer");
 }
 
-Timer::~Timer() {
-    DEBUGRM("Timer");
-    this->Stop();
-}
+Timer::~Timer() { this->Stop(); }
 
 void Timer::ChannelIn() {
     uint64_t exp = 0;
@@ -87,7 +78,7 @@ void Timer::Stop() {
 
 AcceptorChannel::AcceptorChannel(std::weak_ptr<ev_hdle_t> handle) {
     this->handler_             = std::make_unique<ev_hdler_t>();
-    this->handler_->handle_    = handle;
+    this->handler_->handle_    = std::move(handle);
     this->handler_->user_data_ = this;
 }
 
@@ -145,7 +136,7 @@ UDPPointer::UDPPointer(std::weak_ptr<ev_hdle_t> handle) {
     std::cout << "UDPPointer " << std::endl;
 
     this->handler_             = std::make_unique<ev_hdler_t>();
-    this->handler_->handle_    = handle;
+    this->handler_->handle_    = std::move(handle);
     this->handler_->user_data_ = this;
 }
 
@@ -172,8 +163,6 @@ bool wutils::network::UDPPointer::Start(const EndPointInfo &local_endpoint, bool
 }
 
 void UDPPointer::ChannelIn() {
-    // std::cout << "accpet channel in" << std::endl;
-
     EndPointInfo ei;
     uint8_t      buf[MAX_UDP_BUFFER_LEN]{0};
 
@@ -225,7 +214,7 @@ bool UDPPointer::SendTo(const uint8_t *send_message, uint32_t message_len, const
 UDPChannel::UDPChannel(std::weak_ptr<ev_hdle_t> handle) {
     this->handler_             = std::make_unique<ev_hdler_t>();
     this->handler_->user_data_ = this;
-    this->handler_->handle_    = handle;
+    this->handler_->handle_    = std::move(handle);
 }
 
 UDPChannel::~UDPChannel() {
@@ -245,10 +234,9 @@ bool UDPChannel::Start(const EndPointInfo &local_ep, const EndPointInfo &remote_
         return false;
     }
 
-    std::cout << "UDPChannel socket " << socket << std::endl;
 
     bool ok = ConnectToHost(socket, remote_endpoint_);
-    // like not be fail
+    // may not be fail
     // if(!ok) {
     //     assert("UDPChannel ConnectToHost err ");
     //     std::cout << "UDPChannel ConnectToHost " << socket << std::endl;

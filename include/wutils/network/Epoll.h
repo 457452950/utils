@@ -335,6 +335,7 @@ void Epoll<UserData>::EventLoop() {
 
             assert(sock > 0);
 
+            // FIXME: write_ 中可能释放 data
             if(ev & EPOLLOUT && eev & HandlerEventType::EV_OUT) {
                 if(this->write_) {
                     this->write_(sock, data->user_data_);

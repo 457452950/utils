@@ -242,6 +242,26 @@ protected:
     void onChannelError(int error_code);
 };
 
+// TODO: like asio
+class ASChannel {
+public:
+    ASChannel(const EndPointInfo &, const EndPointInfo &, unique_ptr<ev_hdler_t>);
+    ~ASChannel();
+
+    bool Init();
+    void ShutDown(int how); // Async
+
+    virtual void Send(const uint8_t *send_message, uint32_t message_len);
+
+    const EndPointInfo &GetLocalInfo() { return local_endpoint_; }
+    const EndPointInfo &GetRemoteInfo() { return remote_endpoint_; }
+
+protected:
+    EndPointInfo           local_endpoint_;
+    EndPointInfo           remote_endpoint_;
+    unique_ptr<ev_hdler_t> event_handler_{nullptr};
+};
+
 
 } // namespace wutils::network
 
