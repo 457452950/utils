@@ -212,7 +212,7 @@ bool UDPPointer::SendTo(const uint8_t *send_message, uint32_t message_len, const
  ************************************************************/
 
 UDPChannel::UDPChannel(std::weak_ptr<ev_hdle_t> handle) {
-    this->handler_             = std::make_unique<ev_hdler_t>();
+    this->handler_             = make_shared<ev_hdler_t>();
     this->handler_->user_data_ = this;
     this->handler_->handle_    = std::move(handle);
 }
@@ -372,16 +372,10 @@ void Channel::Send(const uint8_t *send_message, uint32_t message_len) {
     }
 
     if(res < message_len) {
-        if(max_send_buf_size_ == 0) {
-            abort();
-            return;
-        }
+        assert(max_send_buf_size_ != 0);
 
         auto l = this->send_buf->Write(send_message + res, message_len - (uint32_t)res);
-        if(l != (message_len - res)) {
-            abort();
-            return;
-        }
+        assert(l == (message_len - res));
 
         auto events = this->event_handler_->GetEvents();
         events |= (HandlerEventType::EV_OUT);
