@@ -62,6 +62,7 @@ inline auto out_cb = [](socket_t sock, BaseChannel *data) {
 std::shared_ptr<Epoll<BaseChannel>> ep_;
 
 void server_thread() {
+    using namespace wutils;
     using namespace srv;
 
     auto ep = std::make_shared<Epoll<BaseChannel>>();
@@ -109,7 +110,7 @@ void server_thread() {
 
         udp_srv->SendTo(msg, msg_len, cli_ed);
     };
-    auto onerr = [](const char *msg) { cout << "[test_udp]onerr err : " << msg << endl; };
+    auto onerr = [](SystemError error) { cout << "[test_udp]onerr err : " << error << endl; };
 
     udp_srv->OnMessage = onmsg;
     udp_srv->OnError   = onerr;
@@ -122,6 +123,7 @@ void server_thread() {
 
 void client_thread() {
     using namespace cli;
+    using namespace wutils;
 
     EndPointInfo cli_ed;
     // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
@@ -151,7 +153,7 @@ void client_thread() {
 
         len = RecvFrom(cli, (uint8_t *)cli_buf, 1500, srv_);
         if(len <= 0) {
-            std::cout << "cli recv from err " << ErrorToString(GetError()) << endl;
+            std::cout << "cli recv from err " << SystemError::GetSysErrCode() << endl;
         } else {
             auto [ip, port] = EndPointInfo::Dump(srv_);
             cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
@@ -161,7 +163,7 @@ void client_thread() {
 
         len = RecvFrom(cli, (uint8_t *)cli_buf, 1500, srv_);
         if(len <= 0) {
-            std::cout << "cli recv from err " << ErrorToString(GetError()) << endl;
+            std::cout << "cli recv from err " << SystemError::GetSysErrCode() << endl;
         } else {
             auto [ip, port] = EndPointInfo::Dump(srv_);
             cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;

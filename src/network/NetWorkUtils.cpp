@@ -5,10 +5,6 @@
 
 namespace wutils::network {
 
-
-int         GetError() { return errno; }
-const char *ErrorToString(int error) { return strerror(error); }
-
 timerfd_t CreateNewTimerfd() {
     // return ::timerfd_create(CLOCK_REALTIME_ALARM, TFD_NONBLOCK | TFD_CLOEXEC);
     return ::timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);

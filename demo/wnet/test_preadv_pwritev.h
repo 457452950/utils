@@ -34,6 +34,7 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 } // namespace cli
 
 void server_thread() {
+    using namespace wutils;
 
     auto sock = MakeSocket(srv::listen::family, srv::listen::protol);
     SetSocketReuseAddr(sock);
@@ -115,10 +116,10 @@ void server_thread() {
             continue;
         cout << "pwritev2 size " << nwritten << endl;
         if(nwritten == -1) {
-            auto err = GetError();
+            auto err = SystemError::GetSysErrCode();
             cout << iov[0].iov_len << " " << iov[1].iov_len << endl;
             cout << err << " " << EAGAIN << endl;
-            cout << "pwritev2 error " << ErrorToString(err) << endl;
+            cout << "pwritev2 error " << err << endl;
             break;
         }
     }
@@ -129,6 +130,8 @@ void server_thread() {
 }
 
 void client_thread() {
+    using namespace wutils;
+
     EndPointInfo srv_ed;
     if(!srv_ed.Assign(cli::connect::ip, cli::connect::port, cli::connect::family)) {
         return;
@@ -159,26 +162,26 @@ void client_thread() {
     {
         char recv_buf[150000]{0};
         auto res = ::recv(cli, recv_buf, 150000, 0);
-        // cout << "'" << std::string(recv_buf, res).c_str() << "' \n recv_buf len : " << strlen(recv_buf) << endl;
+        // cout << "'" << std::string(recv_buf_, res).c_str() << "' \n recv_buf_ len : " << strlen(recv_buf_) << endl;
         cout << "recv res : " << res << endl;
         if(res == -1) {
-            auto err = GetError();
+            auto err = SystemError::GetSysErrCode();
             cout << err << " " << EWOULDBLOCK << endl;
-            cout << "recv error " << ErrorToString(err) << endl;
+            cout << "recv error " << err << endl;
         }
     }
     {
         char    recv_buf[150000]{0};
         ssize_t res = ::recv(cli, recv_buf, 150000, 0);
         std::cout.flush();
-        // cout << "'" << std::string(recv_buf, 100).c_str() << "' \n" << endl;
-        // printf("' %c'", recv_buf[0]);
+        // cout << "'" << std::string(recv_buf_, 100).c_str() << "' \n" << endl;
+        // printf("' %c'", recv_buf_[0]);
         res = ::recv(cli, recv_buf, 150000, 0);
         cout << "recv res : " << res << endl;
         if(res == -1) {
-            auto err = GetError();
+            auto err = SystemError::GetSysErrCode();
             cout << err << " " << EWOULDBLOCK << endl;
-            cout << "recv error " << ErrorToString(err) << endl;
+            cout << "recv error " << err << endl;
         }
     }
 

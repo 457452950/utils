@@ -51,6 +51,7 @@ if (UNIX)
                 wutils
                 src/System.cpp
                 src/ByteArray.cpp
+                src/Error.cpp
 
                 src/threadpool/ThreadPool.cpp
 

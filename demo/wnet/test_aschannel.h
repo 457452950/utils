@@ -65,7 +65,7 @@ public:
         //        endl; ch->ARecv(this->buffer);
         ch->ASend(buf);
     }
-    virtual void onError(const char *err_message) { std::cout << err_message << endl; }
+    void onError(wutils::SystemError error) override { std::cout << error << endl; }
 
     // private:
     std::shared_ptr<ASChannel> ch;
@@ -107,7 +107,7 @@ void server_thread() {
     accp_channel->OnAccept = ac_cb;
 
     ep->Loop();
-    cout << wutils::network::ErrorToString(GetError()) << endl;
+    cout << wutils::SystemError::GetSysErrCode() << endl;
 
     // 激活客户端的 阻塞recv
     se->ch->ASend({(uint8_t *)"1", 2});

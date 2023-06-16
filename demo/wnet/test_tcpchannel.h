@@ -66,7 +66,7 @@ public:
         //        cout << "recv " << std::string((char *)message, (int)message_len) << " size " << message_len << endl;
         ch->Send(message, message_len);
     }
-    virtual void onError(const char *err_message) { std::cout << err_message << endl; }
+    void onError(wutils::SystemError error) override { std::cout << error << endl; }
 
     // private:
     std::shared_ptr<Channel> ch;
@@ -106,7 +106,7 @@ void server_thread() {
     accp_channel->OnAccept = ac_cb;
 
     ep->Loop();
-    cout << wutils::network::ErrorToString(GetError()) << endl;
+    cout << wutils::SystemError::GetSysErrCode() << endl;
 
     // 激活客户端的 阻塞recv
     se->ch->Send((uint8_t *)"s", 1);
@@ -138,10 +138,13 @@ void client_thread() {
         char buf[1500];
         while(active) {
             auto l = ::recv(cli, buf, 1500, 0);
+            if(l == 0) {
+                break;
+            }
             total += l;
             // clang-format off
 //            cout
-                // << "cli recv :" << std::string(buf, l) 
+//                 << "cli recv :" << std::string(buf, l)
 //                << " total : " << total
 //                << endl;
             // clang-format on

@@ -25,9 +25,6 @@
 
 namespace wutils::network {
 
-int         GetError();
-const char *ErrorToString(int error);
-
 enum AF_FAMILY { INET = AF_INET, INET6 = AF_INET6 };
 enum AF_PROTOL { TCP = IPPROTO_TCP, UDP = IPPROTO_UDP };
 
@@ -116,7 +113,7 @@ bool SetTcpSocketNoDelay(socket_t socket);
 
 // IP + port + family
 struct EndPointInfo {
-    
+
     static EndPointInfo *MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family);
 
     bool Assign(const std::string &address, uint16_t port, AF_FAMILY family);

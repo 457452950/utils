@@ -34,6 +34,8 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 } // namespace cli
 
 void server_thread() {
+
+    using namespace wutils;
     // listen
 
     EndPointInfo srv_ed;
@@ -71,8 +73,8 @@ void server_thread() {
 
             cout << "send size " << nwritten << endl;
             if(nwritten == -1) {
-                auto err = GetError();
-                cout << "pwritev2 error " << ErrorToString(err) << endl;
+                auto err = SystemError::GetSysErrCode();
+                cout << "pwritev2 error " << err << endl;
                 break;
             }
         }
@@ -81,8 +83,8 @@ void server_thread() {
         auto res = ::recv(srv, recv_buf, 1500, 0);
         cout << "recv res : " << res << endl;
         if(res == -1) {
-            auto err = GetError();
-            cout << "recv error " << ErrorToString(err) << endl;
+            auto err = SystemError::GetSysErrCode();
+            cout << "recv error " << err << endl;
         } else {
             recv_buf[res] = '\0';
             cout << "recv res : " << recv_buf << endl;
@@ -94,6 +96,8 @@ void server_thread() {
 }
 
 void client_thread() {
+    using namespace wutils;
+
     EndPointInfo srv_ed;
     if(!srv_ed.Assign(cli::connect::ip, cli::connect::port, cli::connect::family)) {
         return;
@@ -122,31 +126,31 @@ void client_thread() {
                 auto res = readv(cli, v, l);
                 cout << "readv res : " << res << endl;
                 if(res == -1) {
-                    auto err = GetError();
-                    cout << "readv error " << ErrorToString(err) << endl;
+                    auto err = SystemError::GetSysErrCode();
+                    cout << "readv error " << err << endl;
                 }
                 return res;
             });
         }
-        // res = ::recv(cli, recv_buf, 1500, 0);
+        // res = ::recv(cli, recv_buf_, 1500, 0);
         // cout << "recv res : " << res << endl;
         // if(res == -1) {
         //     auto err = GetError();
         //     cout << "recv error " << ErrorToString(err) << endl;
         // } else {
-        //     recv_buf[res] = '\0';
-        //     cout << "recv res : " << recv_buf << endl;
+        //     recv_buf_[res] = '\0';
+        //     cout << "recv res : " << recv_buf_ << endl;
         // }
 
-        cout << "err " << ErrorToString(GetError()) << endl;
-        // res = ::recv(cli, recv_buf, 150000, 0);
+        cout << "err " << SystemError::GetSysErrCode() << endl;
+        // res = ::recv(cli, recv_buf_, 150000, 0);
         vec1.Read([&](const iovec *v, int l) -> int64_t {
             cout << "vec1.Read l:" << l << " " << v << endl;
             auto res = writev(cli, v, l);
             cout << "writev res : " << res << endl;
             if(res == -1) {
-                auto err = GetError();
-                cout << cli << " writev error " << ErrorToString(err) << endl;
+                auto err = SystemError::GetSysErrCode();
+                cout << cli << " writev error " << err << endl;
             }
             return res;
         });

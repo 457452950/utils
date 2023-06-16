@@ -11,6 +11,7 @@
 #include "stdIOVec.h"
 
 #include "wutils/Buffer.h"
+#include "wutils/Error.h"
 #include "wutils/SharedPtr.h"
 
 namespace wutils::network {
@@ -21,12 +22,11 @@ namespace wutils::network {
 class BaseChannel;
 
 using ev_hdle_t = EventHandle<BaseChannel>;
-using ev_hdle_p = ev_hdle_t *;
 
 using ev_hdler_t = ev_hdle_t::EventHandler;
 using ev_hdler_p = shared_ptr<ev_hdler_t>;
 
-void setCommonCallBack(ev_hdle_p handle);
+void setCommonCallBack(ev_hdle_t *handle);
 
 /**************************************************
  * BaseChannel interface
@@ -97,11 +97,11 @@ public:
     explicit AcceptorChannel(weak_ptr<ev_hdle_t> handle);
     ~AcceptorChannel() override;
 
-    bool Start(const EndPointInfo &local_endpoint, bool shared);
+    std::tuple<bool, SystemError> Start(const EndPointInfo &local_endpoint, bool shared);
 
     using accept_cb = std::function<void(const EndPointInfo &, const EndPointInfo &, ev_hdler_p)>;
-    accept_cb                         OnAccept;
-    std::function<void(const char *)> OnError;
+    accept_cb                        OnAccept;
+    std::function<void(SystemError)> OnError;
 
 private:
     void ChannelIn() final;
@@ -124,8 +124,8 @@ public:
     bool Start(const EndPointInfo &local_endpoint, bool shared);
 
     using message_cb = std::function<void(const EndPointInfo &, const EndPointInfo &, const uint8_t *, uint32_t)>;
-    message_cb                        OnMessage;
-    std::function<void(const char *)> OnError;
+    message_cb                       OnMessage;
+    std::function<void(SystemError)> OnError;
 
     // unreliable
     bool SendTo(const uint8_t *send_message, uint32_t message_len, const EndPointInfo &remote);
@@ -134,7 +134,7 @@ private:
     void ChannelIn() final;
     void ChannelOut() final{};
 
-    void onErr(int err);
+    void onErr(SystemError);
 
 private:
     ev_hdler_p   handler_{nullptr};
@@ -156,7 +156,7 @@ public:
     class Listener {
     public:
         virtual void OnMessage(const uint8_t *message, uint64_t message_len) = 0;
-        virtual void OnError(const char *err_message)                        = 0;
+        virtual void OnError(SystemError)                                    = 0;
     };
 
     inline void SetListener(weak_ptr<Listener> listener) { this->listener_ = std::move(listener); }
@@ -172,7 +172,7 @@ private:
     void ChannelIn() final;
     void ChannelOut() final{};
 
-    void onErr(int err);
+    void onErr(SystemError);
 
 protected:
     ev_hdler_p   handler_;
@@ -208,7 +208,7 @@ public:
         // virtual void onChannelConnect(std::shared_ptr<Channel>)             = 0;
         virtual void onChannelDisConnect()                                   = 0;
         virtual void onReceive(const uint8_t *message, uint64_t message_len) = 0;
-        virtual void onError(const char *err_message)                        = 0;
+        virtual void onError(SystemError)                                    = 0;
 
         virtual ~Listener() = default;
     };
@@ -227,10 +227,10 @@ public:
 
 private:
     // receive buffer
-    shared_ptr<RingBuffer> recv_buf{new RingBuffer()};
+    shared_ptr<RingBuffer> recv_buf_{new RingBuffer()};
     uint64_t               max_recv_buf_size_{0};
     // send buffer
-    shared_ptr<RingBuffer> send_buf{new RingBuffer()};
+    shared_ptr<RingBuffer> send_buf_{new RingBuffer()};
     uint64_t               max_send_buf_size_{0};
 
 protected:
@@ -238,7 +238,7 @@ protected:
     void ChannelIn() override;
     void ChannelOut() override;
     void onChannelClose();
-    void onChannelError(int error_code);
+    void onChannelError(SystemError);
 };
 
 /**
@@ -277,10 +277,10 @@ protected:
 public:
     class Listener {
     public:
-        virtual void onChannelDisConnect()            = 0;
-        virtual void onReceive(ABuffer buffer)        = 0;
-        virtual void onSend(ABuffer buffer)           = 0;
-        virtual void onError(const char *err_message) = 0;
+        virtual void onChannelDisConnect()     = 0;
+        virtual void onReceive(ABuffer buffer) = 0;
+        virtual void onSend(ABuffer buffer)    = 0;
+        virtual void onError(SystemError)      = 0;
 
         virtual ~Listener() = default;
     };
@@ -293,7 +293,7 @@ protected:
     void ChannelIn() override;
     void ChannelOut() override;
     void onChannelClose();
-    void onChannelError(int error_code);
+    void onChannelError(SystemError);
 };
 
 

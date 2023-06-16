@@ -61,7 +61,7 @@ inline auto out_cb = [](socket_t sock, BaseChannel *data) {
 };
 struct udpSession : public UDPChannel::Listener {
 
-    virtual void OnMessage(const uint8_t *message, uint64_t message_len) {
+    void OnMessage(const uint8_t *message, uint64_t message_len) override {
         auto [lip, lport] = EndPointInfo::Dump(srv_ed);
         auto [rip, rport] = EndPointInfo::Dump(cli_ed);
 
@@ -77,7 +77,7 @@ struct udpSession : public UDPChannel::Listener {
 
         udp_chl->Send(message, message_len);
     };
-    virtual void OnError(const char *err_message) { cout << "[test_udp]onerr err : " << err_message << endl; }
+    void OnError(wutils::SystemError error) override { cout << "[test_udp]onerr err : " << error << endl; }
 
     EndPointInfo                srv_ed;
     EndPointInfo                cli_ed;
@@ -122,6 +122,7 @@ void server_thread() {
 }
 
 void client_thread() {
+    using namespace wutils;
     using namespace cli;
 
     EndPointInfo cli_ed;
@@ -145,7 +146,7 @@ void client_thread() {
 
     len = sendto(cli, send_msg, strlen(send_msg), 0, srv_ed.GetAddr(), srv_ed.GetSockSize());
     if(len <= 0) {
-        std::cout << "cli sendto err " << ErrorToString(GetError()) << endl;
+        std::cout << "cli sendto err " << SystemError::GetSysErrCode() << endl;
     } else {
         auto [ip, port] = EndPointInfo::Dump(srv_ed);
         cout << "cli sendto [" << ip << " : " << port << "] " << std::string(send_msg, strlen(send_msg)).c_str()
@@ -155,7 +156,7 @@ void client_thread() {
 
     len = RecvFrom(cli, (uint8_t *)cli_buf, 1500, srv_);
     if(len <= 0) {
-        std::cout << "cli recv from err " << ErrorToString(GetError()) << endl;
+        std::cout << "cli recv from err " << SystemError::GetSysErrCode() << endl;
     } else {
         auto [ip, port] = EndPointInfo::Dump(srv_);
         cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
@@ -165,7 +166,7 @@ void client_thread() {
 
     len = RecvFrom(cli, (uint8_t *)cli_buf, 1500, srv_);
     if(len <= 0) {
-        std::cout << "cli recv from err " << ErrorToString(GetError()) << endl;
+        std::cout << "cli recv from err " << SystemError::GetSysErrCode() << endl;
     } else {
         auto [ip, port] = EndPointInfo::Dump(srv_);
         cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;

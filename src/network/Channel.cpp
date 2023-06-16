@@ -16,7 +16,7 @@ static auto out_cb = [](socket_t sock, BaseChannel *data) {
     ch->ChannelOut();
 };
 
-void setCommonCallBack(ev_hdle_p handle) {
+void setCommonCallBack(ev_hdle_t *handle) {
     handle->read_  = in_cb;
     handle->write_ = out_cb;
 }
@@ -88,24 +88,25 @@ AcceptorChannel::~AcceptorChannel() {
     }
 }
 
-bool wutils::network::AcceptorChannel::Start(const EndPointInfo &local_endpoint, bool shared) {
+std::tuple<bool, SystemError> wutils::network::AcceptorChannel::Start(const EndPointInfo &local_endpoint, bool shared) {
     this->local_endpoint_ = local_endpoint;
 
     auto socket = MakeListenedSocket(local_endpoint_, shared);
     if(socket == -1) {
-        std::cout << "make listened socket err " << ErrorToString(GetError()) << std::endl;
-        return false;
+        auto err = SystemError::GetSysErrCode();
+        std::cout << "make listened socket err " << err << std::endl;
+        return {false, err};
     }
 
     this->handler_->socket_ = socket;
     this->handler_->SetEvents(HandlerEventType::EV_IN);
     this->handler_->Enable();
 
-    return true;
+    return {true, {}};
 }
 
 void AcceptorChannel::ChannelIn() {
-    std::cout << " AcceptorChannel channelin" << std::endl;
+    std::cout << " AcceptorChannel channel in" << std::endl;
     assert(this->handler_);
 
     EndPointInfo ei;
@@ -113,10 +114,11 @@ void AcceptorChannel::ChannelIn() {
 
     if(cli <= 0) { // error
         if(OnError) {
-            OnError(ErrorToString(GetError()));
+            OnError(SystemError::GetSysErrCode());
         }
     } else {
         if(!OnAccept) {
+            ::close(cli);
             return;
         }
 
@@ -169,7 +171,7 @@ void UDPPointer::ChannelIn() {
     auto recv_len = RecvFrom(this->handler_->socket_, buf, MAX_UDP_BUFFER_LEN, ei);
 
     if(recv_len <= 0) { // error
-        onErr(GetError());
+        onErr(SystemError::GetSysErrCode());
     } else {
         if(!OnMessage) {
             return;
@@ -179,10 +181,10 @@ void UDPPointer::ChannelIn() {
     }
 }
 
-void UDPPointer::onErr(int err) {
-    if(err != 0) {
+void UDPPointer::onErr(SystemError err) {
+    if(err.Code() != 0) {
         if(this->OnError) {
-            this->OnError(ErrorToString(err));
+            this->OnError(err);
         }
     }
 }
@@ -199,7 +201,7 @@ bool UDPPointer::SendTo(const uint8_t *send_message, uint32_t message_len, const
             this->handler_->socket_, (void *)send_message, message_len, 0, remote.GetAddr(), remote.GetSockSize());
     if(len == -1) {
         std::cout << "send to err " << std::endl;
-        this->onErr(GetError());
+        this->onErr(SystemError::GetSysErrCode());
         return false;
     }
 
@@ -264,7 +266,7 @@ void UDPChannel::ChannelIn() {
     // }
 
     if(recv_len <= 0) { // error
-        onErr(GetError());
+        onErr(SystemError::GetSysErrCode());
     } else {
         if(listener_.expired()) {
             return;
@@ -274,10 +276,10 @@ void UDPChannel::ChannelIn() {
     }
 }
 
-void UDPChannel::onErr(int err) {
-    if(err != 0) {
+void UDPChannel::onErr(SystemError err) {
+    if(err.Code() != 0) {
         if(!listener_.expired()) {
-            listener_.lock()->OnError(ErrorToString(err));
+            listener_.lock()->OnError(err);
         }
     }
 }
@@ -295,7 +297,7 @@ bool UDPChannel::Send(const uint8_t *send_message, uint32_t message_len) {
 
     if(len == -1) {
         std::cout << "send to err " << std::endl;
-        this->onErr(GetError());
+        this->onErr(SystemError::GetSysErrCode());
         return false;
     }
 
@@ -343,10 +345,12 @@ void Channel::ShutDown(int how) {
 void Channel::Send(const uint8_t *send_message, uint32_t message_len) {
     assert(message_len <= MAX_CHANNEL_SEND_SIZE);
 
+    auto s_buf = this->send_buf_;
+
     // has buf
-    if(max_send_buf_size_ != 0 && !send_buf->IsEmpty() > 0) {
+    if(max_send_buf_size_ != 0 && !s_buf->IsEmpty() > 0) {
         // push data to buf
-        auto l = this->send_buf->Write(send_message, message_len);
+        auto l = s_buf->Write(send_message, message_len);
         if(l != message_len) {
             abort();
             return;
@@ -363,10 +367,10 @@ void Channel::Send(const uint8_t *send_message, uint32_t message_len) {
     // try to send
     auto res = ::send(this->event_handler_->socket_, send_message, message_len, 0);
     if(res < 0) {
-        auto eno = GetError();
-        if(eno == EAGAIN || eno == EWOULDBLOCK) {
+        auto err = SystemError::GetSysErrCode();
+        if(err == EAGAIN || err == EWOULDBLOCK) {
         } else {
-            this->onChannelError(GetError());
+            this->onChannelError(err);
         }
         return;
     }
@@ -374,7 +378,7 @@ void Channel::Send(const uint8_t *send_message, uint32_t message_len) {
     if(res < message_len) {
         assert(max_send_buf_size_ != 0);
 
-        auto l = this->send_buf->Write(send_message + res, message_len - (uint32_t)res);
+        auto l = s_buf->Write(send_message + res, message_len - (uint32_t)res);
         assert(l == (message_len - res));
 
         auto events = this->event_handler_->GetEvents();
@@ -388,13 +392,13 @@ void Channel::Send(const uint8_t *send_message, uint32_t message_len) {
 void Channel::SetRecvBufferMaxSize(uint64_t max_size) {
     this->max_recv_buf_size_ = std::min<uint64_t>(max_size, MAX_CHANNEL_RECV_BUFFER_SIZE);
 
-    recv_buf->Init(this->max_recv_buf_size_);
+    recv_buf_->Init(this->max_recv_buf_size_);
 }
 
 void Channel::SetSendBufferMaxSize(uint64_t max_size) {
     this->max_send_buf_size_ = std::min<uint64_t>(max_size, MAX_CHANNEL_SEND_BUFFER_SIZE);
 
-    send_buf->Init(this->max_send_buf_size_);
+    send_buf_->Init(this->max_send_buf_size_);
 }
 
 void Channel::ChannelIn() {
@@ -402,20 +406,20 @@ void Channel::ChannelIn() {
 
     assert(this->event_handler_);
     assert(this->max_recv_buf_size_);
-    assert(this->recv_buf->GetWriteableBytes() != 0);
+    assert(this->recv_buf_->GetWriteableBytes() != 0);
     assert(!this->listener_.expired());
 
-    auto r_buff = recv_buf;
+    auto r_buff = recv_buf_;
 
     int64_t recv_len = ::recv(this->event_handler_->socket_, r_buff->PeekWrite(), r_buff->GetWriteableBytes(), 0);
 
     //    std::cout << "Channel channel in recv " << recv_len << std::endl;
 
-    if(recv_len == 0) { // has emitted in recv_buf->Write
+    if(recv_len == 0) { // has emitted in recv_buf_->Write
         this->onChannelClose();
         return;
     } else if(recv_len == -1) {
-        auto eno = GetError();
+        auto eno = SystemError::GetSysErrCode();
         if(eno == ECONNRESET) {
             this->onChannelClose();
             return;
@@ -435,19 +439,21 @@ void Channel::ChannelIn() {
         return len;
     });
 
-    //    while(!this->recv_buf->IsEmpty()) {
-    //        this->listener_.lock()->onReceive(this->recv_buf->ConstPeekRead(), this->recv_buf->GetReadableBytes());
-    //        this->recv_buf->SkipReadBytes(this->recv_buf->GetReadableBytes());
+    //    while(!this->recv_buf_->IsEmpty()) {
+    //        this->listener_.lock()->onReceive(this->recv_buf_->ConstPeekRead(), this->recv_buf_->GetReadableBytes());
+    //        this->recv_buf_->SkipReadBytes(this->recv_buf_->GetReadableBytes());
     //    }
 }
 
 // can write
 void Channel::ChannelOut() {
-    //    std::cout << "Channel channel out" << std::endl;
+    std::cout << "Channel channel out" << std::endl;
     assert(this->event_handler_);
 
+    auto s_buf = this->send_buf_;
+
     // 无缓冲设计或无缓冲数据
-    if(this->max_send_buf_size_ == 0 || this->send_buf->IsEmpty()) {
+    if(this->max_send_buf_size_ == 0 || s_buf->IsEmpty()) {
         auto events = this->event_handler_->GetEvents();
         events &= (~HandlerEventType::EV_OUT);
         this->event_handler_->SetEvents(events);
@@ -455,29 +461,30 @@ void Channel::ChannelOut() {
     }
 
     // 发送缓冲数据
-    send_buf->ReadUntil([&](const uint8_t *data, int len) -> int64_t {
-        auto send_len = ::send(this->event_handler_->socket_, data, len, 0);
+    while(!s_buf->IsEmpty()) {
+        auto send_len = ::send(this->event_handler_->socket_, s_buf->PeekRead(), s_buf->GetReadableBytes(), 0);
         if(send_len == 0) {
             this->onChannelClose();
-            return 0;
+            return;
         }
         if(send_len < 0) {
-            auto eno = GetError();
+            auto eno = SystemError::GetSysErrCode();
             if(eno == EAGAIN || eno == EWOULDBLOCK) {
-                return 0;
+                break;
             }
             if(eno == ECONNRESET) {
                 this->onChannelClose();
-                return 0;
+            } else {
+                this->onChannelError(eno);
             }
-            this->onChannelError(GetError());
+            return;
         }
 
-        return send_len;
-    });
+        s_buf->SkipReadBytes(send_len);
+    }
 
-    // 无缓冲数据时，停止
-    if(this->send_buf->IsEmpty()) {
+    // 无缓冲数据时，停止监听 out 事件
+    if(s_buf->IsEmpty()) {
         auto events = this->event_handler_->GetEvents();
         events      = events & (~HandlerEventType::EV_OUT);
         this->event_handler_->SetEvents(events);
@@ -489,10 +496,10 @@ void Channel::onChannelClose() {
         this->listener_.lock()->onChannelDisConnect();
 }
 
-void Channel::onChannelError(int error_code) {
-    std::cout << "error " << ErrorToString(error_code) << std::endl;
+void Channel::onChannelError(SystemError error) {
+    std::cout << "error " << error << std::endl;
     if(!this->listener_.expired())
-        this->listener_.lock()->onError(ErrorToString(error_code));
+        this->listener_.lock()->onError(error);
 }
 
 
@@ -556,7 +563,7 @@ void ASChannel::ChannelIn() {
         return;
     }
     if(len < 0) {
-        auto eno = GetError();
+        auto eno = SystemError::GetSysErrCode();
         if(eno == ECONNRESET) {
             this->onChannelClose();
             return;
@@ -580,7 +587,7 @@ void ASChannel::ChannelOut() {
         return;
     }
     if(len < 0) {
-        auto eno = GetError();
+        auto eno = SystemError::GetSysErrCode();
         if(eno == ECONNRESET) {
             this->onChannelClose();
             return;
@@ -604,10 +611,10 @@ void ASChannel::onChannelClose() {
     if(!this->listener_.expired())
         this->listener_.lock()->onChannelDisConnect();
 }
-void ASChannel::onChannelError(int error_code) {
-    std::cout << "error " << ErrorToString(error_code) << std::endl;
+void ASChannel::onChannelError(SystemError error) {
+    std::cout << "error " << error << std::endl;
     if(!this->listener_.expired())
-        this->listener_.lock()->onError(ErrorToString(error_code));
+        this->listener_.lock()->onError(error);
 }
 
 
