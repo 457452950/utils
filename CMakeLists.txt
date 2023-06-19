@@ -66,8 +66,6 @@ if (UNIX)
                 src/buffer/ChainBuffer.cpp
                 src/buffer/RingBuffer.cpp
                 src/buffer/StraightBuffer.cpp
-
-                src/ssl/md5.cpp
         )
         #        target_link_libraries(wutils pthread)
 
