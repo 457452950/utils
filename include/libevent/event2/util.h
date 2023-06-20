@@ -150,16 +150,16 @@ extern "C" {
 
 #ifdef EVENT__HAVE_UINT16_T
 #define ev_uint16_t uint16_t
-#define ev_int16_t  int16_t
+#define ev_int16_t int16_t
 #elif defined(_WIN32)
 #define ev_uint16_t unsigned short
-#define ev_int16_t  signed short
+#define ev_int16_t signed short
 #elif EVENT__SIZEOF_INT == 2
 #define ev_uint16_t unsigned int
-#define ev_int16_t  signed int
+#define ev_int16_t signed int
 #elif EVENT__SIZEOF_SHORT == 2
 #define ev_uint16_t unsigned short
-#define ev_int16_t  signed short
+#define ev_int16_t signed short
 #elif defined(EVENT_IN_DOXYGEN_)
 #define ev_uint16_t ...
 #define ev_int16_t ...
@@ -237,30 +237,30 @@ extern "C" {
 */
 #ifndef EVENT__HAVE_STDINT_H
 #define EV_UINT64_MAX ((((ev_uint64_t)0xffffffffUL) << 32) | 0xffffffffUL)
-#define EV_INT64_MAX  ((((ev_int64_t) 0x7fffffffL) << 32) | 0xffffffffL)
-#define EV_INT64_MIN  ((-EV_INT64_MAX) - 1)
+#define EV_INT64_MAX ((((ev_int64_t)0x7fffffffL) << 32) | 0xffffffffL)
+#define EV_INT64_MIN ((-EV_INT64_MAX) - 1)
 #define EV_UINT32_MAX ((ev_uint32_t)0xffffffffUL)
-#define EV_INT32_MAX  ((ev_int32_t) 0x7fffffffL)
-#define EV_INT32_MIN  ((-EV_INT32_MAX) - 1)
+#define EV_INT32_MAX ((ev_int32_t)0x7fffffffL)
+#define EV_INT32_MIN ((-EV_INT32_MAX) - 1)
 #define EV_UINT16_MAX ((ev_uint16_t)0xffffUL)
-#define EV_INT16_MAX  ((ev_int16_t) 0x7fffL)
-#define EV_INT16_MIN  ((-EV_INT16_MAX) - 1)
-#define EV_UINT8_MAX  255
-#define EV_INT8_MAX   127
-#define EV_INT8_MIN   ((-EV_INT8_MAX) - 1)
+#define EV_INT16_MAX ((ev_int16_t)0x7fffL)
+#define EV_INT16_MIN ((-EV_INT16_MAX) - 1)
+#define EV_UINT8_MAX 255
+#define EV_INT8_MAX 127
+#define EV_INT8_MIN ((-EV_INT8_MAX) - 1)
 #else
 #define EV_UINT64_MAX UINT64_MAX
-#define EV_INT64_MAX  INT64_MAX
-#define EV_INT64_MIN  INT64_MIN
+#define EV_INT64_MAX INT64_MAX
+#define EV_INT64_MIN INT64_MIN
 #define EV_UINT32_MAX UINT32_MAX
-#define EV_INT32_MAX  INT32_MAX
-#define EV_INT32_MIN  INT32_MIN
+#define EV_INT32_MAX INT32_MAX
+#define EV_INT32_MIN INT32_MIN
 #define EV_UINT16_MAX UINT16_MAX
-#define EV_INT16_MIN  INT16_MIN
-#define EV_INT16_MAX  INT16_MAX
-#define EV_UINT8_MAX  UINT8_MAX
-#define EV_INT8_MAX   INT8_MAX
-#define EV_INT8_MIN   INT8_MIN
+#define EV_INT16_MIN INT16_MIN
+#define EV_INT16_MAX INT16_MAX
+#define EV_UINT8_MAX UINT8_MAX
+#define EV_INT8_MAX INT8_MAX
+#define EV_INT8_MIN INT8_MIN
 /** @} */
 #endif
 
@@ -295,8 +295,7 @@ extern "C" {
 #endif
 
 #ifdef EVENT__HAVE_STRUCT_SOCKADDR_STORAGE___SS_FAMILY
-#if !defined(EVENT__HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY) \
- && !defined(ss_family)
+#if !defined(EVENT__HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY) && !defined(ss_family)
 #define ss_family __ss_family
 #endif
 #endif
@@ -324,11 +323,12 @@ extern "C" {
  */
 struct evutil_monotonic_timer
 #ifdef EVENT_IN_DOXYGEN_
-{/*Empty body so that doxygen will generate documentation here.*/}
+{ /*Empty body so that doxygen will generate documentation here.*/
+}
 #endif
 ;
 
-#define EV_MONOT_PRECISE  1
+#define EV_MONOT_PRECISE 1
 #define EV_MONOT_FALLBACK 2
 
 /** Format a date string using RFC 1123 format (used in HTTP).
@@ -337,8 +337,7 @@ struct evutil_monotonic_timer
  * One should check if the return value is smaller than `datelen` to check if
  * the result is truncated or not.
  */
-EVENT2_EXPORT_SYMBOL int
-evutil_date_rfc1123(char *date, const size_t datelen, const struct tm *tm);
+EVENT2_EXPORT_SYMBOL int evutil_date_rfc1123(char *date, const size_t datelen, const struct tm *tm);
 
 /** Allocate a new struct evutil_monotonic_timer for use with the
  * evutil_configure_monotonic_time() and evutil_gettime_monotonic()
@@ -346,7 +345,7 @@ evutil_date_rfc1123(char *date, const size_t datelen, const struct tm *tm);
  * evutil_configure_monotonic_time() before using it.
  */
 EVENT2_EXPORT_SYMBOL
-struct evutil_monotonic_timer * evutil_monotonic_timer_new(void);
+struct evutil_monotonic_timer *evutil_monotonic_timer_new(void);
 
 /** Free a struct evutil_monotonic_timer that was allocated using
  * evutil_monotonic_timer_new().
@@ -358,8 +357,7 @@ void evutil_monotonic_timer_free(struct evutil_monotonic_timer *timer);
  * EV_MONOT_PRECISE and EV_MONOT_FALLBACK.
  */
 EVENT2_EXPORT_SYMBOL
-int evutil_configure_monotonic_time(struct evutil_monotonic_timer *timer,
-                                    int flags);
+int evutil_configure_monotonic_time(struct evutil_monotonic_timer *timer, int flags);
 
 /** Query the current monotonic time from a struct evutil_monotonic_timer
  * previously configured with evutil_configure_monotonic_time().  Monotonic
@@ -372,8 +370,7 @@ int evutil_configure_monotonic_time(struct evutil_monotonic_timer *timer,
  * threads.
  */
 EVENT2_EXPORT_SYMBOL
-int evutil_gettime_monotonic(struct evutil_monotonic_timer *timer,
-                             struct timeval *tp);
+int evutil_gettime_monotonic(struct evutil_monotonic_timer *timer, struct timeval *tp);
 
 /** Create two new sockets that are connected to each other.
 
@@ -457,7 +454,7 @@ int evutil_closesocket(evutil_socket_t sock);
 
 /** Do platform-specific operations, if possible, to make a tcp listener
  *  socket defer accept()s until there is data to read.
- *  
+ *
  *  Not all platforms support this.  You don't want to do this for every
  *  listener socket: only the ones that implement a protocol where the
  *  client transmits before the server needs to respond.
@@ -465,7 +462,7 @@ int evutil_closesocket(evutil_socket_t sock);
  *  @param sock The listening socket to to make deferred
  *  @return 0 on success (whether the operation is supported or not),
  *       -1 on failure
-*/ 
+ */
 EVENT2_EXPORT_SYMBOL
 int evutil_make_tcp_listen_socket_deferred(evutil_socket_t sock);
 
@@ -473,8 +470,10 @@ int evutil_make_tcp_listen_socket_deferred(evutil_socket_t sock);
 /** Return the most recent socket error.  Not idempotent on all platforms. */
 #define EVUTIL_SOCKET_ERROR() WSAGetLastError()
 /** Replace the most recent socket error with errcode */
-#define EVUTIL_SET_SOCKET_ERROR(errcode)		\
-	do { WSASetLastError(errcode); } while (0)
+#define EVUTIL_SET_SOCKET_ERROR(errcode)                                                                               \
+    do {                                                                                                               \
+        WSASetLastError(errcode);                                                                                      \
+    } while(0)
 /** Return the most recent socket error to occur on sock. */
 EVENT2_EXPORT_SYMBOL
 int evutil_socket_geterror(evutil_socket_t sock);
@@ -484,7 +483,7 @@ const char *evutil_socket_error_to_string(int errcode);
 #define EVUTIL_INVALID_SOCKET INVALID_SOCKET
 #elif defined(EVENT_IN_DOXYGEN_)
 /**
-   @name Socket error functions
+   @name SOCKET error functions
 
    These functions are needed for making programs compatible between
    Windows and Unix-like platforms.
@@ -509,8 +508,10 @@ const char *evutil_socket_error_to_string(int errcode);
 /**@}*/
 #else /** !EVENT_IN_DOXYGEN_ && !_WIN32 */
 #define EVUTIL_SOCKET_ERROR() (errno)
-#define EVUTIL_SET_SOCKET_ERROR(errcode)		\
-		do { errno = (errcode); } while (0)
+#define EVUTIL_SET_SOCKET_ERROR(errcode)                                                                               \
+    do {                                                                                                               \
+        errno = (errcode);                                                                                             \
+    } while(0)
 #define evutil_socket_geterror(sock) (errno)
 #define evutil_socket_error_to_string(errcode) (strerror(errcode))
 #define EVUTIL_INVALID_SOCKET -1
@@ -529,44 +530,42 @@ const char *evutil_socket_error_to_string(int errcode);
 #define evutil_timeradd(tvp, uvp, vvp) timeradd((tvp), (uvp), (vvp))
 #define evutil_timersub(tvp, uvp, vvp) timersub((tvp), (uvp), (vvp))
 #else
-#define evutil_timeradd(tvp, uvp, vvp)					\
-	do {								\
-		(vvp)->tv_sec = (tvp)->tv_sec + (uvp)->tv_sec;		\
-		(vvp)->tv_usec = (tvp)->tv_usec + (uvp)->tv_usec;       \
-		if ((vvp)->tv_usec >= 1000000) {			\
-			(vvp)->tv_sec++;				\
-			(vvp)->tv_usec -= 1000000;			\
-		}							\
-	} while (0)
-#define	evutil_timersub(tvp, uvp, vvp)					\
-	do {								\
-		(vvp)->tv_sec = (tvp)->tv_sec - (uvp)->tv_sec;		\
-		(vvp)->tv_usec = (tvp)->tv_usec - (uvp)->tv_usec;	\
-		if ((vvp)->tv_usec < 0) {				\
-			(vvp)->tv_sec--;				\
-			(vvp)->tv_usec += 1000000;			\
-		}							\
-	} while (0)
+#define evutil_timeradd(tvp, uvp, vvp)                                                                                 \
+    do {                                                                                                               \
+        (vvp)->tv_sec  = (tvp)->tv_sec + (uvp)->tv_sec;                                                                \
+        (vvp)->tv_usec = (tvp)->tv_usec + (uvp)->tv_usec;                                                              \
+        if((vvp)->tv_usec >= 1000000) {                                                                                \
+            (vvp)->tv_sec++;                                                                                           \
+            (vvp)->tv_usec -= 1000000;                                                                                 \
+        }                                                                                                              \
+    } while(0)
+#define evutil_timersub(tvp, uvp, vvp)                                                                                 \
+    do {                                                                                                               \
+        (vvp)->tv_sec  = (tvp)->tv_sec - (uvp)->tv_sec;                                                                \
+        (vvp)->tv_usec = (tvp)->tv_usec - (uvp)->tv_usec;                                                              \
+        if((vvp)->tv_usec < 0) {                                                                                       \
+            (vvp)->tv_sec--;                                                                                           \
+            (vvp)->tv_usec += 1000000;                                                                                 \
+        }                                                                                                              \
+    } while(0)
 #endif /* !EVENT__HAVE_TIMERADD */
 
 #ifdef EVENT__HAVE_TIMERCLEAR
 #define evutil_timerclear(tvp) timerclear(tvp)
 #else
-#define	evutil_timerclear(tvp)	(tvp)->tv_sec = (tvp)->tv_usec = 0
+#define evutil_timerclear(tvp) (tvp)->tv_sec = (tvp)->tv_usec = 0
 #endif
 /**@}*/
 
 /** Return true iff the tvp is related to uvp according to the relational
  * operator cmp.  Recognized values for cmp are ==, <=, <, >=, and >. */
-#define	evutil_timercmp(tvp, uvp, cmp)					\
-	(((tvp)->tv_sec == (uvp)->tv_sec) ?				\
-	 ((tvp)->tv_usec cmp (uvp)->tv_usec) :				\
-	 ((tvp)->tv_sec cmp (uvp)->tv_sec))
+#define evutil_timercmp(tvp, uvp, cmp)                                                                                 \
+    (((tvp)->tv_sec == (uvp)->tv_sec) ? ((tvp)->tv_usec cmp(uvp)->tv_usec) : ((tvp)->tv_sec cmp(uvp)->tv_sec))
 
 #ifdef EVENT__HAVE_TIMERISSET
 #define evutil_timerisset(tvp) timerisset(tvp)
 #else
-#define	evutil_timerisset(tvp)	((tvp)->tv_sec || (tvp)->tv_usec)
+#define evutil_timerisset(tvp) ((tvp)->tv_sec || (tvp)->tv_usec)
 #endif
 
 /** Replacement for offsetof on platforms that don't define it. */
@@ -596,18 +595,18 @@ int evutil_gettimeofday(struct timeval *tv, struct timezone *tz);
 EVENT2_EXPORT_SYMBOL
 int evutil_snprintf(char *buf, size_t buflen, const char *format, ...)
 #ifdef __GNUC__
-	__attribute__((format(printf, 3, 4)))
+        __attribute__((format(printf, 3, 4)))
 #endif
-;
+        ;
 /** Replacement for vsnprintf to get consistent behavior on platforms for
     which the return value of snprintf does not conform to C99.
  */
 EVENT2_EXPORT_SYMBOL
 int evutil_vsnprintf(char *buf, size_t buflen, const char *format, va_list ap)
 #ifdef __GNUC__
-	__attribute__((format(printf, 3, 0)))
+        __attribute__((format(printf, 3, 0)))
 #endif
-;
+        ;
 
 /** Replacement for inet_ntop for platforms which lack it. */
 EVENT2_EXPORT_SYMBOL
@@ -616,8 +615,7 @@ const char *evutil_inet_ntop(int af, const void *src, char *dst, size_t len);
     unit tests. No reason to call this directly.
  */
 EVENT2_EXPORT_SYMBOL
-int evutil_inet_pton_scope(int af, const char *src, void *dst,
-	unsigned *indexp);
+int evutil_inet_pton_scope(int af, const char *src, void *dst, unsigned *indexp);
 /** Replacement for inet_pton for platforms which lack it. */
 EVENT2_EXPORT_SYMBOL
 int evutil_inet_pton(int af, const char *src, void *dst);
@@ -652,8 +650,7 @@ int evutil_parse_sockaddr_port(const char *str, struct sockaddr *out, int *outle
  * AF_INET and AF_INET6 addresses. The ordering is not guaranteed to remain
  * the same between Libevent versions. */
 EVENT2_EXPORT_SYMBOL
-int evutil_sockaddr_cmp(const struct sockaddr *sa1, const struct sockaddr *sa2,
-    int include_port);
+int evutil_sockaddr_cmp(const struct sockaddr *sa1, const struct sockaddr *sa2, int include_port);
 
 /** As strcasecmp, but always compares the characters in locale-independent
     ASCII.  That's useful if you're handling data in ASCII-based protocols.
@@ -677,14 +674,14 @@ int evutil_ascii_strncasecmp(const char *str1, const char *str2, size_t n);
     struct addrinfo.)
 */
 struct evutil_addrinfo {
-	int     ai_flags;     /* AI_PASSIVE, AI_CANONNAME, AI_NUMERICHOST */
-	int     ai_family;    /* PF_xxx */
-	int     ai_socktype;  /* SOCK_xxx */
-	int     ai_protocol;  /* 0 or IPPROTO_xxx for IPv4 and IPv6 */
-	size_t  ai_addrlen;   /* length of ai_addr */
-	char   *ai_canonname; /* canonical name for nodename */
-	struct sockaddr  *ai_addr; /* binary address */
-	struct evutil_addrinfo  *ai_next; /* next structure in linked list */
+    int                     ai_flags;     /* AI_PASSIVE, AI_CANONNAME, AI_NUMERICHOST */
+    int                     ai_family;    /* PF_xxx */
+    int                     ai_socktype;  /* SOCK_xxx */
+    int                     ai_protocol;  /* 0 or IPPROTO_xxx for IPv4 and IPv6 */
+    size_t                  ai_addrlen;   /* length of ai_addr */
+    char                   *ai_canonname; /* canonical name for nodename */
+    struct sockaddr        *ai_addr;      /* binary address */
+    struct evutil_addrinfo *ai_next;      /* next structure in linked list */
 };
 #endif
 /** @name evutil_getaddrinfo() error codes
@@ -805,8 +802,10 @@ struct evutil_addrinfo;
  * For a nonblocking variant, see evdns_getaddrinfo.
  */
 EVENT2_EXPORT_SYMBOL
-int evutil_getaddrinfo(const char *nodename, const char *servname,
-    const struct evutil_addrinfo *hints_in, struct evutil_addrinfo **res);
+int evutil_getaddrinfo(const char                   *nodename,
+                       const char                   *servname,
+                       const struct evutil_addrinfo *hints_in,
+                       struct evutil_addrinfo      **res);
 
 /** Release storage allocated by evutil_getaddrinfo or evdns_getaddrinfo. */
 EVENT2_EXPORT_SYMBOL

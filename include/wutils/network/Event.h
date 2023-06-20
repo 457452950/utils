@@ -8,33 +8,36 @@
 #include <list>
 #include <memory>
 
-#include "NetWorkDef.h"
 #include "NetWorkUtils.h"
+#include "NetworkDef.h"
+#include "Socket.h"
 #include "wutils/SharedPtr.h"
 
 
 namespace wutils::network {
 
-namespace HandlerEventType {
+namespace event {
+
+namespace EventType {
 constexpr inline uint8_t EV_IN  = 1 << 0;
 constexpr inline uint8_t EV_OUT = 1 << 1;
-}; // namespace HandlerEventType
+}; // namespace EventType
 
 template <typename UserData>
-class EventHandle {
+class IO_Context {
 public:
-    EventHandle()          = default;
-    virtual ~EventHandle() = default;
+    IO_Context()          = default;
+    virtual ~IO_Context() = default;
 
     // noncopyable
-    EventHandle(const EventHandle &)            = delete;
-    EventHandle &operator=(const EventHandle &) = delete;
+    IO_Context(const IO_Context &)            = delete;
+    IO_Context &operator=(const IO_Context &) = delete;
 
     using user_data_type = UserData;
     using user_data_ptr  = user_data_type *;
 
-    class EventHandler;
-    using EventHandler_p = shared_ptr<EventHandler>;
+    class IO_Handle;
+    using EventHandler_p = shared_ptr<IO_Handle>;
 
     // call back
     using callback_type = std::function<void(socket_t sock, user_data_ptr data)>;
@@ -55,17 +58,17 @@ public:
 
 
 template <typename UserData>
-class EventHandle<UserData>::EventHandler : public enable_shared_from_this<EventHandler> {
+class IO_Context<UserData>::IO_Handle : public enable_shared_from_this<IO_Handle> {
 public:
     // DONE: 增加 events_ 修改的监听函数，自动调用ModifySocket
     // TODO: 增加 端信息
-    socket_t                             socket_{-1};         // native socket
-    user_data_ptr                        user_data_{nullptr}; // user data, void*
-    std::weak_ptr<EventHandle<UserData>> handle_;
+    SOCKET                         socket_{nullptr};    // native socket
+    user_data_ptr                  user_data_{nullptr}; // user data, void*
+    weak_ptr<IO_Context<UserData>> handle_;
 
 
 private:
-    uint8_t events_{0}; // HandlerEventType
+    uint8_t events_{0}; // EventType
     bool    enable_{false};
 
 public:
@@ -76,12 +79,12 @@ public:
     void SetEvents(uint8_t events);
     auto GetEvents();
 
-    ~EventHandler();
+    ~IO_Handle();
 };
 
 
 template <typename UserData>
-inline void EventHandle<UserData>::EventHandler::Enable() {
+inline void IO_Context<UserData>::IO_Handle::Enable() {
     // events cant be 0
     assert(this->events_);
     assert(!this->handle_.expired());
@@ -94,7 +97,7 @@ inline void EventHandle<UserData>::EventHandler::Enable() {
 }
 
 template <typename UserData>
-inline void EventHandle<UserData>::EventHandler::DisEnable() {
+inline void IO_Context<UserData>::IO_Handle::DisEnable() {
     if(this->handle_.expired()) {
         return;
     }
@@ -108,12 +111,12 @@ inline void EventHandle<UserData>::EventHandler::DisEnable() {
 }
 
 template <typename UserData>
-inline bool EventHandle<UserData>::EventHandler::IsEnable() {
+inline bool IO_Context<UserData>::IO_Handle::IsEnable() {
     return this->enable_;
 }
 
 template <typename UserData>
-inline void EventHandle<UserData>::EventHandler::SetEvents(uint8_t events) {
+inline void IO_Context<UserData>::IO_Handle::SetEvents(uint8_t events) {
     assert(!this->handle_.expired());
 
     if(this->events_ != events) {
@@ -132,18 +135,18 @@ inline void EventHandle<UserData>::EventHandler::SetEvents(uint8_t events) {
 }
 
 template <typename UserData>
-inline auto EventHandle<UserData>::EventHandler::GetEvents() {
+inline auto IO_Context<UserData>::IO_Handle::GetEvents() {
     return this->events_;
 }
 
 template <typename UserData>
-inline EventHandle<UserData>::EventHandler::~EventHandler() {
+inline IO_Context<UserData>::IO_Handle::~IO_Handle() {
     if(this->IsEnable()) {
         this->DisEnable();
     }
-    ::close(this->socket_);
 }
 
+} // namespace event
 
 } // namespace wutils::network
 

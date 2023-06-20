@@ -7,11 +7,11 @@
 
 namespace wutils::network {
 
-static auto in_cb = [](socket_t sock, BaseChannel *data) {
+static auto in_cb = [](native_socket_t sock, BaseChannel *data) {
     auto *ch = (ReadChannel *)data;
     ch->ChannelIn();
 };
-static auto out_cb = [](socket_t sock, BaseChannel *data) {
+static auto out_cb = [](native_socket_t sock, BaseChannel *data) {
     auto *ch = (WriteChannel *)data;
     ch->ChannelOut();
 };
@@ -75,94 +75,10 @@ void Timer::Stop() {
  * AcceptorChannel
  ************************************************************/
 
-AcceptorChannel::AcceptorChannel(std::weak_ptr<ev_hdle_t> handle) {
-    this->handler_             = make_shared<ev_hdler_t>();
-    this->handler_->handle_    = std::move(handle);
-    this->handler_->user_data_ = this;
-}
-
-AcceptorChannel::~AcceptorChannel() {
-    if(this->handler_) {
-        if(this->handler_->IsEnable())
-            this->handler_->DisEnable();
-    }
-}
-
-std::tuple<bool, SystemError> wutils::network::AcceptorChannel::Start(const EndPointInfo &local_endpoint, bool shared) {
-    this->local_endpoint_ = local_endpoint;
-
-    auto socket = MakeListenedSocket(local_endpoint_, shared);
-    if(socket == -1) {
-        auto err = SystemError::GetSysErrCode();
-        std::cout << "make listened socket err " << err << std::endl;
-        return {false, err};
-    }
-
-    this->handler_->socket_ = socket;
-    this->handler_->SetEvents(HandlerEventType::EV_IN);
-    this->handler_->Enable();
-
-    return {true, {}};
-}
-
-void AcceptorChannel::ChannelIn() {
-    std::cout << " AcceptorChannel channel in" << std::endl;
-    assert(this->handler_);
-
-    EndPointInfo ei;
-    auto         cli = wutils::network::Accept4(this->handler_->socket_, ei, SOCK_NONBLOCK);
-
-    if(cli <= 0) { // error
-        if(OnError) {
-            OnError(SystemError::GetSysErrCode());
-        }
-    } else {
-        if(!OnAccept) {
-            ::close(cli);
-            return;
-        }
-
-        auto handler     = make_shared<ev_hdler_t>();
-        handler->socket_ = cli;
-        handler->handle_ = this->handler_->handle_;
-
-        OnAccept(local_endpoint_, ei, handler);
-    }
-}
-
 /***********************************************************
  * UDPPointer
  ************************************************************/
 
-UDPPointer::UDPPointer(std::weak_ptr<ev_hdle_t> handle) {
-    std::cout << "UDPPointer " << std::endl;
-
-    this->handler_             = make_shared<ev_hdler_t>();
-    this->handler_->handle_    = std::move(handle);
-    this->handler_->user_data_ = this;
-}
-
-UDPPointer::~UDPPointer() {
-    if(this->handler_) {
-        if(this->handler_->IsEnable())
-            this->handler_->DisEnable();
-    }
-}
-
-bool wutils::network::UDPPointer::Start(const EndPointInfo &local_endpoint, bool shared) {
-    this->local_endpoint_ = local_endpoint;
-
-    auto socket = MakeBindedSocket(local_endpoint_, shared);
-    if(socket == -1) {
-        return false;
-    }
-
-    this->handler_->socket_ = socket;
-
-    this->handler_->SetEvents(HandlerEventType::EV_IN);
-    this->handler_->Enable();
-    return true;
-}
 
 void UDPPointer::ChannelIn() {
     EndPointInfo ei;

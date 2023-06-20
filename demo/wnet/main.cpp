@@ -2,31 +2,36 @@
 #include <iostream>
 #include <memory>
 
-#include <sys/uio.h>
+// #include <sys/uio.h>
 
-#include "test_iovec.h"
-#include "test_preadv_pwritev.h"
+// #include "test_iovec.h"
+// #include "test_preadv_pwritev.h"
+//
+// #include "test_ipv6.h"
+// #include "test_wepoll.h"
+// #include "test_wselect.h"
+//
+// #include "test_aschannel.h"
+// #include "test_mychannel.h"
+// #include "test_tcpchannel.h"
+// #include "test_tcpserver.h"
+// #include "test_udp.h"
+// #include "test_udpchannel.h"
+//
+// #include "test_timer.h"
 
-#include "test_ipv6.h"
-#include "test_wepoll.h"
-#include "test_wselect.h"
+// #include "Channel.h"
+//  #include "wutils/Debugger.hpp"
+//   #include "wutils/network/NetWork.h"
+//   #include "wutils/network/stdIOVec.h"
 
-#include "test_aschannel.h"
-#include "test_mychannel.h"
-#include "test_tcpchannel.h"
-#include "test_tcpserver.h"
-#include "test_udp.h"
-#include "test_udpchannel.h"
-
-#include "test_timer.h"
-
-#include "Channel.h"
-#include "wutils/Debugger.hpp"
-#include "wutils/network/NetWork.h"
-#include "wutils/network/stdIOVec.h"
+#include "wutils/network/Ip.h"
+#include "wutils/network/base/EndPoint.h"
 
 using namespace std;
 using namespace wutils::network;
+
+void test();
 
 int main() {
 
@@ -42,10 +47,35 @@ int main() {
 
     //    test_timer();
 
-    test_tcpchannel();
+    //    test_tcpchannel();
     //    test_aschannel();
     // test_udp();
     // test_udpchannel();
     // test_tcpserver();
     // test_myChannel();
+
+    test();
+}
+
+void test() {
+    ip::Udp::Socket<ip::V4> socket1;
+    ip::Tcp::Socket<ip::V6> socket2;
+
+
+    ip::V4::in_addr a;
+    ip::IpStrToAddr<ip::V4>("127.0.0.1", &a);
+    ip::IpStrToAddr("127.0.0.1", &a);
+
+    std::string ip_str;
+    ip::IpAddrToStr<ip::V4>(a, ip_str);
+    ip::IpAddrToStr(a, ip_str);
+    cout << "ip " << ip_str << endl;
+
+    ip::V4::Address address1("127.0.0.1");
+    ip::V6::Address address2;
+
+    ip::V4::EndPointInfo e1;
+    e1.Assign(address1, 4000);
+    e1.Assign(ip::V4::Address{"127.0.0.1"}, 4000);
+    e1.AsSockAddr();
 }

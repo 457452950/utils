@@ -15,7 +15,7 @@ using namespace network;
 using TimerHandle                  = ev_hdle_t;
 inline TimerHandle *debuggerHandle = new Epoll<BaseChannel>;
 
-static auto handle_read_callback = [](socket_t sock, Epoll<BaseChannel>::user_data_ptr data) {
+static auto handle_read_callback = [](native_socket_t sock, Epoll<BaseChannel>::user_data_ptr data) {
     auto *ch = (ReadChannel *)data;
     ch->ChannelIn();
 };

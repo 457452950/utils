@@ -17,8 +17,9 @@
 
 #include "Event.h"
 #include "NetWorkUtils.h"
+#include "wutils/Error.h"
 
-namespace wutils::network {
+namespace wutils::network::select {
 
 // fd_set
 using fd_set_type = fd_set;
@@ -55,18 +56,18 @@ SelectWait(int max_sock, fd_set_ptr read_set, fd_set_ptr wirte_set, fd_set_ptr e
 
 // not thread safe
 template <typename UserData>
-class Select final : public EventHandle<UserData> {
+class Select final : public event::IO_Context<UserData> {
 public:
     Select()  = default;
     ~Select() = default;
 
-    using EventHandler   = typename EventHandle<UserData>::EventHandler;
-    using EventHandler_p = shared_ptr<EventHandler>;
+    using IOHandle   = typename event::IO_Context<UserData>::IO_Handle;
+    using IOHandle_p = shared_ptr<IOHandle>;
 
     // control
-    bool AddSocket(EventHandler_p handler) override;
-    bool ModifySocket(EventHandler_p handler) override;
-    void DelSocket(EventHandler_p handler) override;
+    bool AddSocket(IOHandle_p handler) override;
+    bool ModifySocket(IOHandle_p handler) override;
+    void DelSocket(IOHandle_p handler) override;
     // thread control
     bool Init() override;
     void Loop() override;
@@ -83,8 +84,8 @@ private:
     void ClearAllSet();
     void InitAllToSet();
 
-    bool HasEventIN(uint8_t events) { return events & HandlerEventType::EV_IN; }
-    bool HasEventOut(uint8_t events) { return events & HandlerEventType::EV_OUT; }
+    bool HasEventIN(uint8_t events) { return events & event::EventType::EV_IN; }
+    bool HasEventOut(uint8_t events) { return events & event::EventType::EV_OUT; }
 
     void ParseAndSetEvents(socket_t socket, uint8_t events);
 
@@ -92,10 +93,10 @@ private:
     fd_set_type read_set_{};
     fd_set_type write_set_{};
 
-    std::unordered_set<EventHandler_p> handler_set;
-    std::set<EventHandler_p>           rubish_map_;
-    uint32_t                           fd_count_{0};
-    socket_t                           max_fd_number{0};
+    std::unordered_set<IOHandle_p> handler_set;
+    std::set<IOHandle_p>           rubish_map_;
+    uint32_t                       fd_count_{0};
+    socket_t                       max_fd_number{0};
 
     int  wakeup_fd_{-1};
     bool active_{false};
@@ -103,7 +104,7 @@ private:
 
 
 template <typename UserData>
-bool Select<UserData>::AddSocket(EventHandler_p handler) {
+bool Select<UserData>::AddSocket(IOHandle_p handler) {
     // select fd 上限 1024
     if(this->fd_count_ >= 1024) {
         return false;
@@ -119,7 +120,7 @@ bool Select<UserData>::AddSocket(EventHandler_p handler) {
 }
 
 template <typename UserData>
-bool Select<UserData>::ModifySocket(EventHandler_p handler) {
+bool Select<UserData>::ModifySocket(IOHandle_p handler) {
     auto it = handler_set.find(handler);
     if(it != handler_set.end()) { // found
         ParseAndSetEvents(handler->socket_, handler->GetEvents());
@@ -129,7 +130,7 @@ bool Select<UserData>::ModifySocket(EventHandler_p handler) {
 }
 
 template <typename UserData>
-void Select<UserData>::DelSocket(EventHandler_p handler) {
+void Select<UserData>::DelSocket(IOHandle_p handler) {
     auto it = this->handler_set.find(handler);
     if(it == this->handler_set.end()) {
         return;
@@ -175,7 +176,7 @@ void Select<UserData>::EventLoop() {
         res = SelectWait(max_fd_number, &read_set_, &write_set_, nullptr, -1);
 
         if(res == -1) {
-            std::cerr << "error : " << strerror(errno) << std::endl;
+            std::cerr << "error : " << SystemError::GetSysErrCode() << std::endl;
             break;
         } else if(res == 0) {
             // time out
@@ -194,7 +195,7 @@ void Select<UserData>::EventLoop() {
         // 迭代器失效
 
         for(auto it = this->handler_set.begin(); it != temp_end; ++it) {
-            EventHandler_p i = it.operator*();
+            IOHandle_p i = it.operator*();
 
             if(this->rubish_map_.count(i)) {
                 break;
@@ -265,7 +266,7 @@ void Select<UserData>::ParseAndSetEvents(socket_t socket, uint8_t events) {
     }
 }
 
-} // namespace wutils::network
+} // namespace wutils::network::select
 
 
 #endif // UTILS_SELECT_H

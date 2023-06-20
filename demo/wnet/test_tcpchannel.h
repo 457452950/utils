@@ -43,12 +43,12 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 
 } // namespace cli
 
-inline auto in_cb = [](socket_t sock, BaseChannel *data) {
+inline auto in_cb = [](native_socket_t sock, BaseChannel *data) {
     auto *ch = (ReadChannel *)data;
     // cout << "get channel call channel in" << std::endl;
     ch->ChannelIn();
 };
-inline auto out_cb = [](socket_t sock, BaseChannel *data) {
+inline auto out_cb = [](native_socket_t sock, BaseChannel *data) {
     auto *ch = (WriteChannel *)data;
     // cout << "get channel call channel in" << std::endl;
     ch->ChannelOut();

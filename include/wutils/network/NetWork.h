@@ -5,20 +5,56 @@
 #ifndef UTILS_NETWORK_H
 #define UTILS_NETWORK_H
 
-#include "Epoll.h"
-#include "Event.h"
-#include "NetFactory.h"
-#include "NetWorkDef.h"
-#include "NetWorkUtils.h"
-#include "Select.h"
-#include "SingleTcpServer.h"
+
+#include <cstdint>
 
 #include "wutils/OS.h"
 
 namespace wutils::network {
 
+#ifdef OS_IS_LINUX
+#define SERVER_USE_EPOLL
+#else
+#define SERVER_USE_SELECT
+#endif
 
-/* WEvent.h */
+
+enum class HandleType : uint8_t {
+    SELECT,
+    EPOLL,
+};
+
+#ifdef SERVER_USE_EPOLL
+const auto    default_handle_type = HandleType::EPOLL;
+#elif defined SERVER_USE_SELECT
+const auto default_handle_type = HandleType::SELECT;
+#endif
+
+
+#define MAX_CHANNEL_SEND_SIZE (16 * 1024ULL)         // 16k
+#define MAX_CHANNEL_RECV_BUFFER_SIZE (320 * 1024ULL) // 320k
+#define MAX_CHANNEL_SEND_BUFFER_SIZE (160 * 1024ULL) // 160k
+
+#define MAX_LAN_UDP_PACKAGE_LEN 1472
+#define MAX_WAN_UDP_PACKAGE_LEN 548
+#define MAX_UDP_BUFFER_LEN 1500
+
+
+} // namespace wutils::network
+
+
+#include "Epoll.h"
+#include "Event.h"
+#include "NetFactory.h"
+#include "NetWorkUtils.h"
+#include "NetworkDef.h"
+#include "Select.h"
+#include "SingleTcpServer.h"
+
+namespace wutils::network {
+
+
+/* Event.h */
 template <typename UserData>
 class EventHandle;
 

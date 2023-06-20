@@ -12,7 +12,7 @@ using namespace wutils::network;
 /**
  * test_tcpserver
  */
-// auto acc_cb = [](wutils::network::socket_t socket, wutils::network::EndPointInfo &endpoint) -> bool {
+// auto acc_cb = [](wutils::network::native_socket_t socket, wutils::network::EndPointInfo &endpoint) -> bool {
 //     // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
 
 //     // ch = new Channel(socket, endpoint);

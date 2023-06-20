@@ -12,14 +12,15 @@
 #include <set>
 #include <thread>
 
+#include <unistd.h> // close(int)
+
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
 #include "Event.h"
-#include "NetWorkUtils.h"
 
 
-namespace wutils::network {
+namespace wutils::network::epoll {
 
 using epoll_type = int32_t;
 using epoll_ptr  = epoll_type *;
@@ -166,19 +167,19 @@ protected:
 
 
 template <typename UserData>
-class Epoll final : public EventHandle<UserData> {
+class Epoll final : public event::IO_Context<UserData> {
 public:
     Epoll();
     ~Epoll();
 
-    using EventHandler   = typename EventHandle<UserData>::EventHandler;
-    using EventHandler_p = shared_ptr<EventHandler>;
+    using IOHandle   = typename event::IO_Context<UserData>::IO_Handle;
+    using IOHandle_p = shared_ptr<IOHandle>;
 
 
     // control
-    bool AddSocket(EventHandler_p handler) override;
-    bool ModifySocket(EventHandler_p handler) override;
-    void DelSocket(EventHandler_p handler) override;
+    bool AddSocket(IOHandle_p handler) override;
+    bool ModifySocket(IOHandle_p handler) override;
+    void DelSocket(IOHandle_p handler) override;
 
     bool Init() override;
     void Loop() override;
@@ -196,8 +197,9 @@ private:
     int       wakeup_fd_{-1}; // event_fd
     bool      active_{false};
 
-    std::map<EventHandler *, EventHandler_p> ready_to_del_;
+    std::map<IOHandle *, IOHandle_p> ready_to_del_;
 };
+
 template <typename UserData>
 void Epoll<UserData>::DelCrash() {
     for(auto &item : ready_to_del_) {
@@ -245,8 +247,8 @@ bool Epoll<UserData>::Init() {
 
 
 template <typename UserData>
-bool Epoll<UserData>::AddSocket(EventHandler_p handler) {
-    //    std::cout << "Add Socket " << handler.get() << std::endl;
+bool Epoll<UserData>::AddSocket(IOHandle_p handler) {
+    //    std::cout << "Add SOCKET " << handler.get() << std::endl;
 
     auto it = this->ready_to_del_.find(handler.get());
     if(it != this->ready_to_del_.end()) {
@@ -270,8 +272,8 @@ bool Epoll<UserData>::AddSocket(EventHandler_p handler) {
 }
 
 template <typename UserData>
-bool Epoll<UserData>::ModifySocket(EventHandler_p handler) {
-    //    std::cout << "Mod Socket " << handler.get() << std::endl;
+bool Epoll<UserData>::ModifySocket(IOHandle_p handler) {
+    //    std::cout << "Mod SOCKET " << handler.get() << std::endl;
     epoll_data_t ep_data{.ptr = nullptr};
 
     ep_data.ptr = handler->user_data_;
@@ -281,8 +283,8 @@ bool Epoll<UserData>::ModifySocket(EventHandler_p handler) {
 }
 
 template <typename UserData>
-void Epoll<UserData>::DelSocket(EventHandler_p handler) {
-    //    std::cout << "Del Socket " << handler.get() << std::endl;
+void Epoll<UserData>::DelSocket(IOHandle_p handler) {
+    //    std::cout << "Del SOCKET " << handler.get() << std::endl;
     this->ready_to_del_.insert({handler.get(), handler});
 }
 
@@ -307,10 +309,10 @@ inline void Epoll<UserData>::Wake() {
 template <typename UserData>
 uint32_t Epoll<UserData>::ParseToEpollEvent(uint8_t events) {
     uint32_t ev = 0;
-    if(events & HandlerEventType::EV_IN) {
+    if(events & event::EventType::EV_IN) {
         ev |= EPOLLIN;
     }
-    if(events & HandlerEventType::EV_OUT) {
+    if(events & event::EventType::EV_OUT) {
         ev |= EPOLLOUT;
     }
     return ev;
@@ -351,7 +353,7 @@ void Epoll<UserData>::EventLoop() {
             }
 
             uint32_t ev   = events[i].events;
-            auto    *data = (typename EventHandle<UserData>::EventHandler *)events[i].data.ptr;
+            auto    *data = (typename event::IO_Context<UserData>::IO_Handle *)events[i].data.ptr;
 
             assert(this->wakeup_fd_ != events[i].data.fd);
 
@@ -366,7 +368,7 @@ void Epoll<UserData>::EventLoop() {
             uint8_t  eev  = data->GetEvents();
 
             // FIXME: write_ 中可能释放 data
-            if(ev & EPOLLOUT && eev & HandlerEventType::EV_OUT) {
+            if(ev & EPOLLOUT && eev & event::EventType::EV_OUT) {
                 if(this->write_) {
                     //                    std::cout << "write " << data << std::endl;
                     this->write_(sock, data->user_data_);
@@ -377,7 +379,7 @@ void Epoll<UserData>::EventLoop() {
                 break;
             }
 
-            if(ev & EPOLLIN && eev & HandlerEventType::EV_IN) {
+            if(ev & EPOLLIN && eev & event::EventType::EV_IN) {
                 if(this->read_) {
                     //                    std::cout << "read " << data << std::endl;
                     this->read_(sock, data->user_data_);
@@ -390,6 +392,6 @@ void Epoll<UserData>::EventLoop() {
 }
 
 
-} // namespace wutils::network
+} // namespace wutils::network::epoll
 
 #endif // UTILS_EPOLL_H

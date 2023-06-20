@@ -4,9 +4,8 @@
 
 #include "wutils/Debugger.hpp"
 
-namespace wutils::network {
+namespace wutils::network::epoll {
 
-using namespace debug;
 
 epoll_type CreateNewEpollFd() { return epoll_create(1); }
 
@@ -146,4 +145,4 @@ int32_t BaseEpoll::GetEvents(epoll_event *events, int32_t events_size, int32_t t
 }
 
 
-} // namespace wutils::network
+} // namespace wutils::network::epoll

@@ -8,9 +8,8 @@
 #include "Epoll.h"
 #include "Select.h"
 
-#include "BaseSession.h"
 #include "Channel.h"
-#include "NetWorkDef.h"
+#include "NetworkDef.h"
 
 namespace wutils::network {
 

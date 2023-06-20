@@ -6,10 +6,11 @@
 
 #include "Epoll.h"
 #include "Event.h"
-#include "NetWorkDef.h"
+#include "NetworkDef.h"
 #include "Select.h"
 #include "stdIOVec.h"
 
+#include "base/EndPoint.h"
 #include "wutils/Buffer.h"
 #include "wutils/Error.h"
 #include "wutils/SharedPtr.h"
@@ -21,12 +22,12 @@ namespace wutils::network {
  */
 class BaseChannel;
 
-using ev_hdle_t = EventHandle<BaseChannel>;
+using IO_Context = event::IO_Context<BaseChannel>;
 
-using ev_hdler_t = ev_hdle_t::EventHandler;
-using ev_hdler_p = shared_ptr<ev_hdler_t>;
+using IO_Handle_t = IO_Context::IO_Handle;
+using IO_Handle_p = shared_ptr<IO_Handle_t>;
 
-void setCommonCallBack(ev_hdle_t *handle);
+void setCommonCallBack(IO_Handle_t *handle);
 
 /**************************************************
  * BaseChannel interface
@@ -70,7 +71,7 @@ private:
  ************************************************************/
 class Timer : public ReadChannel {
 public:
-    explicit Timer(weak_ptr<ev_hdle_t> handle);
+    explicit Timer(weak_ptr<IO_Context> handle);
     ~Timer() override;
 
     std::function<void()> OnTime;
@@ -86,20 +87,22 @@ private:
     void ChannelIn() final;
 
 private:
-    ev_hdler_p handler_;
+    IO_Handle_p handler_;
 };
 
 /***********************************************************
  * AcceptorChannel
  ************************************************************/
+template <class FAMILY, class PROTOCOL>
 class AcceptorChannel : public ReadChannel {
 public:
-    explicit AcceptorChannel(weak_ptr<ev_hdle_t> handle);
+    explicit AcceptorChannel(weak_ptr<IO_Context> context);
     ~AcceptorChannel() override;
 
-    std::tuple<bool, SystemError> Start(const EndPointInfo &local_endpoint, bool shared);
+    std::tuple<bool, SystemError> Start(const typename FAMILY::EndPointInfo &local_endpoint, bool shared);
 
-    using accept_cb = std::function<void(const EndPointInfo &, const EndPointInfo &, ev_hdler_p)>;
+    using accept_cb = std::function<void(
+            const typename FAMILY::EndPointInfo &, const typename FAMILY::EndPointInfo &, IO_Handle_p)>;
     accept_cb                        OnAccept;
     std::function<void(SystemError)> OnError;
 
@@ -107,39 +110,68 @@ private:
     void ChannelIn() final;
 
 private:
-    ev_hdler_p   handler_{nullptr};
-    EndPointInfo local_endpoint_;
+    IO_Handle_p                 handler_{nullptr};
+    typename PROTOCOL::Acceptor acceptor_;
 };
 
+template <class FAMILY, class PROTOCOL>
+AcceptorChannel<FAMILY, PROTOCOL>::AcceptorChannel(weak_ptr<IO_Context> context) {
+    this->handler_             = make_shared<IO_Handle_t>();
+    this->handler_->handle_    = std::move(context);
+    this->handler_->user_data_ = this;
+}
+template <class FAMILY, class PROTOCOL>
+AcceptorChannel<FAMILY, PROTOCOL>::~AcceptorChannel() {
+    if(this->handler_) {
+        if(this->handler_->IsEnable())
+            this->handler_->DisEnable();
+    }
+}
+template <class FAMILY, class PROTOCOL>
+std::tuple<bool, SystemError>
+AcceptorChannel<FAMILY, PROTOCOL>::Start(const typename FAMILY::EndPointInfo &local_endpoint, bool shared) {
+    this->local_endpoint_ = local_endpoint;
 
-/***********************************************************
- * UDPPointer
- ************************************************************/
-// XXX: 逻辑上 UDPPointer not "is a" BaseChannel.
-class UDPPointer : public BaseChannel {
-public:
-    explicit UDPPointer(weak_ptr<ev_hdle_t> handle);
-    ~UDPPointer() override;
+    if(!this->acceptor_->Bind(local_endpoint)) {
+        return {false, SystemError::GetSysErrCode()};
+    }
+    if(!this->acceptor_->Listen()) {
+        return {false, SystemError::GetSysErrCode()};
+    }
 
-    bool Start(const EndPointInfo &local_endpoint, bool shared);
+    this->handler_->socket_ = socket;
+    this->handler_->SetEvents(event::EventType::EV_IN);
+    this->handler_->Enable();
 
-    using message_cb = std::function<void(const EndPointInfo &, const EndPointInfo &, const uint8_t *, uint32_t)>;
-    message_cb                       OnMessage;
-    std::function<void(SystemError)> OnError;
+    return {true, {0}};
+}
 
-    // unreliable
-    bool SendTo(const uint8_t *send_message, uint32_t message_len, const EndPointInfo &remote);
+template <class FAMILY, class PROTOCOL>
+void AcceptorChannel<FAMILY, PROTOCOL>::ChannelIn() {
+    assert(this->handler_);
 
-private:
-    void ChannelIn() final;
-    void ChannelOut() final{};
+    typename FAMILY::EndPointInfo ei;
 
-    void onErr(SystemError);
+    auto cli = this->acceptor_.Accept(ei);
 
-private:
-    ev_hdler_p   handler_{nullptr};
-    EndPointInfo local_endpoint_;
-};
+    if(cli <= 0) { // error
+        if(OnError) {
+            OnError(SystemError::GetSysErrCode());
+        }
+    } else {
+        if(!OnAccept) {
+            ::close(cli);
+            return;
+        }
+
+        auto handler     = make_shared<IO_Handle_t>();
+        handler->socket_ = cli;
+        handler->handle_ = this->handler_->handle_;
+
+        OnAccept(this->acceptor_.GetLocalInfo(), ei, handler);
+    }
+}
+
 
 /***********************************************************
  * UDPChannel

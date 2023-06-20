@@ -40,7 +40,7 @@ struct test_s {
     int                      n;
 };
 
-inline auto r_cb = [](socket_t sock, test_s *data) -> void {
+inline auto r_cb = [](native_socket_t sock, test_s *data) -> void {
     cout << "in" << sock << endl;
 
     EndPointInfo en;
