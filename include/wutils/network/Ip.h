@@ -21,24 +21,53 @@ namespace wutils::network::ip {
 class V4 {
 public:
     static int Family() { return AF_INET; }
-    using in_addr                 = ::in_addr;
-    using addr                    = sockaddr_in;
-    static constexpr int addr_len = sizeof(addr);
-    using Addr                    = std::array<uint8_t, addr_len>;
+    using native_data_type            = ::in_addr;
+    using native_sockaddr_type        = sockaddr_in;
+    static constexpr int sockaddr_len = sizeof(native_sockaddr_type);
+    using SockAddr                    = std::array<uint8_t, sockaddr_len>;
 
-    using Address = ADDRESS<V4>;
-
-    class EndPointInfo : public ENDPOINTINFO<V4> {
+    /**
+     * @example
+     * V4::Address e1();
+     * e1.Assign("127.0.0.1"); // true
+     * e1.Assign("::1"); //false
+     */
+    class Address {
     public:
-        EndPointInfo() : ENDPOINTINFO<V4>() {}
-        EndPointInfo(const Address &address, uint16_t port) : ENDPOINTINFO<V4>() {
-            GetSockAddr_in(address.AsInAddr(), port, (addr *)this->addr_.data());
+        using Family = V4;
+
+        Address() = default;
+        explicit Address(const std::string &ip) { is_available_ = IpStrToAddr(ip, &this->data_); }
+        virtual ~Address() = default;
+
+        bool Assign(const std::string &ip) {
+            is_available_ = IpStrToAddr(ip, &this->data_);
+            return is_available_;
         }
-        bool Assign(const Address &address, uint16_t port) {
-            return GetSockAddr_in(address.AsInAddr(), port, (addr *)this->addr_.data());
+        bool Assign(const native_data_type &in) {
+            this->data_   = in;
+            is_available_ = true;
+            return is_available_;
         }
+
+        operator bool() const { return this->is_available_; }
+        const native_data_type *AsInAddr() const { return &this->data_; };
+        std::string             AsString() const {
+            std::string ip;
+            if(is_available_) {
+                IpAddrToStr(this->data_, ip);
+            }
+            return ip;
+        }
+
+    private:
+        native_data_type data_{0};
+        bool             is_available_{false};
     };
+
+    class EndPointInfo {};
 };
+
 
 class V6 {
 public:
@@ -47,17 +76,6 @@ public:
     using addr                    = sockaddr_in6;
     static constexpr int addr_len = sizeof(addr);
     using Addr                    = std::array<uint8_t, addr_len>;
-
-    using Address = ADDRESS<V6>;
-    class EndPointInfo : ENDPOINTINFO<V6> {
-    public:
-        EndPointInfo(const Address &address, uint16_t port) : ENDPOINTINFO<V6>() {
-            GetSockAddr_in(address.AsInAddr(), port, (addr *)this->addr_.data());
-        }
-        bool Assign(const Address &address, uint16_t port) {
-            return GetSockAddr_in(address.AsInAddr(), port, (addr *)this->addr_.data());
-        }
-    };
 };
 
 } // namespace wutils::network::ip

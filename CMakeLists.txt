@@ -51,7 +51,6 @@ if (UNIX)
                 wutils
                 src/System.cpp
                 src/ByteArray.cpp
-                src/Error.cpp
 
                 src/threadpool/ThreadPool.cpp
 
@@ -67,7 +66,6 @@ if (UNIX)
                 src/buffer/RingBuffer.cpp
                 src/buffer/StraightBuffer.cpp
         )
-        #        target_link_libraries(wutils pthread)
 
         add_library(logger src/logger/AsyncLogger.cpp src/logger/LoggerBase.cpp)
         target_link_libraries(logger wutils)
