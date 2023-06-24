@@ -158,18 +158,17 @@ void AcceptorChannel<FAMILY, PROTOCOL>::ChannelIn() {
 
     auto cli = this->acceptor_.Accept(ei);
 
-    if(cli <= 0) { // error
+    if(!cli) { // error
         if(OnError) {
             OnError(SystemError::GetSysErrCode());
         }
     } else {
         if(!OnAccept) {
-            ::close(cli);
             return;
         }
 
         auto handler     = make_shared<IO_Handle_t>();
-        handler->socket_ = cli;
+        handler->socket_ = cli.GetNativeSocket();
         handler->handle_ = this->handler_->handle_;
 
         OnAccept(this->acceptor_.GetLocalInfo(), ei, handler);

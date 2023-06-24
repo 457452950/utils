@@ -29,6 +29,7 @@ public:
     operator bool() const noexcept { return socket_ != -1; }
     socket_t GetNativeSocket() const { return socket_; }
 
+
 protected:
     int32_t *flag_{nullptr};
     socket_t socket_{-1};

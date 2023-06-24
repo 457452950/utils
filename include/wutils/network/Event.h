@@ -23,12 +23,6 @@ constexpr inline uint8_t EV_IN  = 1 << 0;
 constexpr inline uint8_t EV_OUT = 1 << 1;
 }; // namespace EventType
 
-template <class SOCKET>
-class IO_Handle;
-template <class SOCKET>
-using EventHandler_p = shared_ptr<IO_Handle<SOCKET>>;
-
-
 template <typename UserData>
 class IO_Context {
 public:
@@ -42,6 +36,8 @@ public:
     using user_data_type = UserData;
     using user_data_ptr  = user_data_type *;
 
+    class IO_Handle;
+    using EventHandler_p = shared_ptr<IO_Handle>;
 
     // call back
     using callback_type = std::function<void(socket_t sock, user_data_ptr data)>;
@@ -64,6 +60,7 @@ public:
 template <typename UserData>
 class IO_Context<UserData>::IO_Handle : public enable_shared_from_this<IO_Handle> {
 public:
+    // DONE: 增加 events_ 修改的监听函数，自动调用ModifySocket
     // TODO: 增加 端信息
     socket_t                       socket_{-1};         // native socket
     user_data_ptr                  user_data_{nullptr}; // user data, void*
