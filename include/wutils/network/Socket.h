@@ -13,33 +13,35 @@ namespace wutils::network {
 
 template <class FAMILY, class PROTOCOL>
 socket_t CreateSocket() {
-    return ::socket(FAMILY::Family(), PROTOCOL::Type(), PROTOCOL::Protocol());
+    auto s = ::socket(FAMILY::Family(), PROTOCOL::Type(), PROTOCOL::Protocol());
+    std::cout << "socket " << s << std::endl;
+    return s;
 }
 
-class SOCKET {
+class ISocket {
 public:
-    explicit SOCKET(std::nullptr_t) {}
-    explicit SOCKET(int socket);
-    SOCKET(const SOCKET &other);
-    virtual ~SOCKET();
+    explicit ISocket(std::nullptr_t) {}
+    explicit ISocket(int socket);
+    ISocket(const ISocket &other);
+    ~ISocket();
 
-    SOCKET &operator=(const SOCKET &other);
+    ISocket &operator=(const ISocket &other);
     operator bool() const noexcept { return socket_ != -1; }
     socket_t GetNativeSocket() const { return socket_; }
 
 protected:
-    socket_t socket_{-1};
     int32_t *flag_{nullptr};
+    socket_t socket_{-1};
 };
 
-SOCKET::SOCKET(int socket) : socket_(socket) {
+ISocket::ISocket(int socket) : socket_(socket) {
     if(flag_ == nullptr) {
         flag_ = new int32_t;
     }
     *flag_ = 1;
 }
 
-SOCKET::SOCKET(const SOCKET &other) {
+ISocket::ISocket(const ISocket &other) {
     if(flag_ != nullptr) {
         --(*flag_);
         if(*flag_ == 0) {
@@ -57,13 +59,17 @@ SOCKET::SOCKET(const SOCKET &other) {
     }
 }
 
-SOCKET::~SOCKET() {
-    --(*flag_);
-    if(*flag_ == 0) {
-        ::close(socket_);
+ISocket::~ISocket() {
+    if(flag_) {
+        --(*flag_);
+        if(*flag_ == 0) {
+            std::cout << "close " << this->socket_ << std::endl;
+            ::close(socket_);
+        }
     }
 }
-SOCKET &SOCKET::operator=(const SOCKET &other) {
+
+ISocket &ISocket::operator=(const ISocket &other) {
     if(this == &other) {
         return *this;
     }

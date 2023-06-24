@@ -26,15 +26,14 @@ public:
      *  Socket<V6> s2;
      */
     template <class FAMILY>
-    class Socket : public SOCKET {
+    class Socket : public ISocket {
     public:
-        Socket() : SOCKET(CreateSocket<FAMILY, Udp>()){};
-        Socket(const Socket &other) : SOCKET(other) {}
-        ~Socket() override = default;
+        Socket() : ISocket(CreateSocket<FAMILY, Udp>()){};
+        Socket(const Socket &other) : ISocket(other) {}
+        ~Socket() = default;
 
         Socket &operator=(const Socket &other) {
-            SOCKET::operator=(other);
-
+            ISocket::operator=(other);
             return *this;
         }
 
@@ -42,17 +41,24 @@ public:
             return ::bind(this->socket_.GetNativeSocket(), info.AsSockAddr(), info.GetSockAddrLen()) == 0;
         }
 
-        int64_t Recv(const uint8_t *buffer, uint32_t buffer_len, typename FAMILY::EndPointInfo &info) {
-            typename FAMILY::addr _addr;
+        // TODO: listen, connect, shutdown, accept
 
-            auto l = ::recvfrom(this->socket_, buffer, buffer_len, 0, _addr, sizeof(_addr));
-
-            info.Assign(_addr);
-
-            return l;
+        int64_t Recv(const uint8_t *buffer, uint32_t buffer_len) {
+            return ::recv(this->socket_, buffer, buffer_len, 0);
         }
-        int64_t Send(const uint8_t *data, uint32_t data_len, const typename FAMILY::EndPointInfo &info) {
-            return ::sendto(this->socket_, data, data_len, info.AsSockAddr(), sizeof(FAMILY::addr));
+        int64_t Send(const uint8_t *data, uint32_t data_len) { return ::send(this->socket_, data, data_len, 0); }
+
+        int64_t RecvFrom(const uint8_t *buffer, uint32_t buffer_len, typename FAMILY::EndPointInfo &info) {
+            typename FAMILY::native_sockaddr_type _sockaddr;
+            socklen_t                             l;
+            auto len = ::recvfrom(this->socket_, buffer, buffer_len, 0, &_sockaddr, &l);
+
+            if(len > 0)
+                info.Assign(_sockaddr);
+            return len;
+        }
+        int64_t SendTo(const uint8_t *data, uint32_t data_len, typename FAMILY::EndpointInfo &info) {
+            return ::sendto(this->socket_, data, data_len, 0, info.AsSockAddr(), info.GetSockAddrLen());
         }
     };
 

@@ -58,11 +58,11 @@ int main() {
 }
 
 void test() {
-    ip::Udp::Socket<ip::V4> socket1;
-    ip::Tcp::Socket<ip::V6> socket2;
+    ip::Udp::Socket<ip::v4> socket1;
+    ip::Tcp::Socket<ip::v6> socket2;
 
 
-    ip::V4::in_addr a;
+    ip::v4::in_addr a;
     ip::IpStrToAddr<ip::V4>("127.0.0.1", &a);
     ip::IpStrToAddr("127.0.0.1", &a);
 
@@ -71,11 +71,11 @@ void test() {
     ip::IpAddrToStr(a, ip_str);
     cout << "ip " << ip_str << endl;
 
-    ip::V4::Address address1("127.0.0.1");
-    ip::V6::Address address2;
+    ip::v4::Address address1("127.0.0.1");
+    ip::v6::Address address2;
 
-    ip::V4::EndPointInfo e1;
+    ip::v4::EndPointInfo e1;
     e1.Assign(address1, 4000);
-    e1.Assign(ip::V4::Address{"127.0.0.1"}, 4000);
+    e1.Assign(ip::v4::Address{"127.0.0.1"}, 4000);
     e1.AsSockAddr();
 }

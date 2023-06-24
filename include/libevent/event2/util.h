@@ -483,7 +483,7 @@ const char *evutil_socket_error_to_string(int errcode);
 #define EVUTIL_INVALID_SOCKET INVALID_SOCKET
 #elif defined(EVENT_IN_DOXYGEN_)
 /**
-   @name SOCKET error functions
+   @name ISocket error functions
 
    These functions are needed for making programs compatible between
    Windows and Unix-like platforms.

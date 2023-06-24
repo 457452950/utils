@@ -72,6 +72,10 @@ if (UNIX)
 
         add_subdirectory(demo)
 
+        add_subdirectory(test)
+
+        add_subdirectory(tools/googletest-1.13.0/)
+
     elseif (CMAKE_HOST_SYSTEM_NAME MATCHES "Unix")
         message("not support Unix!!!")
         return()

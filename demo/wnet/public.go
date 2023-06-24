@@ -36,7 +36,7 @@ func testTcp() {
 	ch := make(chan int, 1000)
 	go collect(ch)
 
-	fmt.Println("test Tcp")
+	fmt.Println("test tcp")
 
 	f := func() {
 		socket, err := net.Dial("tcp4", "127.0.0.1:4000")

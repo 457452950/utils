@@ -94,7 +94,7 @@
 // int32_t RecvFrom(native_socket_t socket, uint8_t *buf, uint32_t buf_len, ENDPOINTINFO &info);
 //
 ///***************************************************
-// * SOCKET Utils
+// * ISocket Utils
 // ****************************************************/
 //
 //// socket function

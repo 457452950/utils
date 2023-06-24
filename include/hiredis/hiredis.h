@@ -34,16 +34,16 @@
 #ifndef __HIREDIS_H
 #define __HIREDIS_H
 #include "read.h"
-#include <stdarg.h> /* for va_list */
+#include <stdarg.h>   /* for va_list */
 #ifndef _MSC_VER
 #include <sys/time.h> /* for struct timeval */
 #else
-struct timeval; /* forward declaration */
-typedef long long ssize_t;
+struct timeval;                     /* forward declaration */
+typedef long long          ssize_t;
 #endif
+#include "alloc.h"  /* for allocation wrappers */
+#include "sds.h"    /* for sds */
 #include <stdint.h> /* uintXX_t, etc */
-#include "sds.h" /* for sds */
-#include "alloc.h" /* for allocation wrappers */
 
 #define HIREDIS_MAJOR 1
 #define HIREDIS_MINOR 0
@@ -90,16 +90,16 @@ typedef long long ssize_t;
 
 /* number of times we retry to connect in the case of EADDRNOTAVAIL and
  * SO_REUSEADDR is being used. */
-#define REDIS_CONNECT_RETRIES  10
+#define REDIS_CONNECT_RETRIES 10
 
 /* Forward declarations for structs defined elsewhere */
 struct redisAsyncContext;
 struct redisContext;
 
 /* RESP3 push helpers and callback prototypes */
-#define redisIsPushReply(r) (((redisReply*)(r))->type == REDIS_REPLY_PUSH)
-typedef void (redisPushFn)(void *, void *);
-typedef void (redisAsyncPushFn)(struct redisAsyncContext *, void *);
+#define redisIsPushReply(r) (((redisReply *)(r))->type == REDIS_REPLY_PUSH)
+typedef void(redisPushFn)(void *, void *);
+typedef void(redisAsyncPushFn)(struct redisAsyncContext *, void *);
 
 #ifdef __cplusplus
 extern "C" {
@@ -107,16 +107,16 @@ extern "C" {
 
 /* This is the reply object returned by redisCommand() */
 typedef struct redisReply {
-    int type; /* REDIS_REPLY_* */
-    long long integer; /* The integer when type is REDIS_REPLY_INTEGER */
-    double dval; /* The double when type is REDIS_REPLY_DOUBLE */
-    size_t len; /* Length of string */
-    char *str; /* Used for REDIS_REPLY_ERROR, REDIS_REPLY_STRING
-                  REDIS_REPLY_VERB, and REDIS_REPLY_DOUBLE (in additional to dval). */
-    char vtype[4]; /* Used for REDIS_REPLY_VERB, contains the null
-                      terminated 3 character content type, such as "txt". */
-    size_t elements; /* number of elements, for REDIS_REPLY_ARRAY */
-    struct redisReply **element; /* elements vector for REDIS_REPLY_ARRAY */
+    int       type;               /* REDIS_REPLY_* */
+    long long integer;            /* The integer when type is REDIS_REPLY_INTEGER */
+    double    dval;               /* The double when type is REDIS_REPLY_DOUBLE */
+    size_t    len;                /* Length of string */
+    char     *str;                /* Used for REDIS_REPLY_ERROR, REDIS_REPLY_STRING
+                                     REDIS_REPLY_VERB, and REDIS_REPLY_DOUBLE (in additional to dval). */
+    char vtype[4];                /* Used for REDIS_REPLY_VERB, contains the null
+                                     terminated 3 character content type, such as "txt". */
+    size_t              elements; /* number of elements, for REDIS_REPLY_ARRAY */
+    struct redisReply **element;  /* elements vector for REDIS_REPLY_ARRAY */
 } redisReply;
 
 redisReader *redisReaderCreate(void);
@@ -125,18 +125,14 @@ redisReader *redisReaderCreate(void);
 void freeReplyObject(void *reply);
 
 /* Functions to format a command according to the protocol. */
-int redisvFormatCommand(char **target, const char *format, va_list ap);
-int redisFormatCommand(char **target, const char *format, ...);
-int redisFormatCommandArgv(char **target, int argc, const char **argv, const size_t *argvlen);
-int redisFormatSdsCommandArgv(sds *target, int argc, const char ** argv, const size_t *argvlen);
+int  redisvFormatCommand(char **target, const char *format, va_list ap);
+int  redisFormatCommand(char **target, const char *format, ...);
+int  redisFormatCommandArgv(char **target, int argc, const char **argv, const size_t *argvlen);
+int  redisFormatSdsCommandArgv(sds *target, int argc, const char **argv, const size_t *argvlen);
 void redisFreeCommand(char *cmd);
 void redisFreeSdsCommand(sds cmd);
 
-enum redisConnectionType {
-    REDIS_CONN_TCP,
-    REDIS_CONN_UNIX,
-    REDIS_CONN_USERFD
-};
+enum redisConnectionType { REDIS_CONN_TCP, REDIS_CONN_UNIX, REDIS_CONN_USERFD };
 
 struct redisSsl;
 
@@ -153,7 +149,7 @@ struct redisSsl;
 #define REDIS_OPT_NO_PUSH_AUTOFREE 0x08
 
 /* In Unix systems a file descriptor is a regular signed int, with -1
- * representing an invalid descriptor. In Windows it is a SOCKET
+ * representing an invalid descriptor. In Windows it is a ISocket
  * (32- or 64-bit unsigned integer depending on the architecture), where
  * all bits set (~0) is INVALID_SOCKET.  */
 #ifndef _WIN32
@@ -161,9 +157,9 @@ typedef int redisFD;
 #define REDIS_INVALID_FD -1
 #else
 #ifdef _WIN64
-typedef unsigned long long redisFD; /* SOCKET = 64-bit UINT_PTR */
+typedef unsigned long long redisFD; /* ISocket = 64-bit UINT_PTR */
 #else
-typedef unsigned long redisFD;      /* SOCKET = 32-bit UINT_PTR */
+typedef unsigned long redisFD; /* ISocket = 32-bit UINT_PTR */
 #endif
 #define REDIS_INVALID_FD ((redisFD)(~0)) /* INVALID_SOCKET */
 #endif
@@ -186,7 +182,7 @@ typedef struct {
         struct {
             const char *source_addr;
             const char *ip;
-            int port;
+            int         port;
         } tcp;
         /** use this field for unix domain sockets */
         const char *unix_socket;
@@ -201,25 +197,25 @@ typedef struct {
     void (*free_privdata)(void *);
 
     /* A user defined PUSH message callback */
-    redisPushFn *push_cb;
+    redisPushFn      *push_cb;
     redisAsyncPushFn *async_push_cb;
 } redisOptions;
 
 /**
  * Helper macros to initialize options to their specified fields.
  */
-#define REDIS_OPTIONS_SET_TCP(opts, ip_, port_) \
-    (opts)->type = REDIS_CONN_TCP; \
-    (opts)->endpoint.tcp.ip = ip_; \
+#define REDIS_OPTIONS_SET_TCP(opts, ip_, port_)                                                                        \
+    (opts)->type              = REDIS_CONN_TCP;                                                                        \
+    (opts)->endpoint.tcp.ip   = ip_;                                                                                   \
     (opts)->endpoint.tcp.port = port_;
 
-#define REDIS_OPTIONS_SET_UNIX(opts, path) \
-    (opts)->type = REDIS_CONN_UNIX;        \
+#define REDIS_OPTIONS_SET_UNIX(opts, path)                                                                             \
+    (opts)->type                 = REDIS_CONN_UNIX;                                                                    \
     (opts)->endpoint.unix_socket = path;
 
-#define REDIS_OPTIONS_SET_PRIVDATA(opts, data, dtor) \
-    (opts)->privdata = data;                         \
-    (opts)->free_privdata = dtor;                    \
+#define REDIS_OPTIONS_SET_PRIVDATA(opts, data, dtor)                                                                   \
+    (opts)->privdata      = data;                                                                                      \
+    (opts)->free_privdata = dtor;
 
 typedef struct redisContextFuncs {
     void (*free_privctx)(void *);
@@ -231,23 +227,23 @@ typedef struct redisContextFuncs {
 
 /* Context for a connection to Redis */
 typedef struct redisContext {
-    const redisContextFuncs *funcs;   /* Function table */
+    const redisContextFuncs *funcs; /* Function table */
 
-    int err; /* Error flags, 0 when there is no error */
-    char errstr[128]; /* String representation of error when applicable */
-    redisFD fd;
-    int flags;
-    char *obuf; /* Write buffer */
+    int          err;               /* Error flags, 0 when there is no error */
+    char         errstr[128];       /* String representation of error when applicable */
+    redisFD      fd;
+    int          flags;
+    char        *obuf;   /* Write buffer */
     redisReader *reader; /* Protocol reader */
 
     enum redisConnectionType connection_type;
-    struct timeval *connect_timeout;
-    struct timeval *command_timeout;
+    struct timeval          *connect_timeout;
+    struct timeval          *command_timeout;
 
     struct {
         char *host;
         char *source_addr;
-        int port;
+        int   port;
     } tcp;
 
     struct {
@@ -256,7 +252,7 @@ typedef struct redisContext {
 
     /* For non-blocking connect */
     struct sockadr *saddr;
-    size_t addrlen;
+    size_t          addrlen;
 
     /* Optional data and corresponding destructor users can use to provide
      * context to a given redisContext.  Not used by hiredis. */
@@ -275,10 +271,8 @@ redisContext *redisConnectWithOptions(const redisOptions *options);
 redisContext *redisConnect(const char *ip, int port);
 redisContext *redisConnectWithTimeout(const char *ip, int port, const struct timeval tv);
 redisContext *redisConnectNonBlock(const char *ip, int port);
-redisContext *redisConnectBindNonBlock(const char *ip, int port,
-                                       const char *source_addr);
-redisContext *redisConnectBindNonBlockWithReuse(const char *ip, int port,
-                                                const char *source_addr);
+redisContext *redisConnectBindNonBlock(const char *ip, int port, const char *source_addr);
+redisContext *redisConnectBindNonBlockWithReuse(const char *ip, int port, const char *source_addr);
 redisContext *redisConnectUnix(const char *path);
 redisContext *redisConnectUnixWithTimeout(const char *path, const struct timeval tv);
 redisContext *redisConnectUnixNonBlock(const char *path);
@@ -296,12 +290,12 @@ redisContext *redisConnectFd(redisFD fd);
 int redisReconnect(redisContext *c);
 
 redisPushFn *redisSetPushCallback(redisContext *c, redisPushFn *fn);
-int redisSetTimeout(redisContext *c, const struct timeval tv);
-int redisEnableKeepAlive(redisContext *c);
-void redisFree(redisContext *c);
-redisFD redisFreeKeepFd(redisContext *c);
-int redisBufferRead(redisContext *c);
-int redisBufferWrite(redisContext *c, int *done);
+int          redisSetTimeout(redisContext *c, const struct timeval tv);
+int          redisEnableKeepAlive(redisContext *c);
+void         redisFree(redisContext *c);
+redisFD      redisFreeKeepFd(redisContext *c);
+int          redisBufferRead(redisContext *c);
+int          redisBufferWrite(redisContext *c, int *done);
 
 /* In a blocking context, this function first checks if there are unconsumed
  * replies to return and returns one if so. Otherwise, it flushes the output

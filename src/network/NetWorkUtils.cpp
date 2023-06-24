@@ -266,7 +266,7 @@
 //}
 //
 ///***************************************************
-// * SOCKET Utils
+// * ISocket Utils
 // ****************************************************/
 // bool SetSocketNoBlock(native_socket_t socket) {
 //    if(::fcntl(socket, F_SETFL, ::fcntl(socket, F_GETFL, 0) | O_NONBLOCK) == -1) {

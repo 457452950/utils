@@ -5,14 +5,9 @@
 
 #include <cerrno>
 #include <cstdint>
-#include <cstring> // strerror
-#include <exception>
 #include <fcntl.h> // fcntl
-#include <memory>
+#include <regex>
 #include <string>
-#include <tuple>
-#include <unistd.h>
-#include <unordered_map> //std::hash
 
 #include <sys/socket.h>
 #include <sys/timerfd.h>
@@ -21,55 +16,242 @@
 #include <netinet/tcp.h> // tcp_nodelay
 
 #include "NetworkDef.h"
+#include "wutils/SharedPtr.h"
 
 namespace wutils::network {
 
-bool HtoNS(uint16_t host_num, uint16_t *net_num);
-bool NtoHS(uint16_t net_num, uint16_t *host_num);
+inline bool HtoNS(uint16_t host_num, uint16_t *net_num) {
+    *net_num = ::htons(host_num);
+    return true;
+}
+inline bool NtoHS(uint16_t net_num, uint16_t *host_num) {
+    *host_num = ::ntohs(net_num);
+    return true;
+}
 
 namespace ip {
 /***************************************************
  * Ip Utils
  ****************************************************/
-bool IpAddrToStr(const in_addr &addr, std::string &buf);
-bool IpAddrToStr(const in6_addr &addr, std::string &buf);
 
-bool IpStrToAddr(const std::string &ip_str, in_addr *addr);
-bool IpStrToAddr(const std::string &ip_str, in6_addr *addr);
+inline bool IsValidIp4(const std::string &ip_str) {
+    std::regex re("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25["
+                  "0-5])$");
+    return std::regex_match(ip_str, re);
+}
 
-bool GetSockAddr_in(const ::in_addr &in_addr, uint16_t port, sockaddr_in *addr);
-bool GetSockAddr_in(const ::in6_addr &in_addr, uint16_t port, sockaddr_in6 *addr);
+inline bool IsValidIpv6(const std::string &ip_str) {
+    std::regex re("");
+    return std::regex_match(ip_str, re);
+}
+
+/**
+ * @param ip_str
+ * @param addr
+ * @example
+ *  ::in_addr addr{}; \n
+ *  bool ok =ip::IpStrToAddr("127.0.0.1", &addr)
+ */
+inline bool IpStrToAddr(const std::string &ip_str, in_addr *addr) {
+    if(::inet_pton(AF_INET, ip_str.c_str(), (void *)addr) == 1) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ *
+ * @param ip_str
+ * @param addr
+ * @example
+ *  ::in6_addr addr{}; \n
+ *  bool ok = ip::IpStrToAddr("::1", &addr);
+ */
+inline bool IpStrToAddr(const std::string &ip_str, in6_addr *addr) {
+    if(::inet_pton(AF_INET6, ip_str.c_str(), (void *)addr) == 1) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * @param addr
+ * @param buf
+ * @example
+ *  ::in_addr addr{}; \n
+ *  std::string ip; \n
+ *  bool ok = IpStrToAddr("127.0.0.1", &addr); \n
+ *  ok = IpAddrToStr(addr, ip);
+ */
+inline bool IpAddrToStr(const in_addr &addr, std::string &buf) {
+    constexpr int32_t  _len = 100;
+    unique_ptr<char[]> _buf = make_unique<char[]>(_len);
+
+    if(::inet_ntop((int)AF_FAMILY::INET, (void *)&addr, _buf.get(), _len) == nullptr) {
+        buf.clear();
+        return false;
+    }
+
+    buf.assign(_buf.get());
+    return true;
+}
+/**
+ *
+ * @param addr
+ * @param buf
+ * @example
+ *  ::in6_addr addr{}; \n
+ *  std::string ip; \n
+ *  bool ok = IpStrToAddr("::1", &addr); \n
+ *  ok = IpAddrToStr(addr, ip);
+ */
+inline bool IpAddrToStr(const in6_addr &addr, std::string &buf) {
+    constexpr int32_t  _len = 150;
+    unique_ptr<char[]> _buf = make_unique<char[]>(_len);
+    if(::inet_ntop((int)AF_FAMILY::INET6, (void *)&addr, _buf.get(), _len) == nullptr) {
+        buf.clear();
+        return false;
+    }
+
+    buf.assign(_buf.get());
+    return true;
+}
+
+/**
+ * @param in_addr
+ * @param port
+ * @param addr
+ *
+ * @example
+ *  ::in_addr addr{}; \n
+ *  sockaddr_in sockaddr{}; \n
+ *  bool ok = IpStrToAddr("127.0.0.1", &addr);  \n
+ *  ok = GetSockAddr_in(addr, 8000, &sockaddr);
+ */
+inline bool GetSockAddr_in(const ::in_addr &in_addr, uint16_t port, sockaddr_in *addr) {
+    addr->sin_family = AF_INET;
+
+    if(!HtoNS(port, &addr->sin_port)) {
+        return false;
+    }
+
+    addr->sin_addr = in_addr;
+    return true;
+}
+/**
+ * @param in_addr
+ * @param port
+ * @param addr
+ *
+ * @example
+ *  ::in6_addr addr{}; \n
+ *  sockaddr_in6 sockaddr{}; \n
+ *  bool ok = IpStrToAddr("::1", &addr); \n
+ *  ok = GetSockAddr_in(addr, 8000, &sockaddr);
+ */
+inline bool GetSockAddr_in(const ::in6_addr &in_addr, uint16_t port, sockaddr_in6 *addr) {
+    addr->sin6_family = AF_INET6;
+
+    if(!HtoNS(port, &addr->sin6_port)) {
+        return false;
+    }
+
+    addr->sin6_addr     = in_addr;
+    addr->sin6_flowinfo = 0;
+    return true;
+}
 
 /***************************************************
- * SOCKET Utils
+ * ISocket Utils
  ****************************************************/
 
 // socket function
-bool SocketIsNoBlock(socket_t socket);
-bool SetSocketNoBlock(socket_t socket, bool isSet);
+int SocketGetFlag(socket_t socket) { return ::fcntl(socket, F_GETFL, 0); }
 
-bool SetSocketReuseAddr(socket_t socket, bool isSet);
-bool SetSocketReusePort(socket_t socket, bool isSet);
-bool SetSocketKeepAlive(socket_t socket, bool isSet);
+bool SocketIsNonBlock(socket_t socket) { return SocketGetFlag(socket) & O_NONBLOCK; }
+
+bool SetSocketNoBlock(socket_t socket, bool isSet) {
+    if(isSet) {
+        return ::fcntl(socket, F_SETFL, SocketGetFlag(socket) | O_NONBLOCK) != -1;
+    }
+
+    return ::fcntl(socket, F_SETFL, SocketGetFlag(socket) & (~O_NONBLOCK)) != -1;
+}
+
+bool SetSocketReuseAddr(socket_t socket, bool isSet) {
+    int          opt = (int)isSet;
+    unsigned int len = sizeof(opt);
+    if(::setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &opt, len) == -1) {
+        return false;
+    }
+    return true;
+}
+bool SetSocketReusePort(socket_t socket, bool isSet) {
+    int          opt = (int)isSet;
+    unsigned int len = sizeof(opt);
+    if(::setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &opt, len) == -1) {
+        return false;
+    }
+    return true;
+}
+bool SetSocketKeepAlive(socket_t socket, bool isSet) {
+    int          opt = (int)isSet;
+    unsigned int len = sizeof(opt);
+    if(::setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &opt, len) == -1) {
+        return false;
+    }
+    return true;
+}
 
 // tcp socket function
-bool SetTcpSocketNoDelay(socket_t socket, bool isSet);
+bool SetTcpSocketNoDelay(socket_t socket, bool isSet) {
+    int opt_val = (int)isSet;
+    if(::setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, &opt_val, static_cast<socklen_t>(sizeof opt_val)) == 0) {
+        return true;
+    }
+    return false;
+}
 
 } // namespace ip
 
 namespace timer {
-
-// 设置时间差的意义
-enum class SetTimeFlag {
-    REL = 0, // 相对时间
-    ABS = 1, // 绝对时间
+/**
+ *
+ * @return timer fd
+ */
+timer_t CreateNewTimerFd() {
+    return ::timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);
+    //    return ::timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+}
+/**
+ *  @enum
+ *  REL 相对时间
+ *  @enum
+ *  ABS 绝对时刻
+ */
+enum class TimerFlag {
+    /* 相对时间 */
+    REL = 0,
+    /* 绝对时刻 */
+    ABS = 1,
 };
-
-timer_t CreateNewTimerFd();
-bool    SetTimerTime(timer_t                    fd,
-                     SetTimeFlag                flag,
-                     const struct ::itimerspec *next_time,
-                     struct ::itimerspec       *prev_time = nullptr);
+/**
+ *
+ * @param fd  timer fd
+ * @param flag  enum class TimerFlag
+ * @param next_time next time to clock
+ * @param prev_time if not null, repeat with this param
+ * @return
+ */
+bool SetTimerTime(timer_t                    fd,
+                  TimerFlag                  flag,
+                  const struct ::itimerspec *next_time,
+                  struct ::itimerspec       *prev_time = nullptr) {
+    if(::timerfd_settime(fd, (int)flag, next_time, prev_time) == 0) {
+        return true;
+    }
+    return false;
+}
 
 } // namespace timer
 

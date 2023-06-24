@@ -10,12 +10,12 @@
 #include "Select.h"
 #include "stdIOVec.h"
 
-#include "base/EndPoint.h"
+#include "Timer.h"
 #include "wutils/Buffer.h"
 #include "wutils/Error.h"
 #include "wutils/SharedPtr.h"
 
-namespace wutils::network {
+namespace wutils::network::channel {
 
 /**
  *
@@ -76,9 +76,10 @@ public:
 
     std::function<void()> OnTime;
 
-    // time_value 初次启动的计时时长，单位为ms,
-    // interval循环定时器定时时长，单次定时器设置为0,默认采用相对时间
-    bool Start(long time_value, long interval = 0);
+    template <typename Rep, typename Period>
+    bool Once(const std::chrono::duration<Rep, Period> &rtime);
+    template <typename Rep, typename Period>
+    bool Repeat(const std::chrono::duration<Rep, Period> &rtime);
     void Stop();
     // 定时器是否活跃，即是否已完成定时任务
     bool IsActive() const { return this->handler_->IsEnable(); }
@@ -87,7 +88,8 @@ private:
     void ChannelIn() final;
 
 private:
-    IO_Handle_p handler_;
+    IO_Handle_p   handler_;
+    timer::Socket timer_socket_;
 };
 
 /***********************************************************
@@ -110,13 +112,15 @@ private:
     void ChannelIn() final;
 
 private:
-    IO_Handle_p                 handler_{nullptr};
-    typename PROTOCOL::Acceptor acceptor_;
+    IO_Handle_p                   handler_{nullptr};
+    typename PROTOCOL::Acceptor   acceptor_;
+    typename FAMILY::EndPointInfo local_endpoint_;
 };
 
 template <class FAMILY, class PROTOCOL>
 AcceptorChannel<FAMILY, PROTOCOL>::AcceptorChannel(weak_ptr<IO_Context> context) {
     this->handler_             = make_shared<IO_Handle_t>();
+    this->handler_->socket_    = this->acceptor_->GetNativeSocket();
     this->handler_->handle_    = std::move(context);
     this->handler_->user_data_ = this;
 }
@@ -176,12 +180,14 @@ void AcceptorChannel<FAMILY, PROTOCOL>::ChannelIn() {
 /***********************************************************
  * UDPChannel
  ************************************************************/
+template <class FAMILY>
 class UDPChannel : public BaseChannel {
 public:
-    explicit UDPChannel(weak_ptr<ev_hdle_t> handle);
+    explicit UDPChannel(weak_ptr<IO_Context> handle);
     ~UDPChannel() override;
 
-    bool Start(const EndPointInfo &local_ep, const EndPointInfo &remote_ep, bool shared);
+    bool
+    Start(const typename FAMILY::EndPointInfo &local_ep, const typename FAMILY::EndPointInfo &remote_ep, bool shared);
 
     // listener
 public:
@@ -207,9 +213,9 @@ private:
     void onErr(SystemError);
 
 protected:
-    ev_hdler_p   handler_;
-    EndPointInfo local_endpoint_;
-    EndPointInfo remote_endpoint_;
+    IO_Handle_p                   handler_;
+    typename FAMILY::EndPointInfo local_endpoint_;
+    typename FAMILY::EndPointInfo remote_endpoint_;
 };
 
 /*****************************************
@@ -329,7 +335,7 @@ protected:
 };
 
 
-} // namespace wutils::network
+} // namespace wutils::network::channel
 
 
 #endif // UTILS_CHANNEL_H

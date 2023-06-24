@@ -5,56 +5,59 @@
 
 #include "wutils/network/NetFactory.h"
 
-namespace wutils::network {
+namespace wutils::network::channel {
 
-static auto in_cb = [](native_socket_t sock, BaseChannel *data) {
+static auto in_cb = [](socket_t sock, BaseChannel *data) {
     auto *ch = (ReadChannel *)data;
     ch->ChannelIn();
 };
-static auto out_cb = [](native_socket_t sock, BaseChannel *data) {
+static auto out_cb = [](socket_t sock, BaseChannel *data) {
     auto *ch = (WriteChannel *)data;
     ch->ChannelOut();
 };
 
-void setCommonCallBack(ev_hdle_t *handle) {
+void setCommonCallBack(IO_Context *handle) {
     handle->read_  = in_cb;
     handle->write_ = out_cb;
 }
 
-
 /********************************************
  * Timer
  *********************************************/
-Timer::Timer(std::weak_ptr<ev_hdle_t> handle) {
-    this->handler_             = make_shared<ev_hdler_t>();
-    this->handler_->socket_    = CreateNewTimerfd();
+Timer::Timer(std::weak_ptr<IO_Context> handle) {
+    this->handler_ = make_shared<IO_Handle_t>();
+
+    this->handler_->socket_    = timer_socket_.GetNativeSocket();
     this->handler_->user_data_ = this;
     this->handler_->handle_    = std::move(handle);
-    this->handler_->SetEvents(HandlerEventType::EV_IN);
+    this->handler_->SetEvents(event::EventType::EV_IN);
 }
 
 Timer::~Timer() { this->Stop(); }
 
 void Timer::ChannelIn() {
     std::cout << " timer channelin" << std::endl;
-    uint64_t exp = 0;
-    ::read(this->handler_->socket_, &exp, sizeof(exp));
+
+    this->timer_socket_.Read();
+
     if(OnTime) {
         OnTime();
     }
 }
 
-bool Timer::Start(long time_value, long interval) {
-    struct itimerspec next_time;
+template <typename Rep, typename Period>
+bool Timer::Once(const std::chrono::duration<Rep, Period> &rtime) {
+    this->timer_socket_.SetOnce(rtime);
 
-    next_time.it_value.tv_sec     = time_value / 1000L;
-    next_time.it_value.tv_nsec    = (time_value % 1000L) * 1000'000L;
-    next_time.it_interval.tv_sec  = interval / 1000L;
-    next_time.it_interval.tv_nsec = (interval % 1000L) * 1000'000L;
-
-    if(!SetTimerTime(this->handler_->socket_, SetTimeFlag::REL, &next_time)) {
-        return false;
+    if(!this->handler_->IsEnable()) {
+        this->handler_->Enable();
     }
+
+    return true;
+}
+template <typename Rep, typename Period>
+bool Timer::Repeat(const std::chrono::duration<Rep, Period> &rtime) {
+    this->timer_socket_.SetRepeat(rtime);
 
     if(!this->handler_->IsEnable()) {
         this->handler_->Enable();
@@ -534,4 +537,4 @@ void ASChannel::onChannelError(SystemError error) {
 }
 
 
-} // namespace wutils::network
+} // namespace wutils::network::channel

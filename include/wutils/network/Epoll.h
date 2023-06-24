@@ -248,7 +248,7 @@ bool Epoll<UserData>::Init() {
 
 template <typename UserData>
 bool Epoll<UserData>::AddSocket(IOHandle_p handler) {
-    //    std::cout << "Add SOCKET " << handler.get() << std::endl;
+    //    std::cout << "Add ISocket " << handler.get() << std::endl;
 
     auto it = this->ready_to_del_.find(handler.get());
     if(it != this->ready_to_del_.end()) {
@@ -273,7 +273,7 @@ bool Epoll<UserData>::AddSocket(IOHandle_p handler) {
 
 template <typename UserData>
 bool Epoll<UserData>::ModifySocket(IOHandle_p handler) {
-    //    std::cout << "Mod SOCKET " << handler.get() << std::endl;
+    //    std::cout << "Mod ISocket " << handler.get() << std::endl;
     epoll_data_t ep_data{.ptr = nullptr};
 
     ep_data.ptr = handler->user_data_;
@@ -284,7 +284,7 @@ bool Epoll<UserData>::ModifySocket(IOHandle_p handler) {
 
 template <typename UserData>
 void Epoll<UserData>::DelSocket(IOHandle_p handler) {
-    //    std::cout << "Del SOCKET " << handler.get() << std::endl;
+    //    std::cout << "Del ISocket " << handler.get() << std::endl;
     this->ready_to_del_.insert({handler.get(), handler});
 }
 

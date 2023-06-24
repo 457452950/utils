@@ -52,7 +52,7 @@
   Bufferevents come in several flavors, including:
 
   <dl>
-    <dt>SOCKET-based bufferevents</dt>
+    <dt>ISocket-based bufferevents</dt>
       <dd>A bufferevent that reads and writes data onto a network
           socket. Created with bufferevent_socket_new().</dd>
 
