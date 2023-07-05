@@ -8,8 +8,8 @@
 #include <list>
 #include <memory>
 
-#include "NetWorkDef.h"
-#include "NetWorkUtils.h"
+#include "Defined.h"
+#include "Tools.h"
 #include "wutils/SharedPtr.h"
 
 
@@ -21,20 +21,20 @@ constexpr inline uint8_t EV_OUT = 1 << 1;
 }; // namespace HandlerEventType
 
 template <typename UserData>
-class EventHandle {
+class IOContext {
 public:
-    EventHandle()          = default;
-    virtual ~EventHandle() = default;
+    IOContext()          = default;
+    virtual ~IOContext() = default;
 
     // noncopyable
-    EventHandle(const EventHandle &)            = delete;
-    EventHandle &operator=(const EventHandle &) = delete;
+    IOContext(const IOContext &)            = delete;
+    IOContext &operator=(const IOContext &) = delete;
 
     using user_data_type = UserData;
     using user_data_ptr  = user_data_type *;
 
-    class EventHandler;
-    using EventHandler_p = shared_ptr<EventHandler>;
+    class IOHandle;
+    using IOHandle_p = shared_ptr<IOHandle>;
 
     // call back
     using callback_type = std::function<void(socket_t sock, user_data_ptr data)>;
@@ -43,9 +43,9 @@ public:
     callback_type write_;
 
     // control
-    virtual bool AddSocket(EventHandler_p handler)    = 0;
-    virtual bool ModifySocket(EventHandler_p handler) = 0;
-    virtual void DelSocket(EventHandler_p handler)    = 0;
+    virtual bool AddSocket(IOHandle_p handler)    = 0;
+    virtual bool ModifySocket(IOHandle_p handler) = 0;
+    virtual void DelSocket(IOHandle_p handler)    = 0;
 
     // thread control
     virtual bool Init() = 0;
@@ -55,13 +55,13 @@ public:
 
 
 template <typename UserData>
-class EventHandle<UserData>::EventHandler : public enable_shared_from_this<EventHandler> {
+class IOContext<UserData>::IOHandle : public enable_shared_from_this<IOHandle> {
 public:
     // DONE: 增加 events_ 修改的监听函数，自动调用ModifySocket
     // TODO: 增加 端信息
-    socket_t                             socket_{-1};         // native socket
-    user_data_ptr                        user_data_{nullptr}; // user data, void*
-    std::weak_ptr<EventHandle<UserData>> handle_;
+    socket_t                           socket_{-1};         // native socket
+    user_data_ptr                      user_data_{nullptr}; // user data, void*
+    std::weak_ptr<IOContext<UserData>> handle_;
 
 
 private:
@@ -76,12 +76,12 @@ public:
     void SetEvents(uint8_t events);
     auto GetEvents();
 
-    ~EventHandler();
+    ~IOHandle();
 };
 
 
 template <typename UserData>
-inline void EventHandle<UserData>::EventHandler::Enable() {
+inline void IOContext<UserData>::IOHandle::Enable() {
     // events cant be 0
     assert(this->events_);
     assert(!this->handle_.expired());
@@ -94,7 +94,7 @@ inline void EventHandle<UserData>::EventHandler::Enable() {
 }
 
 template <typename UserData>
-inline void EventHandle<UserData>::EventHandler::DisEnable() {
+inline void IOContext<UserData>::IOHandle::DisEnable() {
     if(this->handle_.expired()) {
         return;
     }
@@ -108,16 +108,16 @@ inline void EventHandle<UserData>::EventHandler::DisEnable() {
 }
 
 template <typename UserData>
-inline bool EventHandle<UserData>::EventHandler::IsEnable() {
+inline bool IOContext<UserData>::IOHandle::IsEnable() {
     return this->enable_;
 }
 
 template <typename UserData>
-inline void EventHandle<UserData>::EventHandler::SetEvents(uint8_t events) {
+inline void IOContext<UserData>::IOHandle::SetEvents(uint8_t events) {
     assert(!this->handle_.expired());
 
+    //    std::cout << "from " << (int)this->events_ << " to " << (int)events << std::endl;
     if(this->events_ != events) {
-        //        std::cout << "event from " << (int)this->events_ << " to " << (int)events << std::endl;
         this->events_ = events;
 
         if(this->enable_) {
@@ -132,16 +132,15 @@ inline void EventHandle<UserData>::EventHandler::SetEvents(uint8_t events) {
 }
 
 template <typename UserData>
-inline auto EventHandle<UserData>::EventHandler::GetEvents() {
+inline auto IOContext<UserData>::IOHandle::GetEvents() {
     return this->events_;
 }
 
 template <typename UserData>
-inline EventHandle<UserData>::EventHandler::~EventHandler() {
+inline IOContext<UserData>::IOHandle::~IOHandle() {
     if(this->IsEnable()) {
         this->DisEnable();
     }
-    ::close(this->socket_);
 }
 
 

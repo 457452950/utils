@@ -15,8 +15,8 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
-#include "Event.h"
-#include "NetWorkUtils.h"
+#include "IOContext.h"
+#include "Tools.h"
 
 
 namespace wutils::network {
@@ -166,12 +166,12 @@ protected:
 
 
 template <typename UserData>
-class Epoll final : public EventHandle<UserData> {
+class Epoll final : public IOContext<UserData> {
 public:
     Epoll();
     ~Epoll();
 
-    using EventHandler   = typename EventHandle<UserData>::EventHandler;
+    using EventHandler   = typename IOContext<UserData>::IOHandle;
     using EventHandler_p = shared_ptr<EventHandler>;
 
 
@@ -250,12 +250,11 @@ bool Epoll<UserData>::AddSocket(EventHandler_p handler) {
 
     auto it = this->ready_to_del_.find(handler.get());
     if(it != this->ready_to_del_.end()) {
-        ep.RemoveSocket(handler->socket_);
         this->ready_to_del_.erase(it);
-        --this->fd_count_;
+        return this->ModifySocket(handler);
     }
 
-    epoll_data_t ep_data;
+    epoll_data_t ep_data{};
 
     ep_data.ptr = handler.get();
     auto ev     = this->ParseToEpollEvent(handler->GetEvents());
@@ -272,9 +271,9 @@ bool Epoll<UserData>::AddSocket(EventHandler_p handler) {
 template <typename UserData>
 bool Epoll<UserData>::ModifySocket(EventHandler_p handler) {
     //    std::cout << "Mod Socket " << handler.get() << std::endl;
-    epoll_data_t ep_data{.ptr = nullptr};
+    epoll_data_t ep_data{};
 
-    ep_data.ptr = handler->user_data_;
+    ep_data.ptr = handler.get();
     auto ev     = this->ParseToEpollEvent(handler->GetEvents());
 
     return ep.ModifySocket(handler->socket_, ev, ep_data);
@@ -351,7 +350,7 @@ void Epoll<UserData>::EventLoop() {
             }
 
             uint32_t ev   = events[i].events;
-            auto    *data = (typename EventHandle<UserData>::EventHandler *)events[i].data.ptr;
+            auto    *data = (typename IOContext<UserData>::IOHandle *)events[i].data.ptr;
 
             assert(this->wakeup_fd_ != events[i].data.fd);
 

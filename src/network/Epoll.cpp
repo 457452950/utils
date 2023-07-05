@@ -1,12 +1,7 @@
 #include "wutils/network//Epoll.h"
 #include <cassert>
-#include <iostream>
-
-#include "wutils/Debugger.hpp"
 
 namespace wutils::network {
-
-using namespace debug;
 
 epoll_type CreateNewEpollFd() { return epoll_create(1); }
 

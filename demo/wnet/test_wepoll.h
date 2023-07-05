@@ -65,8 +65,8 @@ inline void server_thread(std::shared_ptr<Epoll<test_s>> ep) {
     using namespace srv;
 
     auto sock = MakeSocket(listen::family, listen::protol);
-    SetSocketReuseAddr(sock);
-    SetSocketReusePort(sock);
+    SetSocketReuseAddr(sock, false);
+    SetSocketReusePort(sock, false);
 
     EndPointInfo lis;
     if(!lis.Assign(listen::ip, listen::port, listen::family)) {
@@ -90,7 +90,7 @@ inline void server_thread(std::shared_ptr<Epoll<test_s>> ep) {
     }
 
     test_s i{.f = [](int n) { cout << "heppy " << n << endl; }, .n = 3};
-    auto   handler      = make_shared<EventHandle<test_s>::EventHandler>();
+    auto   handler      = make_shared<IOContext<test_s>::IOHandle>();
     handler->socket_    = sock;
     handler->user_data_ = &i;
     handler->handle_    = ep;

@@ -5,7 +5,7 @@ project(demo)
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
 if (LINUX)
-    add_subdirectory(Log)
+    add_subdirectory(log)
     add_subdirectory(wnet)
     add_subdirectory(libevent)
     add_subdirectory(buffer)

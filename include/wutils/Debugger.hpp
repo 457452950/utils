@@ -2,7 +2,7 @@
 #ifndef UTILS_DEBUGGER_H
 #define UTILS_DEBUGGER_H
 
-#include "network/Channel.h"
+#include "network/IOEvent.h"
 #include <atomic>
 #include <iostream>
 #include <thread>
@@ -12,12 +12,12 @@ namespace wutils::debug {
 
 using namespace network;
 
-using TimerHandle                  = ev_hdle_t;
-inline TimerHandle *debuggerHandle = new Epoll<BaseChannel>;
+using TimerHandle                  = io_context_t;
+inline TimerHandle *debuggerHandle = new Epoll<IOEvent>;
 
-static auto handle_read_callback = [](socket_t sock, Epoll<BaseChannel>::user_data_ptr data) {
-    auto *ch = (ReadChannel *)data;
-    ch->ChannelIn();
+static auto handle_read_callback = [](socket_t sock, Epoll<IOEvent>::user_data_ptr data) {
+    auto *ch = (IOReadEvent *)data;
+    ch->IOIn();
 };
 
 class Debugger;

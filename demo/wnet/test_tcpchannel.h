@@ -43,15 +43,15 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 
 } // namespace cli
 
-inline auto in_cb = [](socket_t sock, BaseChannel *data) {
-    auto *ch = (ReadChannel *)data;
+inline auto in_cb = [](socket_t sock, IOEvent *data) {
+    auto *ch = (IOReadEvent *)data;
     // cout << "get channel call channel in" << std::endl;
-    ch->ChannelIn();
+    ch->IOIn();
 };
-inline auto out_cb = [](socket_t sock, BaseChannel *data) {
-    auto *ch = (WriteChannel *)data;
+inline auto out_cb = [](socket_t sock, IOEvent *data) {
+    auto *ch = (IOWriteEvent *)data;
     // cout << "get channel call channel in" << std::endl;
-    ch->ChannelOut();
+    ch->IOOut();
 };
 
 class TestSession : public Channel::Listener {
@@ -72,11 +72,11 @@ public:
     std::shared_ptr<Channel> ch;
 };
 
-std::shared_ptr<TestSession>        se;
-std::atomic_bool                    active{true};
-std::shared_ptr<Epoll<BaseChannel>> ep_;
+std::shared_ptr<TestSession>    se;
+std::atomic_bool                active{true};
+std::shared_ptr<Epoll<IOEvent>> ep_;
 
-inline auto ac_cb = [](const EndPointInfo &local, const EndPointInfo &remote, ev_hdler_p handler) {
+inline auto ac_cb = [](const EndPointInfo &local, const EndPointInfo &remote, io_hdle_p handler) {
     auto info = EndPointInfo::Dump(remote);
 
     cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
@@ -90,7 +90,7 @@ inline auto ac_cb = [](const EndPointInfo &local, const EndPointInfo &remote, ev
 void server_thread() {
     using namespace srv;
 
-    auto ep = std::make_shared<Epoll<BaseChannel>>();
+    auto ep = std::make_shared<Epoll<IOEvent>>();
     ep->Init();
     ep_ = ep;
 
@@ -101,7 +101,7 @@ void server_thread() {
         return;
     }
 
-    auto accp_channel = new AcceptorChannel(ep);
+    auto accp_channel = new Acceptor(ep);
     accp_channel->Start(local_ed, true);
     accp_channel->OnAccept = ac_cb;
 
@@ -109,7 +109,7 @@ void server_thread() {
     cout << wutils::SystemError::GetSysErrCode() << endl;
 
     // 激活客户端的 阻塞recv
-    se->ch->Send((uint8_t *)"s", 1);
+    //    se->ch->Send((uint8_t *)"s", 1);
     delete accp_channel;
 }
 

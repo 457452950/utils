@@ -16,7 +16,6 @@ using std::weak_ptr;
 using std::make_unique;
 using std::unique_ptr;
 
-
 } // namespace wutils
 
 #endif // UTILS_SHARED_PTR_H

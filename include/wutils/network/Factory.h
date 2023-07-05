@@ -8,22 +8,21 @@
 #include "Epoll.h"
 #include "Select.h"
 
-#include "BaseSession.h"
-#include "Channel.h"
-#include "NetWorkDef.h"
+#include "Defined.h"
+#include "IOEvent.h"
 
 namespace wutils::network {
 
 
 namespace NetFactory {
 
-inline shared_ptr<ev_hdle_t> CreateNetHandle(HandleType type) {
+inline shared_ptr<io_context_t> CreateNetHandle(ContextType type) {
     switch(type) {
-    case HandleType::SELECT:
-        return make_shared<Select<BaseChannel>>();
+    case ContextType::SELECT:
+        return make_shared<Select<IOEvent>>();
 
-    case HandleType::EPOLL:
-        return make_shared<Epoll<BaseChannel>>();
+    case ContextType::EPOLL:
+        return make_shared<Epoll<IOEvent>>();
 
     default:
         abort();
@@ -31,10 +30,10 @@ inline shared_ptr<ev_hdle_t> CreateNetHandle(HandleType type) {
     return nullptr;
 }
 
-inline shared_ptr<ev_hdle_t> CreateDefaultNetHandle() { return CreateNetHandle(default_handle_type); }
+inline shared_ptr<io_context_t> CreateDefaultNetHandle() { return CreateNetHandle(default_context_type); }
 
 inline shared_ptr<Channel>
-CreateDefaultChannel(const EndPointInfo &local, const EndPointInfo &remote, unique_ptr<ev_hdler_t> handler) {
+CreateDefaultChannel(const EndPointInfo &local, const EndPointInfo &remote, unique_ptr<io_hdle_t> handler) {
     return make_shared<Channel>(local, remote, std::move(handler));
 }
 
@@ -48,7 +47,7 @@ struct TCPEvFactory {
                                                 const EndPointInfo &,
                                                 const EndPointInfo &,
                                                 shared_ptr<typename channel::Listener>, 
-                                                unique_ptr<ev_hdler_t>)>;
+                                                unique_ptr<io_hdle_t>)>;
 
     newChannel<Channel> NewChannel = NetFactory::CreateDefaultChannel;
 

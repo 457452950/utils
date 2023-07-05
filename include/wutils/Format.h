@@ -1,19 +1,22 @@
-#include "wutils/System.h"
-#include <sys/time.h>
+#pragma once
+#ifndef UTILS_WSYSTEM_H
+#define UTILS_WSYSTEM_H
+
+
+#include <cstdio>     // snprintf
+#include <ctime>      // timeval localtime() time()
+#include <sys/time.h> // gettimeofday()
 
 namespace wutils {
 
-bool mkdir(const std::string &path) {
-    auto res = ::mkdir(path.c_str(), 477);
-    if(res == 0) {
-        return true;
-    }
-    return false;
-}
-
-bool IsFileExist(const std::string &path) { return !access(path.c_str(), 0); }
-
-void GetCurrentTimeFormat(char *buff, int max_len) {
+/**
+ *获取当前格式化时间
+ * @param buff
+ * @param max_len
+ *
+ * @example 2023-6-27 23:22:20.405.559
+ */
+inline void GetCurrentTimeFormat(char *buff, int max_len) {
     // get ms
     timeval curTime{};
     ::gettimeofday(&curTime, nullptr);
@@ -35,4 +38,7 @@ void GetCurrentTimeFormat(char *buff, int max_len) {
                curTime.tv_usec % 1000);
 }
 
+
 } // namespace wutils
+
+#endif // UTILS_WSYSTEM_H

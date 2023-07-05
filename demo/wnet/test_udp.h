@@ -48,24 +48,24 @@ constexpr AF_PROTOL protol = AF_PROTOL::UDP;
 } // namespace cli
 
 
-inline auto in_cb = [](socket_t sock, BaseChannel *data) {
-    auto *ch = (ReadChannel *)data;
+inline auto in_cb = [](socket_t sock, IOEvent *data) {
+    auto *ch = (IOReadEvent *)data;
     // cout << "get channel call channel in" << std::endl;
-    ch->ChannelIn();
+    ch->IOIn();
 };
-inline auto out_cb = [](socket_t sock, BaseChannel *data) {
-    auto *ch = (WriteChannel *)data;
+inline auto out_cb = [](socket_t sock, IOEvent *data) {
+    auto *ch = (IOWriteEvent *)data;
     // cout << "get channel call channel in" << std::endl;
-    ch->ChannelOut();
+    ch->IOOut();
 };
 
-std::shared_ptr<Epoll<BaseChannel>> ep_;
+std::shared_ptr<Epoll<IOEvent>> ep_;
 
 void server_thread() {
     using namespace wutils;
     using namespace srv;
 
-    auto ep = std::make_shared<Epoll<BaseChannel>>();
+    auto ep = std::make_shared<Epoll<IOEvent>>();
     ep_     = ep;
     ep->Init();
     ep->read_  = in_cb;
@@ -149,7 +149,7 @@ void client_thread() {
         char         cli_buf[1500] = {0};
         int32_t      len           = 0;
 
-        sendto(cli, send_msg, strlen(send_msg), 0, srv_ed.GetAddr(), srv_ed.GetSockSize());
+        sendto(cli, send_msg, strlen(send_msg), 0, srv_ed.GetSockAddr(), srv_ed.GetSockSize());
 
         len = RecvFrom(cli, (uint8_t *)cli_buf, 1500, srv_);
         if(len <= 0) {
@@ -159,7 +159,7 @@ void client_thread() {
             cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
         }
 
-        sendto(cli, send_msg, strlen(send_msg), 0, srv_ed.GetAddr(), srv_ed.GetSockSize());
+        sendto(cli, send_msg, strlen(send_msg), 0, srv_ed.GetSockAddr(), srv_ed.GetSockSize());
 
         len = RecvFrom(cli, (uint8_t *)cli_buf, 1500, srv_);
         if(len <= 0) {

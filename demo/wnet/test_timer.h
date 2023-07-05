@@ -1,16 +1,16 @@
 #ifndef UTILS_DEMO_WNET_TEST_TIMER_H
 #define UTILS_DEMO_WNET_TEST_TIMER_H
 
-#include "wutils/logger/AsyncLogger.h"
-#include "wutils/network/Channel.h"
+#include "wutils/logger/StreamLogger.h"
+#include "wutils/network/IOEvent.h"
 
-using namespace wutils::Log;
+using namespace wutils::log;
 
 int tag = 0;
 
 inline void test_timer() {
-    Logger::Init(LOG_TYPE::L_STDOUT, LDEBUG, nullptr);
-    auto handle = std::make_shared<Epoll<BaseChannel>>();
+    Logger::GetInstance()->LogCout()->SetLogLevel(LDEBUG)->Start();
+    auto handle = std::make_shared<Epoll<IOEvent>>();
     setCommonCallBack(handle.get());
 
     handle->Init();

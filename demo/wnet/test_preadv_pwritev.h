@@ -37,7 +37,7 @@ void server_thread() {
     using namespace wutils;
 
     auto sock = MakeSocket(srv::listen::family, srv::listen::protol);
-    SetSocketReuseAddr(sock);
+    SetSocketReuseAddr(sock, false);
     // int  res  = Bind(sock, "0:0:0:0:0:0:0:0", 4000, 0);
 
     EndPointInfo srv_ed;
@@ -62,11 +62,11 @@ void server_thread() {
 
     EndPointInfo en;
     srv = Accept4(sock, en, SOCK_NONBLOCK);
-    // ok  = SetSocketNoBlock(srv);
+    // ok  = SetSocketNonBlock(srv);
     // if(!ok) {
-    //     cout << "[test_preadv_pwritev]SetSocketNoBlock error : " << strerror(errno) << endl;
+    //     cout << "[test_preadv_pwritev]SetSocketNonBlock error : " << strerror(errno) << endl;
     // } else {
-    //     cout << "SetSocketNoBlock ok" << endl;
+    //     cout << "SetSocketNonBlock ok" << endl;
     // }
 
     if(srv == -1) {
@@ -144,7 +144,7 @@ void client_thread() {
         cout << "[test_preadv_pwritev]connect error : " << strerror(errno) << endl;
     } else {
         cout << "connect ok" << endl;
-        // SetSocketNoBlock(cli);
+        // SetSocketNonBlock(cli);
     }
 
     {

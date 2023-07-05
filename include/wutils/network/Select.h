@@ -2,7 +2,6 @@
 #ifndef UTILS_SELECT_H
 #define UTILS_SELECT_H
 
-
 #include <iostream>
 #include <list>
 #include <stack>
@@ -15,8 +14,9 @@
 #include <sys/time.h>
 #include <sys/timerfd.h>
 
-#include "Event.h"
-#include "NetWorkUtils.h"
+#include "IOContext.h"
+#include "Tools.h"
+#include "wutils/Error.h"
 
 namespace wutils::network {
 
@@ -55,12 +55,12 @@ SelectWait(int max_sock, fd_set_ptr read_set, fd_set_ptr wirte_set, fd_set_ptr e
 
 // not thread safe
 template <typename UserData>
-class Select final : public EventHandle<UserData> {
+class Select final : public IOContext<UserData> {
 public:
     Select()  = default;
     ~Select() = default;
 
-    using EventHandler   = typename EventHandle<UserData>::EventHandler;
+    using EventHandler   = typename IOContext<UserData>::IOHandle;
     using EventHandler_p = shared_ptr<EventHandler>;
 
     // control
@@ -175,7 +175,7 @@ void Select<UserData>::EventLoop() {
         res = SelectWait(max_fd_number, &read_set_, &write_set_, nullptr, -1);
 
         if(res == -1) {
-            std::cerr << "error : " << strerror(errno) << std::endl;
+            std::cerr << "error : " << SystemError::GetSysErrCode() << std::endl;
             break;
         } else if(res == 0) {
             // time out

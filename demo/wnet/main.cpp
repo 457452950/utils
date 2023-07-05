@@ -4,7 +4,7 @@
 
 #include <sys/uio.h>
 
-#include "test_iovec.h"
+// #include "test_iovec.h"
 #include "test_preadv_pwritev.h"
 
 #include "test_ipv6.h"
@@ -23,7 +23,6 @@
 #include "Channel.h"
 #include "wutils/Debugger.hpp"
 #include "wutils/network/NetWork.h"
-#include "wutils/network/stdIOVec.h"
 
 using namespace std;
 using namespace wutils::network;
@@ -40,9 +39,9 @@ int main() {
     //    test_wepoll();
     //    test_wselect();
 
-    //    test_timer();
+    test_timer();
 
-    test_tcpchannel();
+    //    test_tcpchannel();
     //    test_aschannel();
     // test_udp();
     // test_udpchannel();

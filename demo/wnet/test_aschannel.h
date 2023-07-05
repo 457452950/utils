@@ -72,11 +72,11 @@ public:
     ASChannel::ABuffer         buffer;
 };
 
-std::shared_ptr<TestSession>        se;
-std::atomic_bool                    active{true};
-std::shared_ptr<Epoll<BaseChannel>> ep_;
+std::shared_ptr<TestSession>    se;
+std::atomic_bool                active{true};
+std::shared_ptr<Epoll<IOEvent>> ep_;
 
-inline auto ac_cb = [](const EndPointInfo &local, const EndPointInfo &remote, ev_hdler_p handler) {
+inline auto ac_cb = [](const EndPointInfo &local, const EndPointInfo &remote, io_hdle_p handler) {
     auto info = EndPointInfo::Dump(remote);
 
     cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
@@ -91,7 +91,7 @@ inline auto ac_cb = [](const EndPointInfo &local, const EndPointInfo &remote, ev
 void server_thread() {
     using namespace srv;
 
-    auto ep = std::make_shared<Epoll<BaseChannel>>();
+    auto ep = std::make_shared<Epoll<IOEvent>>();
     ep->Init();
     ep_ = ep;
 
@@ -102,7 +102,7 @@ void server_thread() {
         return;
     }
 
-    auto accp_channel = new AcceptorChannel(ep);
+    auto accp_channel = new Acceptor(ep);
     accp_channel->Start(local_ed, true);
     accp_channel->OnAccept = ac_cb;
 
@@ -190,7 +190,7 @@ void handle_pipe(int signal) {
 
 inline void test_aschannel() {
     using namespace test_aschannel_config;
-    cout << "test channel " << endl;
+    cout << "test aschannel " << endl;
 
     signal(SIGPIPE, handle_pipe); // 自定义处理函数
     signal(SIGINT, handle_pipe);  // 自定义处理函数

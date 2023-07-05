@@ -13,6 +13,6 @@ private:                                                                        
     CLASS &operator=(const CLASS &) = delete;
 
 
-#define InstanceInit(VALUE, ...) __VA_ARGS__ *__VA_ARGS__ ::instance_ = VALUE;
+#define InstanceInit(VALUE, ...) __VA_ARGS__ *__VA_ARGS__ ::instance_ = VALUE
 
 #endif // UTIL_INSTANCEHELPER_H

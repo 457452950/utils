@@ -4,11 +4,6 @@ MESSAGE("operation system is ${CMAKE_HOST_SYSTEM_NAME}")
 
 if (WIN32)
     message("not support windows!!!")
-    add_definitions(-D OS_IS_WINDOWS)
-    set(WINDOWS 1)
-
-    add_subdirectory(demo)
-
     return()
 endif ()
 
@@ -21,9 +16,6 @@ if (UNIX)
     message("Unix!!!")
 
     if (CMAKE_HOST_SYSTEM_NAME MATCHES "Linux")
-        message("Linux!!!")
-        add_definitions(-D OS_IS_LINUX)
-        set(LINUX 1)
 
         set(CMAKE_CXX_STANDARD 17)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -g -Wall ")
@@ -49,28 +41,19 @@ if (UNIX)
 
         add_library(
                 wutils
-                src/System.cpp
                 src/ByteArray.cpp
                 src/Error.cpp
 
                 src/threadpool/ThreadPool.cpp
 
-                src/network/NetWorkUtils.cpp
+                src/network/Tools.cpp
                 src/network/Epoll.cpp
                 src/network/Channel.cpp
-                src/network/SingleTcpServer.cpp
-
-                src/logger/AsyncLogger.cpp
-                src/logger/LoggerBase.cpp
 
                 src/buffer/ChainBuffer.cpp
                 src/buffer/RingBuffer.cpp
                 src/buffer/StraightBuffer.cpp
         )
-        #        target_link_libraries(wutils pthread)
-
-        add_library(logger src/logger/AsyncLogger.cpp src/logger/LoggerBase.cpp)
-        target_link_libraries(logger wutils)
 
         add_subdirectory(demo)
 

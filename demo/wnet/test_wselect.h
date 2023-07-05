@@ -64,8 +64,8 @@ inline void server_thread(std::shared_ptr<Select<test_s>> sl) {
     using namespace srv;
 
     auto sock = MakeSocket(listen::family, listen::protol);
-    SetSocketReuseAddr(sock);
-    SetSocketReusePort(sock);
+    SetSocketReuseAddr(sock, false);
+    SetSocketReusePort(sock, false);
 
     EndPointInfo lis;
     if(!lis.Assign(listen::ip, listen::port, listen::family)) {
@@ -89,7 +89,7 @@ inline void server_thread(std::shared_ptr<Select<test_s>> sl) {
     }
 
     test_s i{.f = [](int n) { cout << "heppy " << n << endl; }, .n = 3};
-    auto   handler      = std::make_unique<EventHandle<test_s>::EventHandler>();
+    auto   handler      = std::make_unique<IOContext<test_s>::IOHandle>();
     handler->socket_    = sock;
     handler->user_data_ = &i;
     handler->handle_    = sl;

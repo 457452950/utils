@@ -5,22 +5,20 @@
 #ifndef UTILS_NETWORK_H
 #define UTILS_NETWORK_H
 
+#include "Acceptor.h"
+#include "Defined.h"
 #include "Epoll.h"
-#include "Event.h"
-#include "NetFactory.h"
-#include "NetWorkDef.h"
-#include "NetWorkUtils.h"
+#include "Factory.h"
+#include "IOContext.h"
 #include "Select.h"
-#include "SingleTcpServer.h"
-
-#include "wutils/OS.h"
+#include "Tools.h"
 
 namespace wutils::network {
 
 
-/* WEvent.h */
+/* IOContext.h */
 template <typename UserData>
-class EventHandle;
+class IOContext;
 
 
 /* Select.h */
@@ -35,22 +33,17 @@ template <typename UserData>
 class Epoll;
 
 
-/* Channel.h */
+/* IOEvent.h */
 class Timer;
-class AcceptorChannel;
 class UDPPointer;
 class UDPChannel;
 class Channel;
 
-
-/* NetFactory.h */
-template <typename Channel>
-struct TCPEvFactory;
-
-
-/* SingleTcpServer.h */
-class SingleTcpServer;
-
+/* Acceptor.h */
+namespace tcp {
+class acceptor;
+class Acceptor;
+} // namespace tcp
 
 } // namespace wutils::network
 
