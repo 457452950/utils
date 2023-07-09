@@ -201,8 +201,8 @@ std::set<std::string>* GetIgnoredParameterizedTestSuites();
 class GTestNonCopyable {
  public:
   GTestNonCopyable() = default;
-  GTestNonCopyable(const GTestNonCopyable &) = delete;
-  GTestNonCopyable &operator=(const GTestNonCopyable &) = delete;
+  GTestNonCopyable(const GTestNonCopyable&) = delete;
+  GTestNonCopyable& operator=(const GTestNonCopyable&) = delete;
   ~GTestNonCopyable() = default;
 };
 
@@ -1489,14 +1489,14 @@ GTEST_API_ AssertionResult CmpHelperSTRCASENE(const char* s1_expression,
                                               const char* s2_expression,
                                               const char* s1, const char* s2);
 
-// Helper function for *_STREQ on wide strings.
+// DeferHelper function for *_STREQ on wide strings.
 //
 // INTERNAL IMPLEMENTATION - DO NOT USE IN A USER PROGRAM.
 GTEST_API_ AssertionResult CmpHelperSTREQ(const char* s1_expression,
                                           const char* s2_expression,
                                           const wchar_t* s1, const wchar_t* s2);
 
-// Helper function for *_STRNE on wide strings.
+// DeferHelper function for *_STRNE on wide strings.
 //
 // INTERNAL IMPLEMENTATION - DO NOT USE IN A USER PROGRAM.
 GTEST_API_ AssertionResult CmpHelperSTRNE(const char* s1_expression,
@@ -1551,7 +1551,7 @@ GTEST_API_ AssertionResult IsNotSubstring(const char* needle_expr,
 
 namespace internal {
 
-// Helper template function for comparing floating-points.
+// DeferHelper template function for comparing floating-points.
 //
 // Template parameter:
 //
@@ -1581,7 +1581,7 @@ AssertionResult CmpHelperFloatingPointEQ(const char* lhs_expression,
                    false);
 }
 
-// Helper function for implementing ASSERT_NEAR.
+// DeferHelper function for implementing ASSERT_NEAR.
 //
 // INTERNAL IMPLEMENTATION - DO NOT USE IN A USER PROGRAM.
 GTEST_API_ AssertionResult DoubleNearPredFormat(const char* expr1,

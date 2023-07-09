@@ -202,7 +202,7 @@ typedef struct {
 } redisOptions;
 
 /**
- * Helper macros to initialize options to their specified fields.
+ * DeferHelper macros to initialize options to their specified fields.
  */
 #define REDIS_OPTIONS_SET_TCP(opts, ip_, port_)                                                                        \
     (opts)->type              = REDIS_CONN_TCP;                                                                        \

@@ -4,7 +4,9 @@
 #include "wutils/network/Ip.h"
 #include "wutils/network/TCP.h"
 #include "wutils/network/Tools.h"
-#include "wutils/network/Unix.h"
+#include "wutils/network/UNIX.h"
+
+#include "wutils/Defer.h"
 
 
 TEST(TOOLS, 端口网络序字节序转换) {
@@ -220,6 +222,16 @@ TEST(SOCKET, tcp_socket) {
     ip::tcp::Acceptor<ip::v4> acceptor;
     ip::tcp::Socket<ip::v4>   cli;
 
+    DEFER([&]() {
+        socket0.Close();
+        acceptor.Close();
+        cli.Close();
+
+        ASSERT_FALSE(socket0);
+        ASSERT_FALSE(acceptor);
+        ASSERT_FALSE(cli);
+    });
+
     ASSERT_EQ(ip::tcp::SHUT_RD, ::SHUT_RD);
     ASSERT_EQ(ip::tcp::SHUT_WR, ::SHUT_WR);
     ASSERT_EQ(ip::tcp::SHUT_RDWR, ::SHUT_RDWR);
@@ -235,6 +247,12 @@ TEST(SOCKET, tcp_socket) {
 
     auto ser_cli = acceptor.Accept(e2);
     std::cout << "socket " << ser_cli.GetNativeSocket() << std::endl;
+
+    DEFER([&]() {
+        ser_cli.Close();
+        ASSERT_FALSE(ser_cli);
+    })
+
     ASSERT_TRUE(ser_cli);
     auto [ip, port] = e2.Dump();
     GTEST_LOG_(INFO) << "ip:" << ip << " port:" << port;
@@ -270,6 +288,18 @@ TEST(SOCKET, unix_socket) {
     Unix::Stream::Socket   cli;
     Unix::Stream::Socket   cli2;
 
+    DEFER([&]() {
+        socket0.Close();
+        acceptor.Close();
+        cli.Close();
+        cli2.Close();
+
+        ASSERT_FALSE(socket0);
+        ASSERT_FALSE(acceptor);
+        ASSERT_FALSE(cli);
+        ASSERT_FALSE(cli2);
+    });
+
     ASSERT_FALSE(e1);
     ASSERT_TRUE(e1.Assign(path1));
     ASSERT_TRUE(e1);
@@ -286,6 +316,12 @@ TEST(SOCKET, unix_socket) {
 
     auto ser_cli = acceptor.Accept(e22);
     std::cout << "socket " << ser_cli.GetNativeSocket() << std::endl;
+
+    DEFER([&]() {
+        ser_cli.Close();
+        ASSERT_FALSE(ser_cli);
+    })
+
     ASSERT_TRUE(ser_cli) << wutils::SystemError::GetSysErrCode();
     auto [ip, is] = e22.Dump();
     GTEST_LOG_(INFO) << "ip:" << ip << " create file:" << is;
@@ -306,6 +342,12 @@ TEST(SOCKET, unix_socket) {
 
     auto ser_cli2 = acceptor.Accept(e33);
     std::cout << "socket " << ser_cli2.GetNativeSocket() << std::endl;
+
+    DEFER([&]() {
+        ser_cli2.Close();
+        ASSERT_FALSE(ser_cli2);
+    })
+
     ASSERT_TRUE(ser_cli2) << wutils::SystemError::GetSysErrCode();
     auto [ip3, is3] = e33.Dump();
     GTEST_LOG_(INFO) << "ip:" << ip3 << " create file:" << is3;

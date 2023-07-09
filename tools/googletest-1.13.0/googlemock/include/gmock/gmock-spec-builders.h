@@ -110,10 +110,10 @@ class ExpectationBase;
 template <typename F>
 class TypedExpectation;
 
-// Helper class for testing the Expectation class template.
+// DeferHelper class for testing the Expectation class template.
 class ExpectationTester;
 
-// Helper classes for implementing NiceMock, StrictMock, and NaggyMock.
+// DeferHelper classes for implementing NiceMock, StrictMock, and NaggyMock.
 template <typename MockClass>
 class NiceMockImpl;
 template <typename MockClass>

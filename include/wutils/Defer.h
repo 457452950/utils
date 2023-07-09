@@ -2,20 +2,22 @@
 #define DEFER_H
 
 #include <functional>
+#include <utility>
 
 namespace wutils {
 
-class Helper {
+class DeferHelper {
 public:
-    Helper(std::function<void()> f) : f_(f){};
-    ~Helper() { f_(); }
+    explicit DeferHelper(std::function<void()> f) : f_(std::move(f)){};
+    //    explicit DeferHelper(std::function<void()> &&f) : f_(std::move(f)){};
+    ~DeferHelper() { f_(); }
     std::function<void()> f_;
 };
 
-#define DEFER(func)                                                                                                    \
-    do {                                                                                                               \
-        std::make_shared<wutils::Helper>(func);                                                                        \
-    } while(0)
+#define STR_CONTACT(A, B) A##B
+#define STR_CONTACT2(A, B) STR_CONTACT(A, B)
+
+#define DEFER(func) auto STR_CONTACT2(temp_, __LINE__) = std::make_shared<wutils::DeferHelper>(func);
 
 } // namespace wutils
 

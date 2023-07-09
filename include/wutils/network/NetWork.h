@@ -43,13 +43,12 @@ const auto default_handle_type = HandleType::SELECT;
 } // namespace wutils::network
 
 
-#include "Epoll.h"
-#include "Event.h"
-#include "NetFactory.h"
-#include "NetWorkUtils.h"
-#include "NetworkDef.h"
-#include "Select.h"
+#include "Factory.h"
+#include "IO_Context.h"
 #include "SingleTcpServer.h"
+#include "wutils/network/base/Defined.h"
+#include "wutils/network/base/Epoll.h"
+#include "wutils/network/base/Select.h"
 
 namespace wutils::network {
 

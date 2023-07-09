@@ -5,8 +5,8 @@
 #include <vector>
 
 
-#include "Channel.h"
-#include "NetFactory.h"
+#include "Factory.h"
+#include "IO_Event.h"
 
 namespace wutils::network {
 

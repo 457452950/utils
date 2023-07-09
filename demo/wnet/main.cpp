@@ -2,11 +2,6 @@
 #include <iostream>
 #include <memory>
 
-// #include <sys/uio.h>
-
-// #include "test_iovec.h"
-// #include "test_preadv_pwritev.h"
-//
 // #include "test_ipv6.h"
 // #include "test_wepoll.h"
 // #include "test_wselect.h"
@@ -23,9 +18,10 @@
 // #include "Channel.h"
 //  #include "wutils/Debugger.hpp"
 //   #include "wutils/network/NetWork.h"
-//   #include "wutils/network/stdIOVec.h"
 
+#include "wutils/network/Acceptor.h"
 #include "wutils/network/Ip.h"
+#include "wutils/network/UDP.h"
 #include "wutils/network/base/EndPoint.h"
 
 using namespace std;
@@ -58,24 +54,7 @@ int main() {
 }
 
 void test() {
-    ip::Udp::Socket<ip::v4> socket1;
-    ip::Tcp::Socket<ip::v6> socket2;
+    auto io_context = wutils::network::NetFactory::DefaultContext();
 
-
-    ip::v4::in_addr a;
-    ip::IpStrToAddr<ip::V4>("127.0.0.1", &a);
-    ip::IpStrToAddr("127.0.0.1", &a);
-
-    std::string ip_str;
-    ip::IpAddrToStr<ip::V4>(a, ip_str);
-    ip::IpAddrToStr(a, ip_str);
-    cout << "ip " << ip_str << endl;
-
-    ip::v4::Address address1("127.0.0.1");
-    ip::v6::Address address2;
-
-    ip::v4::EndPointInfo e1;
-    e1.Assign(address1, 4000);
-    e1.Assign(ip::v4::Address{"127.0.0.1"}, 4000);
-    e1.AsSockAddr();
+    auto acceptor = shared_ptr<event::Acceptor>(new event::Acceptor(io_context));
 }

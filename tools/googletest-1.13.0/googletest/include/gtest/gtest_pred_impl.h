@@ -81,7 +81,7 @@ namespace testing {
   else                                                          \
     on_failure(gtest_ar.failure_message())
 
-// Helper function for implementing {EXPECT|ASSERT}_PRED1.  Don't use
+// DeferHelper function for implementing {EXPECT|ASSERT}_PRED1.  Don't use
 // this in your code.
 template <typename Pred, typename T1>
 AssertionResult AssertPred1Helper(const char* pred_text, const char* e1,
@@ -112,7 +112,7 @@ AssertionResult AssertPred1Helper(const char* pred_text, const char* e1,
   GTEST_PRED_FORMAT1_(pred_format, v1, GTEST_FATAL_FAILURE_)
 #define ASSERT_PRED1(pred, v1) GTEST_PRED1_(pred, v1, GTEST_FATAL_FAILURE_)
 
-// Helper function for implementing {EXPECT|ASSERT}_PRED2.  Don't use
+// DeferHelper function for implementing {EXPECT|ASSERT}_PRED2.  Don't use
 // this in your code.
 template <typename Pred, typename T1, typename T2>
 AssertionResult AssertPred2Helper(const char* pred_text, const char* e1,
@@ -149,7 +149,7 @@ AssertionResult AssertPred2Helper(const char* pred_text, const char* e1,
 #define ASSERT_PRED2(pred, v1, v2) \
   GTEST_PRED2_(pred, v1, v2, GTEST_FATAL_FAILURE_)
 
-// Helper function for implementing {EXPECT|ASSERT}_PRED3.  Don't use
+// DeferHelper function for implementing {EXPECT|ASSERT}_PRED3.  Don't use
 // this in your code.
 template <typename Pred, typename T1, typename T2, typename T3>
 AssertionResult AssertPred3Helper(const char* pred_text, const char* e1,
@@ -188,7 +188,7 @@ AssertionResult AssertPred3Helper(const char* pred_text, const char* e1,
 #define ASSERT_PRED3(pred, v1, v2, v3) \
   GTEST_PRED3_(pred, v1, v2, v3, GTEST_FATAL_FAILURE_)
 
-// Helper function for implementing {EXPECT|ASSERT}_PRED4.  Don't use
+// DeferHelper function for implementing {EXPECT|ASSERT}_PRED4.  Don't use
 // this in your code.
 template <typename Pred, typename T1, typename T2, typename T3, typename T4>
 AssertionResult AssertPred4Helper(const char* pred_text, const char* e1,
@@ -229,7 +229,7 @@ AssertionResult AssertPred4Helper(const char* pred_text, const char* e1,
 #define ASSERT_PRED4(pred, v1, v2, v3, v4) \
   GTEST_PRED4_(pred, v1, v2, v3, v4, GTEST_FATAL_FAILURE_)
 
-// Helper function for implementing {EXPECT|ASSERT}_PRED5.  Don't use
+// DeferHelper function for implementing {EXPECT|ASSERT}_PRED5.  Don't use
 // this in your code.
 template <typename Pred, typename T1, typename T2, typename T3, typename T4,
           typename T5>

@@ -293,7 +293,7 @@ struct FindFirstPrinter<
   using type = Printer;
 };
 
-// Select the best printer in the following order:
+// SelectContext the best printer in the following order:
 //  - Print containers (they have begin/end/etc).
 //  - Print function pointers.
 //  - Print object pointers.
@@ -716,7 +716,7 @@ void PrintTo(const std::shared_ptr<T>& ptr, std::ostream* os) {
   (PrintSmartPointer<T>)(ptr, os, 0);
 }
 
-// Helper function for printing a tuple.  T must be instantiated with
+// DeferHelper function for printing a tuple.  T must be instantiated with
 // a tuple type.
 template <typename T>
 void PrintTupleTo(const T&, std::integral_constant<size_t, 0>,

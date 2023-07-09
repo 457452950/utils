@@ -911,8 +911,8 @@ inline PolymorphicAction<Impl> MakePolymorphicAction(const Impl& impl) {
 
 namespace internal {
 
-// Helper struct to specialize ReturnAction to execute a move instead of a copy
-// on return. Useful for move-only types, but could be used on any type.
+// DeferHelper struct to specialize ReturnAction to execute a move instead of a
+// copy on return. Useful for move-only types, but could be used on any type.
 template <typename T>
 struct ByMoveWrapper {
   explicit ByMoveWrapper(T value) : payload(std::move(value)) {}
@@ -1026,7 +1026,8 @@ class ReturnAction final {
       // is std::vector<bool>::reference, which is often a proxy type with an
       // reference to the underlying vector:
       //
-      //     // Helper method: have the mock function return bools according
+      //     // DeferHelper method: have the mock function return bools
+      //     according
       //     // to the supplied script.
       //     void SetActions(MockFunction<bool(size_t)>& mock,
       //                     const std::vector<bool>& script) {
@@ -1420,19 +1421,19 @@ struct WithArgsAction {
   // providing a call operator because even with a particular set of arguments
   // they don't have a fixed return type.
 
-  template <typename R, typename... Args,
-            typename std::enable_if<
-                std::is_convertible<
-                    InnerAction,
-                    // Unfortunately we can't use the InnerSignature alias here;
-                    // MSVC complains about the I parameter pack not being
-                    // expanded (error C3520) despite it being expanded in the
-                    // type alias.
-                    // TupleElement is also an MSVC workaround.
-                    // See its definition for details.
-                    OnceAction<R(internal::TupleElement<
-                                 I, std::tuple<Args...>>...)>>::value,
-                int>::type = 0>
+  template <
+      typename R, typename... Args,
+      typename std::enable_if<
+          std::is_convertible<InnerAction,
+                              // Unfortunately we can't use the InnerSignature
+                              // alias here; MSVC complains about the I
+                              // parameter pack not being expanded (error C3520)
+                              // despite it being expanded in the type alias.
+                              // TupleElement is also an MSVC workaround.
+                              // See its definition for details.
+                              OnceAction<R(internal::TupleElement<
+                                           I, std::tuple<Args...>>...)>>::value,
+          int>::type = 0>
   operator OnceAction<R(Args...)>() && {  // NOLINT
     struct OA {
       OnceAction<InnerSignature<R, Args...>> inner_action;
@@ -1447,19 +1448,19 @@ struct WithArgsAction {
     return OA{std::move(inner_action)};
   }
 
-  template <typename R, typename... Args,
-            typename std::enable_if<
-                std::is_convertible<
-                    const InnerAction&,
-                    // Unfortunately we can't use the InnerSignature alias here;
-                    // MSVC complains about the I parameter pack not being
-                    // expanded (error C3520) despite it being expanded in the
-                    // type alias.
-                    // TupleElement is also an MSVC workaround.
-                    // See its definition for details.
-                    Action<R(internal::TupleElement<
-                             I, std::tuple<Args...>>...)>>::value,
-                int>::type = 0>
+  template <
+      typename R, typename... Args,
+      typename std::enable_if<
+          std::is_convertible<const InnerAction&,
+                              // Unfortunately we can't use the InnerSignature
+                              // alias here; MSVC complains about the I
+                              // parameter pack not being expanded (error C3520)
+                              // despite it being expanded in the type alias.
+                              // TupleElement is also an MSVC workaround.
+                              // See its definition for details.
+                              Action<R(internal::TupleElement<
+                                       I, std::tuple<Args...>>...)>>::value,
+          int>::type = 0>
   operator Action<R(Args...)>() const {  // NOLINT
     Action<InnerSignature<R, Args...>> converted(inner_action);
 

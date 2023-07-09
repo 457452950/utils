@@ -2,76 +2,75 @@
 #ifndef UTIL_TIMER_H
 #define UTIL_TIMER_H
 
-#include <chrono>
+#include "IO_Context.h"
+#include "base/Timer.h"
 
-#include "Socket.h"
-#include "Tools.h"
+namespace wutils::network {
 
-namespace wutils::network::timer {
+namespace timer {
 
-class Socket : public ISocket {
+class Timer : public event::IOInOnly {
 public:
-    Socket() : ISocket(CreateNewTimerFd()){};
-    Socket(const Socket &other) : ISocket(other) {}
-    ~Socket() = default;
+    explicit Timer(weak_ptr<event::IO_Context> handle) {
+        this->handler_ = make_shared<event::IO_Context::IO_Handle>();
+
+        this->handler_->socket_  = timer_socket_;
+        this->handler_->listener = this;
+        this->handler_->handle_  = std::move(handle);
+        this->handler_->SetEvents(event::EventType::EV_IN);
+    }
+    ~Timer() override {
+        this->Stop();
+        this->timer_socket_.Close();
+    }
+
+    std::function<void()> OnTime;
 
     template <typename Rep, typename Period>
-    bool SetOnce(const std::chrono::duration<Rep, Period> &rtime) {
-        if(rtime <= rtime.zero())
-            return false;
+    bool Once(const std::chrono::duration<Rep, Period> &rtime) {
+        this->timer_socket_.SetOnce(rtime);
 
-        struct itimerspec next_time {
-            {0, 0}, {0, 0},
-        };
-
-        auto s  = std::chrono::duration_cast<std::chrono::seconds>(rtime);
-        auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(rtime - s);
-
-        next_time.it_value.tv_sec  = s;
-        next_time.it_value.tv_nsec = ns;
-
-        if(!SetTimerTime(this->socket_, TimerFlag::REL, &next_time)) {
-            return false;
+        if(!this->handler_->IsEnable()) {
+            this->handler_->Enable();
         }
 
         return true;
     }
-
     template <typename Rep, typename Period>
-    bool SetRepeat(const std::chrono::duration<Rep, Period> &rtime) {
-        if(rtime <= rtime.zero())
-            return false;
+    bool Repeat(const std::chrono::duration<Rep, Period> &rtime) {
+        this->timer_socket_.SetRepeat(rtime);
 
-        struct itimerspec next_time {
-            {0, 0}, {0, 0},
-        };
-
-        auto s  = std::chrono::duration_cast<std::chrono::seconds>(rtime);
-        auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(rtime - s);
-
-        next_time.it_value.tv_sec     = s;
-        next_time.it_value.tv_nsec    = ns;
-        next_time.it_interval.tv_sec  = s;
-        next_time.it_interval.tv_nsec = ns;
-
-        if(!SetTimerTime(this->socket_, TimerFlag::REL, &next_time)) {
-            return false;
+        if(!this->handler_->IsEnable()) {
+            this->handler_->Enable();
         }
 
         return true;
     }
-    void SetTimePoint() {
-        // TODO:
-        abort();
+    void Stop() {
+        if(this->handler_->IsEnable()) {
+            std::cout << "Timer::Stop() " << std::endl;
+            this->handler_->DisEnable();
+        }
+    }
+    // 定时器是否活跃，即是否已完成定时任务
+    bool IsActive() const { return this->handler_->IsEnable(); }
+
+private:
+    void EventIn() final {
+        this->timer_socket_.Read();
+
+        if(OnTime) {
+            OnTime();
+        }
     }
 
-    void Read() {
-        uint64_t exp = 0;
-        ::read(this->socket_, &exp, sizeof(exp));
-    }
+private:
+    event::IO_Context::IO_Handle_p handler_;
+    Socket                         timer_socket_;
 };
 
-} // namespace wutils::network::timer
+} // namespace timer
 
+} // namespace wutils::network
 
 #endif // UTIL_TIMER_H

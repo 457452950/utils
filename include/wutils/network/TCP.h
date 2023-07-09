@@ -4,10 +4,10 @@
 
 
 // #include "Channel.h"
-#include "Socket.h"
-#include "Tools.h"
-#include "base/Acceptor.h"
-#include "base/EndPoint.h"
+#include "wutils/network/Tools.h"
+#include "wutils/network/base/EndPoint.h"
+#include "wutils/network/base/IAcceptor.h"
+#include "wutils/network/base/ISocket.h"
 
 namespace wutils::network::ip {
 
@@ -64,10 +64,7 @@ public:
         bool SetReusePort() { return SetSocketReusePort(this->socket_, true); }
     };
 
-    //    template <class FAMILY>
-    //    class AcceptorCh : public AcceptorChannel<FAMILY, tcp> {};
 
-    // just use like a namespace
 private:
     tcp()  = default;
     ~tcp() = default;

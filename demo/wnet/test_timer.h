@@ -2,7 +2,7 @@
 #define UTILS_DEMO_WNET_TEST_TIMER_H
 
 #include "wutils/logger/AsyncLogger.h"
-#include "wutils/network/Channel.h"
+#include "wutils/network/IO_Event.h"
 
 using namespace wutils::Log;
 

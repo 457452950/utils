@@ -406,7 +406,7 @@ typedef struct _RTL_CRITICAL_SECTION GTEST_CRITICAL_SECTION;
 #endif
 #endif
 
-// Select the regular expression implementation.
+// SelectContext the regular expression implementation.
 #if GTEST_HAS_ABSL
 // When using Abseil, RE2 is required.
 #include "absl/strings/string_view.h"
@@ -712,7 +712,7 @@ typedef struct _RTL_CRITICAL_SECTION GTEST_CRITICAL_SECTION;
 #define GTEST_ATTRIBUTE_PRINTF_(string_index, first_to_check) \
   __attribute__((format(__MINGW_PRINTF_FORMAT, string_index, first_to_check)))
 #elif GTEST_HAVE_ATTRIBUTE_(format)
-#define GTEST_ATTRIBUTE_PRINTF_(string_index, first_to_check)   \
+#define GTEST_ATTRIBUTE_PRINTF_(string_index, first_to_check) \
   __attribute__((format(printf, string_index, first_to_check)))
 #else
 #define GTEST_ATTRIBUTE_PRINTF_(string_index, first_to_check)
@@ -1288,7 +1288,7 @@ extern "C" inline void* ThreadFuncWithCLinkage(void* thread) {
   return nullptr;
 }
 
-// Helper class for testing Google Test's multi-threading constructs.
+// DeferHelper class for testing Google Test's multi-threading constructs.
 // To use it, write:
 //
 //   void ThreadFunc(int param) { /* Do things with param */ }
@@ -1493,7 +1493,7 @@ class GTEST_API_ ThreadWithParamBase {
   AutoHandle thread_;
 };
 
-// Helper class for testing Google Test's multi-threading constructs.
+// DeferHelper class for testing Google Test's multi-threading constructs.
 template <typename T>
 class ThreadWithParam : public ThreadWithParamBase {
  public:
@@ -2452,7 +2452,8 @@ template <typename... T>
 using Variant = ::std::variant<T...>;
 }  // namespace internal
 }  // namespace testing
-// The case where absl is configured NOT to alias std::variant is not supported.
+   // The case where absl is configured NOT to alias std::variant is not
+   // supported.
 #endif  // __has_include(<variant>) && __cplusplus >= 201703L
 #endif  // __has_include
 #endif  // GTEST_HAS_ABSL

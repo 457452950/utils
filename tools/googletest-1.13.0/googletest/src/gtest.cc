@@ -1134,8 +1134,8 @@ class Timer {
 
   // Return time elapsed in milliseconds since the timer was created.
   TimeInMillis Elapsed() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-               clock::now() - start_)
+    return std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() -
+                                                                 start_)
         .count();
   }
 
@@ -1346,7 +1346,7 @@ std::vector<EditType> CalculateOptimalEdits(const std::vector<size_t>& left,
 
 namespace {
 
-// Helper class to convert string into ids with deduplication.
+// DeferHelper class to convert string into ids with deduplication.
 class InternalStrings {
  public:
   size_t GetId(const std::string& str) {
@@ -1381,7 +1381,7 @@ std::vector<EditType> CalculateOptimalEdits(
 
 namespace {
 
-// Helper class that holds the state for one hunk and prints it out to the
+// DeferHelper class that holds the state for one hunk and prints it out to the
 // stream.
 // It reorders adds/removes when possible to group all removes before all
 // adds. It also adds the hunk header before printint into the stream.
@@ -1616,7 +1616,7 @@ std::string GetBoolAssertionFailureMessage(
   return msg.GetString();
 }
 
-// Helper function for implementing ASSERT_NEAR.
+// DeferHelper function for implementing ASSERT_NEAR.
 AssertionResult DoubleNearPredFormat(const char* expr1, const char* expr2,
                                      const char* abs_error_expr, double val1,
                                      double val2, double abs_error) {
@@ -1656,7 +1656,7 @@ AssertionResult DoubleNearPredFormat(const char* expr1, const char* expr2,
          << abs_error_expr << " evaluates to " << abs_error << ".";
 }
 
-// Helper template for implementing FloatLE() and DoubleLE().
+// DeferHelper template for implementing FloatLE() and DoubleLE().
 template <typename RawType>
 AssertionResult FloatingPointLE(const char* expr1, const char* expr2,
                                 RawType val1, RawType val2) {
@@ -1761,7 +1761,7 @@ AssertionResult CmpHelperSTRCASENE(const char* s1_expression,
 
 namespace {
 
-// Helper functions for implementing IsSubString() and IsNotSubstring().
+// DeferHelper functions for implementing IsSubString() and IsNotSubstring().
 
 // This group of overloaded functions return true if and only if needle
 // is a substring of haystack.  NULL is considered a substring of
@@ -1870,7 +1870,7 @@ namespace internal {
 
 namespace {
 
-// Helper function for IsHRESULT{SuccessFailure} predicates
+// DeferHelper function for IsHRESULT{SuccessFailure} predicates
 AssertionResult HRESULTFailureHelper(const char* expr, const char* expected,
                                      long hr) {  // NOLINT
 #if GTEST_OS_WINDOWS_MOBILE || GTEST_OS_WINDOWS_TV_TITLE
@@ -2079,7 +2079,7 @@ bool String::WideCStringEquals(const wchar_t* lhs, const wchar_t* rhs) {
   return wcscmp(lhs, rhs) == 0;
 }
 
-// Helper function for *_STREQ on wide strings.
+// DeferHelper function for *_STREQ on wide strings.
 AssertionResult CmpHelperSTREQ(const char* lhs_expression,
                                const char* rhs_expression, const wchar_t* lhs,
                                const wchar_t* rhs) {
@@ -2091,7 +2091,7 @@ AssertionResult CmpHelperSTREQ(const char* lhs_expression,
                    PrintToString(rhs), false);
 }
 
-// Helper function for *_STRNE on wide strings.
+// DeferHelper function for *_STRNE on wide strings.
 AssertionResult CmpHelperSTRNE(const char* s1_expression,
                                const char* s2_expression, const wchar_t* s1,
                                const wchar_t* s2) {
@@ -6172,7 +6172,7 @@ void UnitTestImpl::ListTestsMatchingFilter() {
     }
   }
   fflush(stdout);
-  #if GTEST_HAS_FILE_SYSTEM
+#if GTEST_HAS_FILE_SYSTEM
   const std::string& output_format = UnitTestOptions::GetOutputFormat();
   if (output_format == "xml" || output_format == "json") {
     FILE* fileout = OpenFileForWriting(

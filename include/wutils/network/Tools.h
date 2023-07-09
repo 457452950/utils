@@ -15,8 +15,8 @@
 #include <arpa/inet.h>   // inet_ntop inet_pton
 #include <netinet/tcp.h> // tcp_nodelay
 
-#include "NetworkDef.h"
 #include "wutils/SharedPtr.h"
+#include "wutils/network/base/Defined.h"
 
 namespace wutils::network {
 
@@ -166,11 +166,11 @@ inline bool GetSockAddr_in(const ::in6_addr &in_addr, uint16_t port, sockaddr_in
  ****************************************************/
 
 // socket function
-int SocketGetFlag(socket_t socket) { return ::fcntl(socket, F_GETFL, 0); }
+inline int SocketGetFlag(socket_t socket) { return ::fcntl(socket, F_GETFL, 0); }
 
-bool SocketIsNonBlock(socket_t socket) { return SocketGetFlag(socket) & O_NONBLOCK; }
+inline bool SocketIsNonBlock(socket_t socket) { return SocketGetFlag(socket) & O_NONBLOCK; }
 
-bool SetSocketNoBlock(socket_t socket, bool isSet) {
+inline bool SetSocketNoBlock(socket_t socket, bool isSet) {
     if(isSet) {
         return ::fcntl(socket, F_SETFL, SocketGetFlag(socket) | O_NONBLOCK) != -1;
     }
@@ -178,7 +178,7 @@ bool SetSocketNoBlock(socket_t socket, bool isSet) {
     return ::fcntl(socket, F_SETFL, SocketGetFlag(socket) & (~O_NONBLOCK)) != -1;
 }
 
-bool SetSocketReuseAddr(socket_t socket, bool isSet) {
+inline bool SetSocketReuseAddr(socket_t socket, bool isSet) {
     int          opt = (int)isSet;
     unsigned int len = sizeof(opt);
     if(::setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &opt, len) == -1) {
@@ -186,7 +186,7 @@ bool SetSocketReuseAddr(socket_t socket, bool isSet) {
     }
     return true;
 }
-bool SetSocketReusePort(socket_t socket, bool isSet) {
+inline bool SetSocketReusePort(socket_t socket, bool isSet) {
     int          opt = (int)isSet;
     unsigned int len = sizeof(opt);
     if(::setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &opt, len) == -1) {
@@ -194,7 +194,7 @@ bool SetSocketReusePort(socket_t socket, bool isSet) {
     }
     return true;
 }
-bool SetSocketKeepAlive(socket_t socket, bool isSet) {
+inline bool SetSocketKeepAlive(socket_t socket, bool isSet) {
     int          opt = (int)isSet;
     unsigned int len = sizeof(opt);
     if(::setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &opt, len) == -1) {
@@ -204,7 +204,7 @@ bool SetSocketKeepAlive(socket_t socket, bool isSet) {
 }
 
 // tcp socket function
-bool SetTcpSocketNoDelay(socket_t socket, bool isSet) {
+inline bool SetTcpSocketNoDelay(socket_t socket, bool isSet) {
     int opt_val = (int)isSet;
     if(::setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, &opt_val, static_cast<socklen_t>(sizeof opt_val)) == 0) {
         return true;
@@ -219,7 +219,7 @@ namespace timer {
  *
  * @return timer fd
  */
-timer_t CreateNewTimerFd() {
+inline timer_t CreateNewTimerFd() {
     return ::timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);
     //    return ::timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
 }
@@ -243,10 +243,10 @@ enum class TimerFlag {
  * @param prev_time if not null, repeat with this param
  * @return
  */
-bool SetTimerTime(timer_t                    fd,
-                  TimerFlag                  flag,
-                  const struct ::itimerspec *next_time,
-                  struct ::itimerspec       *prev_time = nullptr) {
+inline bool SetTimerTime(timer_t                    fd,
+                         TimerFlag                  flag,
+                         const struct ::itimerspec *next_time,
+                         struct ::itimerspec       *prev_time = nullptr) {
     if(::timerfd_settime(fd, (int)flag, next_time, prev_time) == 0) {
         return true;
     }

@@ -10,35 +10,36 @@ template <class FAMILY>
 class IAddress {
 public:
     IAddress() = default;
-    explicit IAddress(const std::string &ip) { is_valid_ = IpStrToAddr(ip, &this->in_addr_); }
+    explicit IAddress(const std::string &ip) { is_valid_ = IpStrToAddr(ip, &this->address_); }
     virtual ~IAddress() = default;
 
-    using Family = FAMILY;
+    using Family    = FAMILY;
+    using address_t = typename Family::address_t;
 
     bool Assign(const std::string &ip) {
-        is_valid_ = IpStrToAddr(ip, &this->in_addr_);
+        is_valid_ = IpStrToAddr(ip, &this->address_);
         return is_valid_;
     };
-    bool Assign(const typename FAMILY::native_data_type &in) {
-        this->in_addr_ = in;
+    bool Assign(const address_t &in) {
+        this->address_ = in;
         is_valid_      = true;
         return is_valid_;
     }
 
     operator bool() const { return is_valid_; }
 
-    typename FAMILY::native_data_type AsInAddr() const { return this->in_addr_; };
-    std::string                       AsString() const {
+    address_t   AsInAddr() const { return this->address_; };
+    std::string AsString() const {
         std::string str;
-        if(!IpAddrToStr(this->in_addr_, str)) {
+        if(!IpAddrToStr(this->address_, str)) {
             return "";
         }
         return str;
     }
 
 private:
-    typename FAMILY::native_data_type in_addr_{0};
-    bool                              is_valid_{false};
+    address_t address_{0};
+    bool      is_valid_{false};
 };
 
 } // namespace wutils::network::ip

@@ -54,7 +54,6 @@ if (UNIX)
 
                 src/threadpool/ThreadPool.cpp
 
-                src/network/NetWorkUtils.cpp
                 src/network/Epoll.cpp
                 src/network/Channel.cpp
                 src/network/SingleTcpServer.cpp

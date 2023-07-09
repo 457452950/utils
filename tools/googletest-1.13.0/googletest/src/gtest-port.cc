@@ -779,7 +779,7 @@ bool AtomMatchesChar(bool escaped, char pattern_char, char ch) {
   return (pattern_char == '.' && ch != '\n') || pattern_char == ch;
 }
 
-// Helper function used by ValidateRegex() to format error messages.
+// DeferHelper function used by ValidateRegex() to format error messages.
 static std::string FormatRegexSyntaxError(const char* regex, int index) {
   return (Message() << "Syntax error at index " << index
                     << " in simple regular expression \"" << regex << "\": ")

@@ -496,8 +496,9 @@ struct CodeLocation {
   int line;
 };
 
-//  Helper to identify which setup function for TestCase / TestSuite to call.
-//  Only one function is allowed, either TestCase or TestSute but not both.
+//  DeferHelper to identify which setup function for TestCase / TestSuite to
+//  call. Only one function is allowed, either TestCase or TestSute but not
+//  both.
 
 // Utility functions to help SuiteApiResolver
 using SetUpTearDownSuiteFuncType = void (*)();
@@ -842,7 +843,7 @@ GTEST_API_ bool AlwaysTrue();
 // Always returns false.
 inline bool AlwaysFalse() { return !AlwaysTrue(); }
 
-// Helper for suppressing false warning from Clang on a const char*
+// DeferHelper for suppressing false warning from Clang on a const char*
 // variable declared in a conditional expression always being NULL in
 // the else branch.
 struct GTEST_API_ ConstCharPtr {
@@ -851,7 +852,7 @@ struct GTEST_API_ ConstCharPtr {
   const char* value;
 };
 
-// Helper for declaring std::string within 'if' statement
+// DeferHelper for declaring std::string within 'if' statement
 // in pre C++17 build environment.
 struct TrueWithString {
   TrueWithString() = default;
@@ -1528,7 +1529,7 @@ class NeverThrown {
 #define GTEST_TEST_CLASS_NAME_(test_suite_name, test_name) \
   test_suite_name##_##test_name##_Test
 
-// Helper macro for defining tests.
+// DeferHelper macro for defining tests.
 #define GTEST_TEST_(test_suite_name, test_name, parent_class, parent_id)       \
   static_assert(sizeof(GTEST_STRINGIFY_(test_suite_name)) > 1,                 \
                 "test_suite_name must not be empty");                          \
