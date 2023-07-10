@@ -41,7 +41,7 @@ public:
         }
 
         bool Bind(const EndPointInfo &info) {
-            return ::bind(this->socket_.GetNativeSocket(), info.AsSockAddr(), info.GetSockAddrLen()) == 0;
+            return ::bind(this->socket_, info.AsSockAddr(), info.GetSockAddrLen()) == 0;
         }
 
         // TODO: listen, connect, shutdown, accept

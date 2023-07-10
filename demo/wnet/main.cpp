@@ -22,6 +22,7 @@
 #include "wutils/network/Acceptor.h"
 #include "wutils/network/Ip.h"
 #include "wutils/network/UDP.h"
+#include "wutils/network/UNIX.h"
 #include "wutils/network/base/EndPoint.h"
 
 using namespace std;
@@ -56,5 +57,6 @@ int main() {
 void test() {
     auto io_context = wutils::network::NetFactory::DefaultContext();
 
-    auto acceptor = shared_ptr<event::Acceptor>(new event::Acceptor(io_context));
+    auto acceptor = std::make_shared<event::Acceptor<ip::v4, ip::tcp>>(io_context);
+    // auto acceptor2 = std::make_shared<event::Acceptor<Unix, Unix::Stream>>(io_context);
 }
