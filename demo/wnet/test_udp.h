@@ -93,8 +93,8 @@ void server_thread() {
 
     auto onmsg = [&](const wutils::network::EndPoint &local,
                      const wutils::network::EndPoint &remote,
-                     const uint8_t                       *msg,
-                     uint32_t                             msg_len) {
+                     const uint8_t                   *msg,
+                     uint32_t                         msg_len) {
         auto [lip, lport] = EndPoint::Dump(local);
         auto [rip, rport] = EndPoint::Dump(remote);
 
@@ -131,7 +131,7 @@ void client_thread() {
         return;
     }
 
-    auto cli = MakeBindedSocket(cli_ed, true);
+    auto cli = MakeBindedSocket(cli_ed);
     if(cli == -1) {
         return;
     }
@@ -145,9 +145,9 @@ void client_thread() {
     std::thread th2([&]() {
         char send_msg[] = "afsafsfsfagrtgtbgfbstrbsrbrtbrbstrgbtrbsfdsvbfsdsvbsrtbv";
 
-        EndPoint     srv_;
-        char         cli_buf[1500] = {0};
-        int32_t      len           = 0;
+        EndPoint srv_;
+        char     cli_buf[1500] = {0};
+        int32_t  len           = 0;
 
         sendto(cli, send_msg, strlen(send_msg), 0, srv_ed.GetSockAddr(), srv_ed.GetSockSize());
 
