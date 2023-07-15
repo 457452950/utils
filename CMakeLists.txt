@@ -52,10 +52,10 @@ if (UNIX)
                 src/buffer/RingBuffer.cpp
                 src/buffer/StraightBuffer.cpp
                 include/wutils/network/base/ISocket.h
-                include/wutils/network/Udp.h
+                include/wutils/network/easy/Udp.h
                 include/wutils/base/Defer.h
                 include/wutils/base/HeadOnly.h
-                include/wutils/network/Tcp.h
+                include/wutils/network/easy/Tcp.h
                 include/wutils/network/base/Definition.h
                 include/wutils/network/io_event/EpollContext.h
                 include/wutils/network/io_event/SelectContext.h

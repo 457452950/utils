@@ -8,9 +8,9 @@
 #include <cassert>
 #include <sys/eventfd.h>
 
-#include "../Select.h"
 #include "IOContext.h"
 #include "wutils/Error.h"
+#include "wutils/network/easy/Select.h"
 
 namespace wutils::network::event {
 

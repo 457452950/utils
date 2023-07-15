@@ -2,10 +2,10 @@
 #ifndef UTIL_TCP_H
 #define UTIL_TCP_H
 
-#include "EndPoint.h"
 #include "Tools.h"
-#include "base/Definition.h"
-#include "base/ISocket.h"
+#include "wutils/network/EndPoint.h"
+#include "wutils/network/base/Definition.h"
+#include "wutils/network/base/ISocket.h"
 
 namespace wutils::network::tcp {
 

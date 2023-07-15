@@ -8,9 +8,9 @@
 
 #include <netinet/tcp.h> // tcp_nodelay
 
-#include "EndPoint.h"
-#include "base/Native.h"
 #include "wutils/base/HeadOnly.h"
+#include "wutils/network/EndPoint.h"
+#include "wutils/network/base/Native.h"
 
 namespace wutils::network {
 
