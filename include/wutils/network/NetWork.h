@@ -9,40 +9,38 @@
 #include "Epoll.h"
 #include "Factory.h"
 #include "Select.h"
+#include "Tcp.h"
 #include "Tools.h"
-#include "wutils/network/base/Native.h"
-#include "wutils/network/io_event/IOContext.h"
+#include "Udp.h"
+#include "base/Definition.h"
+#include "base/Native.h"
+#include "io_event/IOContext.h"
 
 namespace wutils::network {
 
+namespace tcp {
+/* Acceptor.h */
+class Acceptor;
+/* Tcp.h */
+class Socket;
+} // namespace tcp
 
-/* IOContext.h */
-template <typename UserData>
+namespace udp {
+/* Udp.h */
+class Socket;
+} // namespace udp
+
+namespace event {
+/* io_context/IOContext.h */
 class IOContext;
-
-
-/* Select.h */
-template <typename UserData>
-class Select;
-
+class IOEvent;
+/* io_context/SelectContext.h */
+class SelectContext;
+} // namespace event
 
 /* Epoll.h */
 class Epoll;
 
-template <typename UserData>
-class Epoll;
-
-
-/* IOEvent.h */
-class Timer;
-class UDPPointer;
-class UDPChannel;
-class Channel;
-
-/* Acceptor.h */
-namespace tcp {
-class Acceptor;
-} // namespace tcp
 
 } // namespace wutils::network
 

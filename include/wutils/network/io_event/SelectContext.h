@@ -16,11 +16,11 @@ namespace wutils::network::event {
 
 static inline constexpr eventfd_t WAKE_UP = 1;
 
-class Select final : public IOContext {
+class SelectContext final : public IOContext {
 public:
-    Select() = default;
+    SelectContext() = default;
 
-    ~Select() override {
+    ~SelectContext() override {
         delete this->write_set_;
         delete this->read_set_;
     };
