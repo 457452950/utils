@@ -10,9 +10,9 @@
 
 #include <netinet/tcp.h> // tcp_nodelay
 
-#include "wutils/base/HeadOnly.h"
-#include "wutils/network/base/Native.h"
 #include "EndPoint.h"
+#include "base/Native.h"
+#include "wutils/base/HeadOnly.h"
 
 namespace wutils::network {
 
@@ -66,7 +66,7 @@ HEAD_ONLY int GetSocketFlags(socket_t socket) { return ::fcntl(socket, F_GETFL, 
 
 HEAD_ONLY bool IsSocketNonBlock(socket_t socket) { return GetSocketFlags(socket) & O_NONBLOCK; }
 HEAD_ONLY bool SetSocketNonBlock(socket_t socket, bool is_set) {
-    if (is_set) {
+    if(is_set) {
         return ::fcntl(socket, F_SETFL, GetSocketFlags(socket) | O_NONBLOCK) == 0;
     } else {
         return ::fcntl(socket, F_SETFL, GetSocketFlags(socket) & (~O_NONBLOCK)) == 0;
@@ -89,7 +89,7 @@ HEAD_ONLY bool SetSocketKeepAlive(socket_t socket, bool is_set) {
 }
 
 // tcp socket function
-bool SetTcpSocketNoDelay(socket_t socket, bool is_set);
+bool           SetTcpSocketNoDelay(socket_t socket, bool is_set);
 HEAD_ONLY bool SetTcpSocketKeepAlive(socket_t socket, bool is_set) {
     int flags = int(is_set);
     return setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &flags, sizeof(flags)) == 0;
@@ -98,7 +98,7 @@ HEAD_ONLY bool SetTcpSocketKeepAlive(socket_t socket, bool is_set) {
 //
 HEAD_ONLY bool GetSockName(socket_t socket, EndPoint &info) {
     sockaddr_in6 sa{};
-    socklen_t    len = sizeof (sockaddr_in6);
+    socklen_t    len = sizeof(sockaddr_in6);
 
     auto ok = ::getsockname(socket, reinterpret_cast<sockaddr *>(&sa), &len) == 0;
     if(ok) {

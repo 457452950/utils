@@ -7,16 +7,12 @@
 #include <functional>
 #include <iostream>
 #include <list>
-#include <map>
-#include <mutex>
-#include <set>
-#include <thread>
 
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
-#include "IOContext.h"
 #include "Tools.h"
+#include "wutils/network/io_event/IOContext.h"
 
 
 namespace wutils::network {
@@ -24,7 +20,7 @@ namespace wutils::network {
 using epoll_type = int32_t;
 using epoll_ptr  = epoll_type *;
 
-epoll_type CreateNewEpollFd();
+HEAD_ONLY epoll_type CreateNewEpollFd() { return epoll_create(1); }
 
 //    epoll events
 
@@ -121,12 +117,60 @@ epoll_type CreateNewEpollFd();
 ////////////////////////////////////////////////////////////////////////////////////
 
 
-bool EpollAddSocket(epoll_type epoll, socket_t socket, uint32_t events);
-bool EpollModifySocket(epoll_type epoll, socket_t socket, uint32_t events);
-bool EpollRemoveSocket(epoll_type epoll, socket_t socket);
+HEAD_ONLY bool EpollAddSocket(epoll_type epoll, socket_t socket, uint32_t events) {
+    struct epoll_event event {};
+    event.data.fd = socket;
+    event.events  = events;
 
-bool EpollAddSocket(epoll_type epoll, socket_t socket, uint32_t events, epoll_data_t data);
-bool EpollModifySocket(epoll_type epoll, socket_t socket, uint32_t events, epoll_data_t data);
+    if(::epoll_ctl(epoll, EPOLL_CTL_ADD, socket, &event) == 0) {
+        return true;
+    }
+
+    return false;
+}
+
+HEAD_ONLY bool EpollModifySocket(epoll_type epoll, socket_t socket, uint32_t events) {
+    struct epoll_event event {};
+    event.data.fd = socket;
+    event.events  = events;
+
+    if(::epoll_ctl(epoll, EPOLL_CTL_MOD, socket, &event) == 0) {
+        return true;
+    }
+
+    return false;
+}
+
+HEAD_ONLY bool EpollRemoveSocket(epoll_type epoll, socket_t socket) {
+    if(::epoll_ctl(epoll, EPOLL_CTL_DEL, socket, nullptr) == 0) {
+        return true;
+    }
+    return false;
+}
+
+HEAD_ONLY bool EpollAddSocket(epoll_type epoll, socket_t socket, uint32_t events, epoll_data_t data) {
+    struct epoll_event event {};
+    event.data   = data;
+    event.events = events;
+
+    if(::epoll_ctl(epoll, EPOLL_CTL_ADD, socket, &event) == 0) {
+        return true;
+    }
+
+    return false;
+}
+
+HEAD_ONLY bool EpollModifySocket(epoll_type epoll, socket_t socket, uint32_t events, epoll_data_t data) {
+    struct epoll_event event {};
+    event.data   = data;
+    event.events = events;
+
+    if(::epoll_ctl(epoll, EPOLL_CTL_MOD, socket, &event) == 0) {
+        return true;
+    }
+
+    return false;
+}
 
 // struct epoll_event
 // {
@@ -134,259 +178,94 @@ bool EpollModifySocket(epoll_type epoll, socket_t socket, uint32_t events, epoll
 //   epoll_data_t data;	/* User data variable */
 // } __EPOLL_PACKED;
 
-// return 0 No Events
-// return -1 errno
-int32_t EpollGetEvents(epoll_type epoll, struct epoll_event *events, int32_t events_size, int32_t timeout = 0);
-void    CloseEpoll(epoll_type epoll);
+/**
+ *
+ * @param epoll
+ * @param events
+ * @param events_size
+ * @param timeout
+ * @return 0 for time out . -1 for error , check errno. number for event count.
+ */
+HEAD_ONLY int32_t EpollGetEvents(epoll_type epoll, struct epoll_event *events, int32_t events_size, int32_t timeout) {
+    assert(events_size > 0);
 
-// not thread safe
-class BaseEpoll final {
+    return ::epoll_wait(epoll, events, events_size, timeout);
+}
+
+HEAD_ONLY void CloseEpoll(epoll_type epoll) { ::close(epoll); }
+
+class Epoll final {
 public:
-    BaseEpoll();
-    ~BaseEpoll();
+    Epoll() = default;
+    ~Epoll() { this->Close(); };
     // no copyable
-    BaseEpoll(const BaseEpoll &other)            = delete;
-    BaseEpoll &operator=(const BaseEpoll &other) = delete;
+    Epoll(const Epoll &other)            = delete;
+    Epoll &operator=(const Epoll &other) = delete;
 
-    bool Init();
-    void Close();
+    bool Init() {
+        this->epoll_fd_ = CreateNewEpollFd();
+        if(this->epoll_fd_ == -1) {
+            return false;
+        }
+        return true;
+    }
+    void Close() {
+        if(this->epoll_fd_ != -1) {
+            CloseEpoll(this->epoll_fd_);
+            this->epoll_fd_ = -1;
+        }
+    }
 
-    bool AddSocket(socket_t socket, uint32_t events);
-    bool AddSocket(socket_t socket, uint32_t events, epoll_data_t data);
-    bool ModifySocket(socket_t socket, uint32_t events);
-    bool ModifySocket(socket_t socket, uint32_t events, epoll_data_t data);
-    bool RemoveSocket(socket_t socket);
+    bool AddSocket(socket_t socket, uint32_t events) {
+        assert(socket != -1);
+        assert(events > 0);
 
+        if(!EpollAddSocket(this->epoll_fd_, socket, events)) {
+            return false;
+        }
+        return true;
+    }
+    bool AddSocket(socket_t socket, uint32_t events, epoll_data_t data) {
+        assert(socket != -1);
+        assert(events > 0);
 
-    int32_t GetEvents(epoll_event *events, int32_t events_size, int32_t timeout = 0);
+        if(!EpollAddSocket(this->epoll_fd_, socket, events, data)) {
+            return false;
+        }
+        return true;
+    }
+
+    bool ModifySocket(socket_t socket, uint32_t events) {
+        assert(socket != -1);
+
+        if(!EpollModifySocket(this->epoll_fd_, socket, events)) {
+            return false;
+        }
+        return true;
+    }
+    bool ModifySocket(socket_t socket, uint32_t events, epoll_data_t data) {
+        assert(socket != -1);
+        assert(events > 0);
+
+        if(!EpollModifySocket(this->epoll_fd_, socket, events, data)) {
+            return false;
+        }
+        return true;
+    }
+
+    bool RemoveSocket(socket_t socket) {
+        assert(socket != -1);
+        return EpollRemoveSocket(this->epoll_fd_, socket);
+    }
+
+    int32_t GetEvents(epoll_event *events, int32_t events_size, int32_t timeout = 0) {
+        auto res = EpollGetEvents(this->epoll_fd_, events, events_size, timeout);
+        return res;
+    }
 
 protected:
-    epoll_type epoll_fd_{-1};
+    epoll_type epoll_fd_{INVALID_SOCKET};
 };
-
-
-template <typename UserData>
-class Epoll final : public IOContext<UserData> {
-public:
-    Epoll();
-    ~Epoll();
-
-    using EventHandler   = typename IOContext<UserData>::IOHandle;
-    using EventHandler_p = shared_ptr<EventHandler>;
-
-
-    // control
-    bool AddSocket(EventHandler_p handler) override;
-    bool ModifySocket(EventHandler_p handler) override;
-    void DelSocket(EventHandler_p handler) override;
-
-    bool Init() override;
-    void Loop() override;
-    void Stop() override;
-    void Wake();
-
-private:
-    static uint32_t ParseToEpollEvent(uint8_t events);
-    void            EventLoop();
-    void            DelCrash();
-
-private:
-    BaseEpoll ep;
-    uint32_t  fd_count_{0};
-    int       wakeup_fd_{-1}; // event_fd
-    bool      active_{false};
-
-    std::map<EventHandler *, EventHandler_p> ready_to_del_;
-};
-template <typename UserData>
-void Epoll<UserData>::DelCrash() {
-    for(auto &item : ready_to_del_) {
-        if(!this->ep.RemoveSocket(item.first->socket_)) {
-            return;
-        }
-        --this->fd_count_;
-    }
-    this->ready_to_del_.clear();
-}
-
-
-template <typename UserData>
-Epoll<UserData>::Epoll() = default;
-
-template <typename UserData>
-Epoll<UserData>::~Epoll() {
-    this->Stop();
-
-    ::close(wakeup_fd_);
-
-    ep.Close();
-}
-
-
-template <typename UserData>
-bool Epoll<UserData>::Init() {
-    // DONE: 独立出Init函数
-    if(!ep.Init()) {
-        // std::cerr << "epoll init failed!" << std::endl;
-        return false;
-    }
-
-    wakeup_fd_ = eventfd(0, 0);
-    if(wakeup_fd_ == -1) {
-        return false;
-    }
-
-    if(this->ep.AddSocket(wakeup_fd_, EPOLLIN) == false) {
-        return false;
-    }
-
-    return true;
-}
-
-
-template <typename UserData>
-bool Epoll<UserData>::AddSocket(EventHandler_p handler) {
-    //    std::cout << "Add Socket " << handler.get() << std::endl;
-
-    auto it = this->ready_to_del_.find(handler.get());
-    if(it != this->ready_to_del_.end()) {
-        this->ready_to_del_.erase(it);
-        return this->ModifySocket(handler);
-    }
-
-    epoll_data_t ep_data{};
-
-    ep_data.ptr = handler.get();
-    auto ev     = this->ParseToEpollEvent(handler->GetEvents());
-
-    if(!ep.AddSocket(handler->socket_, ev, ep_data)) {
-        return false;
-    }
-
-    ++this->fd_count_;
-
-    return true;
-}
-
-template <typename UserData>
-bool Epoll<UserData>::ModifySocket(EventHandler_p handler) {
-    //    std::cout << "Mod Socket " << handler.get() << std::endl;
-    epoll_data_t ep_data{};
-
-    ep_data.ptr = handler.get();
-    auto ev     = this->ParseToEpollEvent(handler->GetEvents());
-
-    return ep.ModifySocket(handler->socket_, ev, ep_data);
-}
-
-template <typename UserData>
-void Epoll<UserData>::DelSocket(EventHandler_p handler) {
-    //    std::cout << "Del Socket " << handler.get() << std::endl;
-    this->ready_to_del_.insert({handler.get(), handler});
-}
-
-template <typename UserData>
-void Epoll<UserData>::Loop() {
-    this->active_ = true;
-    this->EventLoop();
-}
-
-template <typename UserData>
-inline void Epoll<UserData>::Stop() {
-    this->active_ = false;
-    this->Wake();
-}
-
-template <typename UserData>
-inline void Epoll<UserData>::Wake() {
-    //    std::cout << "Epoll Wake" << std::endl;
-    eventfd_write(this->wakeup_fd_, 1);
-}
-
-template <typename UserData>
-uint32_t Epoll<UserData>::ParseToEpollEvent(uint8_t events) {
-    uint32_t ev = 0;
-    if(events & HandlerEventType::EV_IN) {
-        ev |= EPOLLIN;
-    }
-    if(events & HandlerEventType::EV_OUT) {
-        ev |= EPOLLOUT;
-    }
-    return ev;
-}
-
-
-template <typename UserData>
-void Epoll<UserData>::EventLoop() {
-
-    std::unique_ptr<epoll_event[]> events;
-
-    while(this->active_) {
-        int events_size = fd_count_;
-        events.reset(new epoll_event[events_size]);
-
-        //        std::cout << "epoll wait !!! " << fd_count_ << std::endl;
-        events_size = ep.GetEvents(events.get(), events_size, -1);
-
-        if(!this->active_) {
-            std::cout << "close !!!" << std::endl;
-            uint64_t cnt;
-            eventfd_read(this->wakeup_fd_, &cnt);
-            assert(cnt == 1);
-            break;
-        }
-
-        if(events_size == -1) {
-            break;
-        } else if(events_size == 0) {
-            // TODO:add timeout event
-            continue;
-        }
-
-        for(int i = 0; i < events_size; ++i) {
-
-            if(!this->active_) {
-                break;
-            }
-
-            uint32_t ev   = events[i].events;
-            auto    *data = (typename IOContext<UserData>::IOHandle *)events[i].data.ptr;
-
-            assert(this->wakeup_fd_ != events[i].data.fd);
-
-            if(this->ready_to_del_.count(data)) {
-                break;
-            }
-
-            //            std::cout << "data " << data << std::endl;
-            assert(data);
-            assert(data->socket_ > 0);
-            socket_t sock = data->socket_;
-            uint8_t  eev  = data->GetEvents();
-
-            // FIXME: write_ 中可能释放 data
-            if(ev & EPOLLOUT && eev & HandlerEventType::EV_OUT) {
-                if(this->write_) {
-                    //                    std::cout << "write " << data << std::endl;
-                    this->write_(sock, data->user_data_);
-                }
-            }
-
-            if(this->ready_to_del_.count(data)) {
-                break;
-            }
-
-            if(ev & EPOLLIN && eev & HandlerEventType::EV_IN) {
-                if(this->read_) {
-                    //                    std::cout << "read " << data << std::endl;
-                    this->read_(sock, data->user_data_);
-                }
-            }
-        }
-
-        this->DelCrash();
-    }
-}
 
 
 } // namespace wutils::network

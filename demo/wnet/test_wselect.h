@@ -42,8 +42,8 @@ struct test_s {
 inline auto r_cb = [](socket_t sock, test_s *data) -> void {
     cout << "in" << sock << endl;
 
-    EndPoint     en;
-    int          res = Accept(sock, en);
+    EndPoint en;
+    int      res = Accept(sock, en);
 
     if(res == -1) {
         cout << "Accept error : " << strerror(errno) << endl;
@@ -92,7 +92,7 @@ inline void server_thread(std::shared_ptr<Select<test_s>> sl) {
     auto   handler      = std::make_unique<IOContext<test_s>::IOHandle>();
     handler->socket_    = sock;
     handler->user_data_ = &i;
-    handler->handle_    = sl;
+    handler->context_   = sl;
     handler->SetEvents(HandlerEventType::EV_IN);
     cout << "set events " << (int)handler->GetEvents() << std::endl;
     handler->Enable();

@@ -8,10 +8,10 @@
 #include "Acceptor.h"
 #include "Epoll.h"
 #include "Factory.h"
-#include "IOContext.h"
 #include "Select.h"
 #include "Tools.h"
 #include "wutils/network/base/Native.h"
+#include "wutils/network/io_event/IOContext.h"
 
 namespace wutils::network {
 
@@ -27,7 +27,7 @@ class Select;
 
 
 /* Epoll.h */
-class BaseEpoll;
+class Epoll;
 
 template <typename UserData>
 class Epoll;

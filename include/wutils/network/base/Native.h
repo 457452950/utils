@@ -2,8 +2,10 @@
 #ifndef UTILS_NETWORK_DEF_H
 #define UTILS_NETWORK_DEF_H
 
+#include <iostream>
+
+#include <arpa/inet.h>  // inet_ntop inet_pton
 #include <netinet/in.h> // AF_INET IPPROTO_TCP
-#include <arpa/inet.h>   // inet_ntop inet_pton
 
 #include "wutils/base/HeadOnly.h"
 
@@ -14,17 +16,19 @@ enum AF_PROTOL { TCP = IPPROTO_TCP, UDP = IPPROTO_UDP };
 
 namespace v4 {
 constexpr int FAMILY       = AF_FAMILY::INET;
-using SockAddr = ::sockaddr_in;
+using SockAddr             = ::sockaddr_in;
 constexpr int SOCKADDR_LEN = sizeof(sockaddr_in);
 } // namespace v4
 namespace v6 {
 constexpr int FAMILY       = AF_FAMILY::INET6;
-using SockAddr = ::sockaddr_in6;
+using SockAddr             = ::sockaddr_in6;
 constexpr int SOCKADDR_LEN = sizeof(sockaddr_in6);
 } // namespace v6
 
 using socket_t = int32_t;
-constexpr socket_t INVALID_SOCKET = -1;
+#ifndef INVALID_SOCKET
+#define INVALID_SOCKET (-1)
+#endif
 
 using timerfd_t = int32_t;
 

@@ -10,7 +10,7 @@ namespace wutils::network {
 
 class ISocket {
 public:
-    ISocket() : socket_(INVALID_SOCKET) {}
+    ISocket() = default;
 
     ISocket(socket_t socket) : socket_(socket) {}
 
@@ -37,7 +37,7 @@ public:
     }
 
 protected:
-    socket_t socket_;
+    socket_t socket_{INVALID_SOCKET};
 };
 
 } // namespace wutils::network

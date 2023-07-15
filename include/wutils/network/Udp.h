@@ -4,14 +4,14 @@
 
 #include "EndPoint.h"
 #include "Tools.h"
-#include "base/ISocket.h"
 #include "base/Definition.h"
+#include "base/ISocket.h"
 
 namespace wutils::network::udp {
 
 class Socket : public ISocket {
 public:
-    Socket() = default;
+    Socket()  = default;
     ~Socket() = default;
 
     // Common
@@ -41,7 +41,8 @@ public:
     }
     int64_t Send(const uint8_t *data, uint32_t len) {
         assert(len < MAX_WAN_UDP_PACKAGE_LEN);
-        return ::send(this->socket_, data, len, 0); }
+        return ::send(this->socket_, data, len, 0);
+    }
     int64_t Recv(uint8_t *buffer, uint32_t len) { return recv(this->socket_, buffer, len, 0); }
 
     EndPoint GetLocal() {
@@ -53,9 +54,7 @@ public:
     }
 
     // Server
-    bool Bind(const EndPoint &local) {
-        return ::bind(this->socket_, local.AsSockAddr(), local.GetSockSize()) == 0;
-    }
+    bool Bind(const EndPoint &local) { return ::bind(this->socket_, local.AsSockAddr(), local.GetSockSize()) == 0; }
 
     // Client
     bool Connect(const EndPoint &remote) { return ConnectToHost(this->socket_, remote); }
@@ -70,16 +69,16 @@ public:
 ///**
 // * UDPPointer
 // */
-//class UDPPointer : public IOEvent {
-//private:
+// class UDPPointer : public IOEvent {
+// private:
 //    explicit UDPPointer(weak_ptr<io_context_t> handle) {
 //        this->socket_              = make_shared<Socket>();
 //        this->handler_             = make_shared<io_hdle_t>();
-//        this->handler_->handle_    = std::move(handle);
+//        this->handler_->context_    = std::move(handle);
 //        this->handler_->user_data_ = this;
 //    }
 //
-//public:
+// public:
 //    using message_cb = std::function<void(const EndPointInfo &, const EndPointInfo &, const uint8_t *, uint32_t)>;
 //    using error_cb   = std::function<void(SystemError)>;
 //
@@ -121,7 +120,7 @@ public:
 //        socket_->SetAddrReuse();
 //
 //        this->handler_->socket_ = socket_->GetNativeSocket();
-//        this->handler_->SetEvents(HandlerEventType::EV_IN);
+//        this->handler_->SetEvents(EventType::EV_IN);
 //
 //        return true;
 //    }
@@ -143,7 +142,7 @@ public:
 //        return true;
 //    }
 //
-//private:
+// private:
 //    void IOIn() final {
 //        EndPointInfo ei;
 //        uint8_t      buf[MAX_UDP_BUFFER_LEN]{0};
@@ -170,7 +169,7 @@ public:
 //        }
 //    }
 //
-//private:
+// private:
 //    io_hdle_p          handler_{nullptr};
 //    shared_ptr<Socket> socket_;
 //    EndPointInfo       local_endpoint_;
@@ -179,15 +178,15 @@ public:
 ///***********************************************************
 // * UDPChannel
 // ************************************************************/
-//class UDPChannel : public IOEvent {
-//public:
+// class UDPChannel : public IOEvent {
+// public:
 //    explicit UDPChannel(weak_ptr<io_context_t> handle);
 //    ~UDPChannel() override;
 //
 //    bool Start(const EndPointInfo &local_ep, const EndPointInfo &remote_ep, bool shared);
 //
 //    // listener
-//public:
+// public:
 //    class Listener {
 //    public:
 //        virtual void OnMessage(const uint8_t *message, uint64_t message_len) = 0;
@@ -196,20 +195,20 @@ public:
 //
 //    inline void SetListener(weak_ptr<Listener> listener) { this->listener_ = std::move(listener); }
 //
-//protected:
+// protected:
 //    weak_ptr<Listener> listener_;
 //
-//public:
+// public:
 //    // unreliable
 //    bool Send(const uint8_t *send_message, uint32_t message_len);
 //
-//private:
+// private:
 //    void IOIn() final;
 //    void IOOut() final{};
 //
 //    void onErr(SystemError);
 //
-//protected:
+// protected:
 //    io_hdle_p    handler_;
 //    EndPointInfo local_endpoint_;
 //    EndPointInfo remote_endpoint_;
@@ -219,20 +218,20 @@ public:
 // * UDPChannel
 // ************************************************************/
 //
-//UDPChannel::UDPChannel(std::weak_ptr<io_context_t> handle) {
+// UDPChannel::UDPChannel(std::weak_ptr<io_context_t> handle) {
 //    this->handler_             = make_shared<io_hdle_t>();
 //    this->handler_->user_data_ = this;
-//    this->handler_->handle_    = std::move(handle);
+//    this->handler_->context_    = std::move(handle);
 //}
 //
-//UDPChannel::~UDPChannel() {
+// UDPChannel::~UDPChannel() {
 //    if(this->handler_) {
 //        if(this->handler_->IsEnable())
 //            this->handler_->DisEnable();
 //    }
 //}
 //
-//bool UDPChannel::Start(const EndPointInfo &local_ep, const EndPointInfo &remote_ep, bool shared) {
+// bool UDPChannel::Start(const EndPointInfo &local_ep, const EndPointInfo &remote_ep, bool shared) {
 //
 //    this->local_endpoint_  = local_ep;
 //    this->remote_endpoint_ = remote_ep;
@@ -246,13 +245,13 @@ public:
 //    std::ignore = ConnectToHost(socket, remote_endpoint_);
 //
 //    this->handler_->socket_ = socket;
-//    this->handler_->SetEvents(HandlerEventType::EV_IN);
+//    this->handler_->SetEvents(EventType::EV_IN);
 //    this->handler_->Enable();
 //
 //    return true;
 //}
 //
-//void UDPChannel::IOIn() {
+// void UDPChannel::IOIn() {
 //    std::cout << "UDPChannel channel in" << std::endl;
 //
 //    EndPointInfo ei;
@@ -277,7 +276,7 @@ public:
 //    }
 //}
 //
-//void UDPChannel::onErr(SystemError err) {
+// void UDPChannel::onErr(SystemError err) {
 //    if(err.Code() != 0) {
 //        if(!listener_.expired()) {
 //            listener_.lock()->OnError(err);
@@ -285,7 +284,7 @@ public:
 //    }
 //}
 //
-//bool UDPChannel::Send(const uint8_t *send_message, uint32_t message_len) {
+// bool UDPChannel::Send(const uint8_t *send_message, uint32_t message_len) {
 //    assert(message_len <= MAX_WAN_UDP_PACKAGE_LEN);
 //
 //    // auto len = ::sendto(this->handler_->socket_,

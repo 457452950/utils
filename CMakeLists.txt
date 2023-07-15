@@ -47,7 +47,6 @@ if (UNIX)
                 src/threadpool/ThreadPool.cpp
 
                 src/network/Tools.cpp
-                src/network/Epoll.cpp
                 src/network/Channel.cpp
 
                 src/buffer/ChainBuffer.cpp
@@ -55,7 +54,13 @@ if (UNIX)
                 src/buffer/StraightBuffer.cpp
                 include/wutils/network/base/ISocket.h
                 include/wutils/network/Udp.h
-                include/wutils/base/Defer.h include/wutils/base/HeadOnly.h include/wutils/network/Tcp.h include/wutils/network/base/Definition.h)
+                include/wutils/base/Defer.h
+                include/wutils/base/HeadOnly.h
+                include/wutils/network/Tcp.h
+                include/wutils/network/base/Definition.h
+                include/wutils/network/io_event/EpollContext.h
+                include/wutils/network/io_event/SelectContext.h
+        )
 
         add_subdirectory(demo)
 
