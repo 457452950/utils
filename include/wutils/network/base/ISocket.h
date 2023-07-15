@@ -11,21 +11,24 @@ namespace wutils::network {
 class ISocket {
 public:
     ISocket() : socket_(INVALID_SOCKET) {}
+
     ISocket(socket_t socket) : socket_(socket) {}
-    ISocket(const ISocket &other) : socket_(other.socket_) {}
+
+    ISocket(const ISocket &other) = default;
+
     ~ISocket() = default;
 
-    ISocket& operator=(const ISocket& other) {
-        if (this != &other) {
+    ISocket &operator=(const ISocket &other) {
+        if(this != &other) {
             this->socket_ = other.socket_;
         }
         return *this;
     }
-    operator bool () const {
-            return this->socket_ != INVALID_SOCKET;
-    }
+
+    operator bool() const { return this->socket_ != INVALID_SOCKET; }
 
     socket_t Get() const { return socket_; }
+
     void Close() {
         if(socket_ != INVALID_SOCKET) {
             ::close(this->socket_);

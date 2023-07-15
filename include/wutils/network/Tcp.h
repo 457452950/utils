@@ -4,15 +4,19 @@
 
 #include "EndPoint.h"
 #include "Tools.h"
-#include "base/ISocket.h"
 #include "base/Definition.h"
+#include "base/ISocket.h"
 
 namespace wutils::network::tcp {
 
 class Socket : public ISocket {
 public:
-    Socket() = default;
+    Socket()  = default;
     ~Socket() = default;
+
+    Socket(const Socket &other) = default;
+
+    Socket &operator=(const Socket &other) = default;
 
     // Common
     bool Open(AF_FAMILY family) {
@@ -42,7 +46,7 @@ public:
         while(len) {
             auto l = ::send(this->socket_, data, len, 0);
             if(l == -1) {
-                if (errno == EAGAIN) {
+                if(errno == EAGAIN) {
                     continue;
                 }
                 return -1;
@@ -74,14 +78,12 @@ public:
     }
 
     // Server
-    bool Bind(const EndPoint &local) {
-        return ::bind(this->socket_, local.AsSockAddr(), local.GetSockSize()) == 0;
-    }
+    bool Bind(const EndPoint &local) { return ::bind(this->socket_, local.AsSockAddr(), local.GetSockSize()) == 0; }
 
     bool Listen() { return ::listen(this->socket_, MAX_LISTEN_BACK_LOG); }
 
-    ISocket Accept(EndPoint & info, bool set_nonblock = false) {
-        if (set_nonblock) {
+    ISocket Accept(EndPoint &info, bool set_nonblock = false) {
+        if(set_nonblock) {
             return network::Accept4(this->socket_, info, SOCK_NONBLOCK);
         }
         return network::Accept(this->socket_, info);
@@ -99,8 +101,7 @@ public:
     bool SetKeepAlive(bool is_set) { return SetSocketKeepAlive(this->socket_, is_set); }
 };
 
-}
-
+} // namespace wutils::network::tcp
 
 
 #endif // UTIL_TCP_H

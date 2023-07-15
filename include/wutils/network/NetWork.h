@@ -41,7 +41,6 @@ class Channel;
 
 /* Acceptor.h */
 namespace tcp {
-class acceptor;
 class Acceptor;
 } // namespace tcp
 
