@@ -4,9 +4,9 @@
 
 #include <utility>
 
-#include "Defined.h"
 #include "IOEvent.h"
 #include "Tools.h"
+#include "wutils/network/base/Native.h"
 
 namespace wutils::network::tcp {
 
@@ -18,7 +18,7 @@ public:
     acceptor()  = default;
     ~acceptor() = default;
 
-    bool Bind(const EndPointInfo &local) {
+    bool Bind(const EndPoint &local) {
         this->local_endpoint_ = local;
 
         this->socket_ = MakeListenedSocket(local_endpoint_);
@@ -31,7 +31,7 @@ public:
         return true;
     }
     bool     Listen() { return listen(this->socket_, MAX_LISTEN_BACK_LOG) == 0; }
-    socket_t Accept(EndPointInfo &info) { return Accept4(this->socket_, info, SOCK_NONBLOCK); }
+    socket_t Accept(EndPoint &info) { return Accept4(this->socket_, info, SOCK_NONBLOCK); }
     void     Close() {
         if(this->socket_ != INVALID_SOCKET) {
             ::close(this->socket_);
@@ -41,7 +41,7 @@ public:
 
     socket_t GetNativeSocket() const { return socket_; }
 
-    const EndPointInfo &GetLocal() { return local_endpoint_; }
+    const EndPoint &GetLocal() { return local_endpoint_; }
 
     bool SetPortReuse() { return SetSocketReusePort(this->socket_, true); }
     bool SetNonBlock() { return SetSocketNonBlock(this->socket_, true); }
@@ -49,7 +49,7 @@ public:
 
 private:
     socket_t     socket_{INVALID_SOCKET};
-    EndPointInfo local_endpoint_;
+    EndPoint     local_endpoint_;
 };
 
 /**
@@ -65,7 +65,7 @@ private:
     }
 
 public:
-    using accept_cb = std::function<void(const EndPointInfo &, const EndPointInfo &, io_hdle_p)>;
+    using accept_cb = std::function<void(const EndPoint &, const EndPoint &, io_hdle_p)>;
     using error_cb  = std::function<void(SystemError)>;
 
     static shared_ptr<Acceptor> Create(weak_ptr<io_context_t> handle) {
@@ -95,7 +95,7 @@ public:
         this->acceptor_->Close();
     }
 
-    bool Bind(const EndPointInfo &local) {
+    bool Bind(const EndPoint &local) {
         auto ok = acceptor_->Bind(local);
         if(!ok) {
             return false;
@@ -114,7 +114,7 @@ public:
 
     bool SetPortReuse() { return acceptor_->SetPortReuse(); }
 
-    const EndPointInfo &GetLocal() { return acceptor_->GetLocal(); }
+    const EndPoint &GetLocal() { return acceptor_->GetLocal(); }
 
     accept_cb OnAccept;
     error_cb  OnError;
@@ -123,7 +123,7 @@ private:
     void IOIn() final {
         assert(this->handler_);
 
-        EndPointInfo ei;
+        EndPoint     ei;
         socket_t     cli = acceptor_->Accept(ei);
 
         if(cli <= 0) { // error

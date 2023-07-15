@@ -1,11 +1,11 @@
 #pragma once
-#ifndef UTILS_NETWORK_DEF_H
-#define UTILS_NETWORK_DEF_H
+#ifndef UTIL_DEFINITION_H
+#define UTIL_DEFINITION_H
 
 #include <cstdint>
-#include <netinet/in.h> // AF_INET IPPROTO_TCP
 
 namespace wutils::network {
+
 
 enum class ContextType : uint8_t {
     SELECT,
@@ -30,22 +30,13 @@ const auto default_context_type = ContextType::SELECT;
 #define MAX_WAN_UDP_PACKAGE_LEN 548
 #define MAX_UDP_BUFFER_LEN 1500
 
-enum AF_FAMILY { INET = AF_INET, INET6 = AF_INET6, UNIX = AF_UNIX };
-enum AF_PROTOL { TCP = IPPROTO_TCP, UDP = IPPROTO_UDP };
-
-using socket_t = int32_t;
-using socket_p = socket_t *;
-
-constexpr socket_t INVALID_SOCKET = -1;
-
-using timerfd_t = int32_t;
-using timerfd_p = timerfd_t *;
-
-// listen 最大等待队列长度
+/**
+ * listen 最大等待队列长度
+ */
 #define MAX_LISTEN_BACK_LOG 2048
 
 
-} // namespace wutils::network
+}
 
 
-#endif // UTILS_NETWORK_DEF_H
+#endif // UTIL_DEFINITION_H

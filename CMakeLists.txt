@@ -35,7 +35,7 @@ if (UNIX)
         target_link_libraries(tinymysql mysqlclient)
 
 
-        add_library(jsonreader src/json/JsonFileReader.cpp)
+        add_library(jsonreader src/json/JsonFileReader.cpp include/wutils/network/base/ISocket.h)
         target_link_libraries(jsonreader hiredis)
 
 
@@ -53,7 +53,9 @@ if (UNIX)
                 src/buffer/ChainBuffer.cpp
                 src/buffer/RingBuffer.cpp
                 src/buffer/StraightBuffer.cpp
-        )
+                include/wutils/network/base/ISocket.h
+                include/wutils/network/Udp.h
+                include/wutils/base/Defer.h include/wutils/base/HeadOnly.h include/wutils/network/Tcp.h include/wutils/network/base/Definition.h)
 
         add_subdirectory(demo)
 

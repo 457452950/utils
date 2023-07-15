@@ -42,7 +42,7 @@ struct test_s {
 inline auto r_cb = [](socket_t sock, test_s *data) -> void {
     cout << "in" << sock << endl;
 
-    EndPointInfo en;
+    EndPoint     en;
     int          res = Accept(sock, en);
 
     if(res == -1) {
@@ -52,7 +52,7 @@ inline auto r_cb = [](socket_t sock, test_s *data) -> void {
         cout << "Accept ok" << endl;
     }
 
-    auto [ip, port] = EndPointInfo::Dump(en);
+    auto [ip, port] = EndPoint::Dump(en);
     cout << "client : ip " << ip << " port:" << port << endl;
 
     auto t = (test_s *)data;
@@ -67,7 +67,7 @@ inline void server_thread(std::shared_ptr<Select<test_s>> sl) {
     SetSocketReuseAddr(sock, false);
     SetSocketReusePort(sock, false);
 
-    EndPointInfo lis;
+    EndPoint lis;
     if(!lis.Assign(listen::ip, listen::port, listen::family)) {
         return;
     }
@@ -103,7 +103,7 @@ inline void server_thread(std::shared_ptr<Select<test_s>> sl) {
 inline void client_thread() {
     using namespace cli;
 
-    EndPointInfo cli_ed;
+    EndPoint cli_ed;
     if(!cli_ed.Assign(connect::ip, connect::port, connect::family)) {
         return;
     }

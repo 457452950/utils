@@ -62,8 +62,8 @@ inline auto out_cb = [](socket_t sock, IOEvent *data) {
 struct udpSession : public UDPChannel::Listener {
 
     void OnMessage(const uint8_t *message, uint64_t message_len) override {
-        auto [lip, lport] = EndPointInfo::Dump(srv_ed);
-        auto [rip, rport] = EndPointInfo::Dump(cli_ed);
+        auto [lip, lport] = EndPoint::Dump(srv_ed);
+        auto [rip, rport] = EndPoint::Dump(cli_ed);
 
         fprintf(stdout,
                 "remote[%s:%d] --> local[%s:%d] msg:[%s] len:%ld\n",
@@ -79,8 +79,8 @@ struct udpSession : public UDPChannel::Listener {
     };
     void OnError(wutils::SystemError error) override { cout << "[test_udp]onerr err : " << error << endl; }
 
-    EndPointInfo                srv_ed;
-    EndPointInfo                cli_ed;
+    EndPoint                    srv_ed;
+    EndPoint                    cli_ed;
     std::unique_ptr<UDPChannel> udp_chl;
 };
 
@@ -95,15 +95,15 @@ void server_thread() {
     ep->read_  = in_cb;
     ep->write_ = out_cb;
 
-    EndPointInfo srv_ed;
+    EndPoint srv_ed;
     if(!srv_ed.Assign(bind::ip, bind::port, bind::family)) {
         return;
     }
 
-    auto [ip, port] = EndPointInfo::Dump(srv_ed);
+    auto [ip, port] = EndPoint::Dump(srv_ed);
     cout << "[" << ip << ":" << port << "]" << std::endl;
 
-    EndPointInfo cli_ed;
+    EndPoint cli_ed;
     // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
     if(!cli_ed.Assign(send::ip, send::port, send::family)) {
         return;
@@ -125,7 +125,7 @@ void client_thread() {
     using namespace wutils;
     using namespace cli;
 
-    EndPointInfo cli_ed;
+    EndPoint cli_ed;
     // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
     cli_ed.Assign(bind::ip, bind::port, bind::family);
     auto cli = MakeBindedSocket(cli_ed, true);
@@ -133,14 +133,14 @@ void client_thread() {
         return;
     }
 
-    EndPointInfo srv_ed;
+    EndPoint srv_ed;
     if(!srv_ed.Assign(send::ip, send::port, send::family)) {
         return;
     }
 
     char send_msg[] = "afsafsfsfagrtgtbgfbstrbsrbrtbrbstrgbtrbsfdsvbfsdsvbsrtbv";
 
-    EndPointInfo srv_;
+    EndPoint     srv_;
     char         cli_buf[1500] = {0};
     int32_t      len           = 0;
 
@@ -148,7 +148,7 @@ void client_thread() {
     if(len <= 0) {
         std::cout << "cli sendto err " << SystemError::GetSysErrCode() << endl;
     } else {
-        auto [ip, port] = EndPointInfo::Dump(srv_ed);
+        auto [ip, port] = EndPoint::Dump(srv_ed);
         cout << "cli sendto [" << ip << " : " << port << "] " << std::string(send_msg, strlen(send_msg)).c_str()
              << endl;
     }
@@ -158,7 +158,7 @@ void client_thread() {
     if(len <= 0) {
         std::cout << "cli recv from err " << SystemError::GetSysErrCode() << endl;
     } else {
-        auto [ip, port] = EndPointInfo::Dump(srv_);
+        auto [ip, port] = EndPoint::Dump(srv_);
         cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
     }
 
@@ -168,7 +168,7 @@ void client_thread() {
     if(len <= 0) {
         std::cout << "cli recv from err " << SystemError::GetSysErrCode() << endl;
     } else {
-        auto [ip, port] = EndPointInfo::Dump(srv_);
+        auto [ip, port] = EndPoint::Dump(srv_);
         cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
     }
 

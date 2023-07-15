@@ -39,7 +39,7 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 void server_thread() {
     // bind and listen
 
-    EndPointInfo srv_ed;
+    EndPoint srv_ed;
     if(!srv_ed.Assign(srv::listen::ip, srv::listen::port, srv::listen::family)) {
         return;
     }
@@ -67,7 +67,7 @@ void server_thread() {
 
     // accept
 
-    EndPointInfo en;
+    EndPoint en;
     res = Accept(sock, en);
 
     if(res == -1) {
@@ -77,12 +77,12 @@ void server_thread() {
         cout << "Accept ok" << endl;
     }
 
-    auto [ip, port] = EndPointInfo::Dump(en);
+    auto [ip, port] = EndPoint::Dump(en);
     cout << "client : ip " << ip << " port:" << port << endl;
 }
 
 void client_thread() {
-    EndPointInfo cli_ed;
+    EndPoint cli_ed;
     if(!cli_ed.Assign(cli::connect::ip, cli::connect::port, cli::connect::family)) {
         return;
     }

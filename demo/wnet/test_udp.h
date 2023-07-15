@@ -71,16 +71,16 @@ void server_thread() {
     ep->read_  = in_cb;
     ep->write_ = out_cb;
 
-    EndPointInfo srv_ed;
+    EndPoint srv_ed;
     // srv_ed.Assign("::1", 4000, AF_FAMILY::INET6);
     if(!srv_ed.Assign(bind::ip, bind::port, bind::family)) {
         return;
     }
 
-    auto [ip, port] = EndPointInfo::Dump(srv_ed);
+    auto [ip, port] = EndPoint::Dump(srv_ed);
     cout << "[" << ip << ":" << port << "]" << std::endl;
 
-    EndPointInfo cli_ed;
+    EndPoint cli_ed;
     // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
     if(!cli_ed.Assign(send::ip, send::port, send::family)) {
         return;
@@ -91,12 +91,12 @@ void server_thread() {
         return;
     }
 
-    auto onmsg = [&](const wutils::network::EndPointInfo &local,
-                     const wutils::network::EndPointInfo &remote,
+    auto onmsg = [&](const wutils::network::EndPoint &local,
+                     const wutils::network::EndPoint &remote,
                      const uint8_t                       *msg,
                      uint32_t                             msg_len) {
-        auto [lip, lport] = EndPointInfo::Dump(local);
-        auto [rip, rport] = EndPointInfo::Dump(remote);
+        auto [lip, lport] = EndPoint::Dump(local);
+        auto [rip, rport] = EndPoint::Dump(remote);
 
         fprintf(stdout,
                 "remote[%s:%d] --> local[%s:%d] msg:[%s] len:%d\n",
@@ -125,7 +125,7 @@ void client_thread() {
     using namespace cli;
     using namespace wutils;
 
-    EndPointInfo cli_ed;
+    EndPoint cli_ed;
     // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
     if(!cli_ed.Assign(bind::ip, bind::port, bind::family)) {
         return;
@@ -136,7 +136,7 @@ void client_thread() {
         return;
     }
 
-    EndPointInfo srv_ed;
+    EndPoint srv_ed;
     // srv_ed.Assign("::1", 4000, AF_FAMILY::INET6);
     if(!srv_ed.Assign(send::ip, send::port, send::family)) {
         return;
@@ -145,7 +145,7 @@ void client_thread() {
     std::thread th2([&]() {
         char send_msg[] = "afsafsfsfagrtgtbgfbstrbsrbrtbrbstrgbtrbsfdsvbfsdsvbsrtbv";
 
-        EndPointInfo srv_;
+        EndPoint     srv_;
         char         cli_buf[1500] = {0};
         int32_t      len           = 0;
 
@@ -155,7 +155,7 @@ void client_thread() {
         if(len <= 0) {
             std::cout << "cli recv from err " << SystemError::GetSysErrCode() << endl;
         } else {
-            auto [ip, port] = EndPointInfo::Dump(srv_);
+            auto [ip, port] = EndPoint::Dump(srv_);
             cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
         }
 
@@ -165,7 +165,7 @@ void client_thread() {
         if(len <= 0) {
             std::cout << "cli recv from err " << SystemError::GetSysErrCode() << endl;
         } else {
-            auto [ip, port] = EndPointInfo::Dump(srv_);
+            auto [ip, port] = EndPoint::Dump(srv_);
             cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
         }
     });

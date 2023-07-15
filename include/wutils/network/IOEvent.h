@@ -4,11 +4,11 @@
 
 #include <utility>
 
-#include "Defined.h"
 #include "EndPoint.h"
 #include "Epoll.h"
 #include "IOContext.h"
 #include "Select.h"
+#include "wutils/network/base/Native.h"
 
 #include "wutils/Buffer.h"
 #include "wutils/Error.h"
@@ -92,7 +92,7 @@ private:
  ******************************************/
 class Channel : public IOEvent {
 public:
-    explicit Channel(const EndPointInfo &, const EndPointInfo &, io_hdle_p);
+    explicit Channel(const EndPoint &, const EndPoint &, io_hdle_p);
     ~Channel() override;
 
     bool Init();
@@ -100,12 +100,12 @@ public:
 
     virtual void Send(const uint8_t *send_message, uint32_t message_len);
 
-    const EndPointInfo &GetLocalInfo() { return local_endpoint_; }
-    const EndPointInfo &GetRemoteInfo() { return remote_endpoint_; }
+    const EndPoint &GetLocalInfo() { return local_endpoint_; }
+    const EndPoint &GetRemoteInfo() { return remote_endpoint_; }
 
 protected:
-    EndPointInfo local_endpoint_;
-    EndPointInfo remote_endpoint_;
+    EndPoint     local_endpoint_;
+    EndPoint     remote_endpoint_;
     io_hdle_p    event_handler_;
 
     // listener
@@ -154,18 +154,18 @@ protected:
 // TODO: like asio
 class ASChannel : public IOEvent {
 public:
-    ASChannel(const EndPointInfo &, const EndPointInfo &, io_hdle_p);
+    ASChannel(const EndPoint &, const EndPoint &, io_hdle_p);
     ~ASChannel() override;
 
     bool Init() { return true; }
     void ShutDown(int how);
 
-    const EndPointInfo &GetLocalInfo() { return local_endpoint_; }
-    const EndPointInfo &GetRemoteInfo() { return remote_endpoint_; }
+    const EndPoint &GetLocalInfo() { return local_endpoint_; }
+    const EndPoint &GetRemoteInfo() { return remote_endpoint_; }
 
 protected:
-    EndPointInfo local_endpoint_;
-    EndPointInfo remote_endpoint_;
+    EndPoint     local_endpoint_;
+    EndPoint     remote_endpoint_;
     io_hdle_p    event_handler_;
 
 public:

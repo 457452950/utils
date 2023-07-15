@@ -6,12 +6,12 @@
 #define UTILS_NETWORK_H
 
 #include "Acceptor.h"
-#include "Defined.h"
 #include "Epoll.h"
 #include "Factory.h"
 #include "IOContext.h"
 #include "Select.h"
 #include "Tools.h"
+#include "wutils/network/base/Native.h"
 
 namespace wutils::network {
 

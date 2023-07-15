@@ -6,32 +6,23 @@
 #include <cstring> // memcpy
 #include <iostream>
 
-#include "Tools.h"
+#include "base/Native.h"
 #include "wutils/SharedPtr.h"
 
 namespace wutils::network {
 
-namespace v4 {
-constexpr int FAMILY       = AF_FAMILY::INET;
-constexpr int SOCKADDR_LEN = sizeof(sockaddr_in);
-} // namespace v4
-namespace v6 {
-constexpr int FAMILY       = AF_FAMILY::INET6;
-constexpr int SOCKADDR_LEN = sizeof(sockaddr_in6);
-} // namespace v6
-
 // sockaddr + family + hash
-struct EndPointInfo {
-    EndPointInfo() = default;
-    EndPointInfo(const EndPointInfo &other) : family_(other.family_), hash(other.hash) {
+struct EndPoint {
+    EndPoint() = default;
+    EndPoint(const EndPoint &other) : family_(other.family_), hash(other.hash) {
         this->data_ = make_unique<uint8_t[]>(other.GetSockSize());
         std::copy(other.data_.get(), other.data_.get() + other.GetSockSize(), this->data_.get());
     }
-    EndPointInfo(EndPointInfo &&other) noexcept :
+    EndPoint(EndPoint &&other) noexcept :
         family_(other.family_), data_(std::move(other.data_)), hash(other.hash) {}
-    ~EndPointInfo() = default;
+    ~EndPoint() = default;
 
-    EndPointInfo &operator=(const EndPointInfo &other) {
+    EndPoint &operator=(const EndPoint &other) {
         if(this == &other) {
             return *this;
         }
@@ -43,8 +34,8 @@ struct EndPointInfo {
         std::copy(other.data_.get(), other.data_.get() + other.GetSockSize(), this->data_.get());
     }
 
-    static EndPointInfo *MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family) {
-        auto ep = new EndPointInfo();
+    static EndPoint *MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family) {
+        auto ep = new EndPoint();
 
         if(ep->Assign(address, port, family)) {
             return ep;
@@ -109,8 +100,8 @@ struct EndPointInfo {
         return false;
     }
 
-    static EndPointInfo *Emplace(const sockaddr *addr, AF_FAMILY family) {
-        auto info     = new EndPointInfo();
+    static EndPoint *Emplace(const sockaddr *addr, AF_FAMILY family) {
+        auto info     = new EndPoint();
         info->family_ = family;
         info->data_   = make_unique<uint8_t[]>(info->GetSockSize());
 
@@ -134,7 +125,7 @@ struct EndPointInfo {
     AF_FAMILY       GetFamily() const { return family_; }
     unsigned long   GetSockSize() const { return family_ == v4::FAMILY ? v4::SOCKADDR_LEN : v6::SOCKADDR_LEN; }
 
-    static std::tuple<std::string, uint16_t> Dump(const EndPointInfo &info) {
+    static std::tuple<std::string, uint16_t> Dump(const EndPoint &info) {
         std::string s;
         uint16_t    p{0};
 
@@ -166,7 +157,7 @@ struct EndPointInfo {
 
 private:
     AF_FAMILY                  family_{AF_FAMILY::INET};
-    std::unique_ptr<uint8_t[]> data_{nullptr};
+    unique_ptr<uint8_t[]> data_{nullptr};
 
 private:
     /*
@@ -240,8 +231,8 @@ private:
 
 public:
     uint64_t hash{0u};
-    bool     operator==(const EndPointInfo &other) const noexcept { return this->hash == other.hash; }
-    bool     operator!=(const EndPointInfo &other) const noexcept { return this->hash != other.hash; }
+    bool     operator==(const EndPoint &other) const noexcept { return this->hash == other.hash; }
+    bool     operator!=(const EndPoint &other) const noexcept { return this->hash != other.hash; }
 };
 
 } // namespace wutils::network
@@ -249,9 +240,9 @@ public:
 
 namespace std {
 template <>
-class hash<wutils::network::EndPointInfo> {
+class hash<wutils::network::EndPoint> {
 public:
-    size_t operator()(const wutils::network::EndPointInfo &it) const noexcept { return it.hash; }
+    size_t operator()(const wutils::network::EndPoint &it) const noexcept { return it.hash; }
 };
 } // namespace std
 

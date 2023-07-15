@@ -8,8 +8,8 @@
 #include "Epoll.h"
 #include "Select.h"
 
-#include "Defined.h"
 #include "IOEvent.h"
+#include "wutils/network/base/Native.h"
 
 namespace wutils::network {
 
@@ -33,7 +33,7 @@ inline shared_ptr<io_context_t> CreateNetHandle(ContextType type) {
 inline shared_ptr<io_context_t> CreateDefaultNetHandle() { return CreateNetHandle(default_context_type); }
 
 inline shared_ptr<Channel>
-CreateDefaultChannel(const EndPointInfo &local, const EndPointInfo &remote, unique_ptr<io_hdle_t> handler) {
+CreateDefaultChannel(const EndPoint &local, const EndPoint &remote, unique_ptr<io_hdle_t> handler) {
     return make_shared<Channel>(local, remote, std::move(handler));
 }
 
@@ -44,16 +44,16 @@ struct TCPEvFactory {
     // clang-format off
     template<typename channel>
     using newChannel = std::function<shared_ptr<channel>(
-                                                const EndPointInfo &,
-                                                const EndPointInfo &,
+                                                const EndPoint &,
+                                                const EndPoint &,
                                                 shared_ptr<typename channel::Listener>, 
                                                 unique_ptr<io_hdle_t>)>;
 
     newChannel<Channel> NewChannel = NetFactory::CreateDefaultChannel;
 
     using newSession = std::function<shared_ptr<typename Channel::Listener>(
-                                                    const EndPointInfo &,
-                                                    const EndPointInfo &)>;
+                                                    const EndPoint &,
+                                                    const EndPoint &)>;
     newSession NewSession;
     // clang-format on
 };

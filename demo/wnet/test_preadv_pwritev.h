@@ -40,7 +40,7 @@ void server_thread() {
     SetSocketReuseAddr(sock, false);
     // int  res  = Bind(sock, "0:0:0:0:0:0:0:0", 4000, 0);
 
-    EndPointInfo srv_ed;
+    EndPoint srv_ed;
     if(!srv_ed.Assign(srv::listen::ip, srv::listen::port, srv::listen::family)) {
         return;
     }
@@ -60,7 +60,7 @@ void server_thread() {
         cout << "listen ok" << endl;
     }
 
-    EndPointInfo en;
+    EndPoint en;
     srv = Accept4(sock, en, SOCK_NONBLOCK);
     // ok  = SetSocketNonBlock(srv);
     // if(!ok) {
@@ -77,7 +77,7 @@ void server_thread() {
     }
 
     int totol       = 0;
-    auto [ip, port] = EndPointInfo::Dump(en);
+    auto [ip, port] = EndPoint::Dump(en);
     cout << "client : ip " << ip << " port:" << port << endl;
 
     const char  str0[]    = "helasdadafsafaafsadfdsaasfasfafafasfaufasnukfgagfasnjknfajkfbjasbfab,"
@@ -132,7 +132,7 @@ void server_thread() {
 void client_thread() {
     using namespace wutils;
 
-    EndPointInfo srv_ed;
+    EndPoint srv_ed;
     if(!srv_ed.Assign(cli::connect::ip, cli::connect::port, cli::connect::family)) {
         return;
     }

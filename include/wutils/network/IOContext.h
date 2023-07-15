@@ -8,9 +8,9 @@
 #include <list>
 #include <memory>
 
-#include "Defined.h"
 #include "Tools.h"
 #include "wutils/SharedPtr.h"
+#include "wutils/network/base/Native.h"
 
 
 namespace wutils::network {

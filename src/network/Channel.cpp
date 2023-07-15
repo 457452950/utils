@@ -73,7 +73,7 @@ void Timer::Stop() {
  * Channel
  ************************************************************/
 
-Channel::Channel(const EndPointInfo &local, const EndPointInfo &remote, io_hdle_p h) :
+Channel::Channel(const EndPoint &local, const EndPoint &remote, io_hdle_p h) :
     local_endpoint_(local), remote_endpoint_(remote), event_handler_(std::move(h)) {
 
     assert(this->event_handler_);
@@ -82,7 +82,7 @@ Channel::Channel(const EndPointInfo &local, const EndPointInfo &remote, io_hdle_
     this->event_handler_->SetEvents(HandlerEventType::EV_IN);
     this->event_handler_->Enable();
 
-    auto [ip, port] = EndPointInfo::Dump(this->remote_endpoint_);
+    auto [ip, port] = EndPoint::Dump(this->remote_endpoint_);
     std::cout << "Channel " << ip << port << std::endl;
 }
 
@@ -271,14 +271,14 @@ void Channel::onChannelError(SystemError error) {
  * ASChannel
  ************************************************************/
 
-ASChannel::ASChannel(const EndPointInfo &local, const EndPointInfo &remote, io_hdle_p h) :
+ASChannel::ASChannel(const EndPoint &local, const EndPoint &remote, io_hdle_p h) :
     local_endpoint_(local), remote_endpoint_(remote), event_handler_(std::move(h)) {
 
     assert(this->event_handler_);
 
     this->event_handler_->user_data_ = this;
 
-    auto [ip, port] = EndPointInfo::Dump(this->remote_endpoint_);
+    auto [ip, port] = EndPoint::Dump(this->remote_endpoint_);
     std::cout << "ASChannel " << ip << port << " " << this->event_handler_.get() << std::endl;
 }
 ASChannel::~ASChannel() {

@@ -76,8 +76,8 @@ std::shared_ptr<TestSession>    se;
 std::atomic_bool                active{true};
 std::shared_ptr<Epoll<IOEvent>> ep_;
 
-inline auto ac_cb = [](const EndPointInfo &local, const EndPointInfo &remote, io_hdle_p handler) {
-    auto info = EndPointInfo::Dump(remote);
+inline auto ac_cb = [](const EndPoint &local, const EndPoint &remote, io_hdle_p handler) {
+    auto info = EndPoint::Dump(remote);
 
     cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
     auto ch = std::make_shared<ASChannel>(local, remote, handler);
@@ -97,7 +97,7 @@ void server_thread() {
 
     setCommonCallBack(ep.get());
 
-    EndPointInfo local_ed;
+    EndPoint local_ed;
     if(!local_ed.Assign(listen::ip, listen::port, listen::family)) {
         return;
     }
@@ -117,7 +117,7 @@ void server_thread() {
 void client_thread() {
     using namespace cli;
 
-    EndPointInfo cli_ed;
+    EndPoint cli_ed;
     if(!cli_ed.Assign(connect::ip, connect::port, connect::family)) {
         return;
     }
