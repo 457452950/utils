@@ -8,7 +8,9 @@
 #include "Factory.h"
 #include "base/Definition.h"
 #include "base/Native.h"
+#include "io_event/EpollContext.h"
 #include "io_event/IOContext.h"
+#include "io_event/SelectContext.h"
 #include "wutils/network/easy/Acceptor.h"
 #include "wutils/network/easy/Epoll.h"
 #include "wutils/network/easy/Select.h"
@@ -30,7 +32,7 @@ namespace udp {
 class Socket;
 } // namespace udp
 
-/* easy/Epoll.h */
+/* easy/EpollContext.h */
 class Epoll;
 
 namespace event {
@@ -39,6 +41,8 @@ class IOContext;
 class IOEvent;
 /* io_context/SelectContext.h */
 class SelectContext;
+/* io_context/SelectContext.h */
+class EpollContext;
 } // namespace event
 
 

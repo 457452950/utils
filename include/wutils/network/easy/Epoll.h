@@ -174,7 +174,7 @@ HEAD_ONLY bool EpollModifySocket(epoll_type epoll, socket_t socket, uint32_t eve
 
 // struct epoll_event
 // {
-//   uint32_t events;	/* Epoll events */
+//   uint32_t events;	/* EpollContext events */
 //   epoll_data_t data;	/* User data variable */
 // } __EPOLL_PACKED;
 

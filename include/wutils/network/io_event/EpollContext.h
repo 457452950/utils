@@ -11,10 +11,10 @@ namespace wutils::network::event {
 
 static inline constexpr eventfd_t WAKE_UP = 1;
 
-class Epoll final : public IOContext {
+class EpollContext final : public IOContext {
 public:
-    Epoll() = default;
-    ~Epoll() override {
+    EpollContext() = default;
+    ~EpollContext() override {
         this->Stop();
 
         ::close(wakeup_fd_);
