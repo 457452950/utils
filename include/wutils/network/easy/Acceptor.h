@@ -1,6 +1,6 @@
 #pragma once
-#ifndef UTIL_ACCEPTOR_H
-#define UTIL_ACCEPTOR_H
+#ifndef UTIL_EASY_ACCEPTOR_H
+#define UTIL_EASY_ACCEPTOR_H
 
 #include "Tcp.h"
 
@@ -13,6 +13,8 @@ class Acceptor {
 public:
     Acceptor()  = default;
     ~Acceptor() = default;
+
+    operator bool() const { return accept_socket_.operator bool(); }
 
     // Common
     bool Open(AF_FAMILY family) { return this->accept_socket_.Open(family); }
@@ -46,4 +48,4 @@ private:
 
 } // namespace wutils::network::tcp
 
-#endif // UTIL_ACCEPTOR_H
+#endif // UTIL_EASY_ACCEPTOR_H

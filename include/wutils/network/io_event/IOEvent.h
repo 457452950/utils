@@ -39,13 +39,6 @@ private:
     void IOIn() final{};
 };
 
-// using io_context_t = IOContext<IOEvent>;
-//
-// using io_hdle_t = io_context_t::IOHandle;
-// using io_hdle_p = shared_ptr<io_hdle_t>;
-//
-// void setCommonCallBack(io_context_t *ioContext);
-
 //
 ///* Impl */
 //

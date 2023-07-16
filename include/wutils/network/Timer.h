@@ -18,6 +18,8 @@ public:
         handle_->context_  = std::move(context);
         handle_->socket_   = this->socket_;
 
+        handle_->SetEvents(event::EventType::EV_IN);
+
         this->socket_.SetNonBlock(true);
     }
     ~Timer() override {
@@ -59,7 +61,16 @@ public:
             it.it_interval.tv_nsec = duration_cast<nanoseconds>(loop - sec).count();
         }
 
-        return this->socket_.SetTimeOut(&it);
+        auto ok = this->socket_.SetTimeOut(&it);
+        if(!ok) {
+            return false;
+        }
+
+        if(!this->handle_->IsEnable()) {
+            this->handle_->Enable();
+        }
+
+        return true;
     }
 
     template <class Rep1, class Period1>
@@ -86,14 +97,13 @@ private:
     void IOIn() final {
         auto count = this->socket_.Read();
 
-        if(times_ == 0) {
-            return;
-        } else if(times_ > 0) {
+        if(times_ > 0) {
             --times_;
-            if(times_ == 0) {
-                this->Stop();
-            }
         } // else if (times == -1) { // no thing to do; }
+        if(times_ == 0) {
+            this->Stop();
+            return;
+        }
 
         if(!OnTime) {
             return;
