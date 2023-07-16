@@ -27,11 +27,11 @@ enum class SetTimeFlag {
     REL = 0, // 相对时间
     ABS = 1, // 绝对时间
 };
-HEAD_ONLY bool SetTimerTime(timerfd_t                fd,
-                            SetTimeFlag              flag,
-                            const struct itimerspec *next_time,
-                            struct itimerspec       *prev_time = nullptr) {
-    if(::timerfd_settime(fd, (int)flag, next_time, prev_time) == 0) {
+HEAD_ONLY bool SetTimerTimeOut(timerfd_t                fd,
+                               SetTimeFlag              flag,
+                               const struct itimerspec *next_time,
+                               struct itimerspec       *last_time = nullptr) {
+    if(::timerfd_settime(fd, (int)flag, next_time, last_time) == 0) {
         return true;
     }
     return false;

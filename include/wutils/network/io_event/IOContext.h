@@ -3,8 +3,9 @@
 #define UTILS_EVENT_H
 
 #include "IOEvent.h"
+#include "wutils/SharedPtr.h"
 #include "wutils/network/base/ISocket.h"
-
+#include <cassert>
 
 namespace wutils::network::event {
 
