@@ -31,7 +31,8 @@ public:
     }
 
 public:
-    std::function<void()> OnTime;
+    using OnTime_cb = std::function<void()>;
+    OnTime_cb OnTime;
 
     /**
      *

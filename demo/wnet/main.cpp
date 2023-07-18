@@ -4,9 +4,7 @@
 
 #include <sys/uio.h>
 
-// #include "test_iovec.h"
-#include "test_preadv_pwritev.h"
-
+#include "test_timer.h"
 #include "test_ipv6.h"
 
 #include "test_aschannel.h"
@@ -16,7 +14,6 @@
 #include "test_udp.h"
 #include "test_udpchannel.h"
 
-#include "test_timer.h"
 
 #include "Channel.h"
 #include "wutils/Debugger.hpp"
@@ -31,14 +28,8 @@ int main() {
 
     // signal(SIGPIPE, handle_pipe); // 自定义处理函数
 
-    // test_preadv_pwritev();
-    // test_iovec();
-
-    // test_ipv6();
-    //    test_wepoll();
-    //    test_wselect();
-
     test_timer();
+    test_ipv6();
 
     //    test_tcpchannel();
     //    test_aschannel();

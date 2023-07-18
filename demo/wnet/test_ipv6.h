@@ -6,6 +6,7 @@
 #include <thread>
 
 #include "wutils/network/NetWork.h"
+#include "wutils/base/Defer.h"
 
 using namespace std;
 using namespace wutils::network;
@@ -50,6 +51,8 @@ void server_thread() {
         return;
     }
 
+    DEFER([sock]() { ::close(sock); })
+
     // int  res  = Bind(sock, local_ip, 4000, 0);
     int res = Bind(sock, srv_ed);
     if(!res) {
@@ -78,6 +81,8 @@ void server_thread() {
         cout << "Accept ok" << endl;
     }
 
+    DEFER([res]() { ::close(res); })
+
     auto [ip, port] = EndPoint::Dump(en);
     cout << "client : ip " << ip << " port:" << port << endl;
 }
@@ -91,6 +96,8 @@ void client_thread() {
     if(cli == -1) {
         return;
     }
+
+    DEFER([cli]() { ::close(cli); })
 
     auto res = ConnectToHost(cli, cli_ed);
     if(!res) {

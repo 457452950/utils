@@ -21,6 +21,7 @@ public:
         ::close(wakeup_fd_);
 
         ep.Close();
+        this->ready_to_del_.clear();
     }
 
     // control
