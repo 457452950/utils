@@ -42,33 +42,6 @@ private:
 //
 ///* Impl */
 //
-///***********************************************************
-// * Timer
-// ************************************************************/
-// class Timer : public IOReadEvent {
-// public:
-//    explicit Timer(weak_ptr<io_context_t> handle);
-//    ~Timer() override;
-//
-//    std::function<void()> OnTime;
-//
-//    // time_ms 初次启动的计时时长，单位为ms,
-//    // interval循环定时器定时时长，单次定时器设置为0,默认采用相对时间
-//    bool Start(long time_ms, long interval_ms);
-//    bool StartOnce(long time_ms);
-//    bool StartLoop(long interval_ms);
-//    void Stop();
-//    // 定时器是否活跃，即是否已完成定时任务
-//    bool IsActive() const { return this->handler_->IsEnable(); }
-//
-// private:
-//    void IOIn() final;
-//
-// private:
-//    io_hdle_p handler_;
-//};
-//
-//
 ///*****************************************
 // *  Channel
 // ******************************************/

@@ -64,7 +64,7 @@ if (UNIX)
                 include/wutils/network/io_event/SelectContext.h
                 include/wutils/network/Timer.h
                 include/wutils/network/Acceptor.h
-        )
+                include/wutils/network/TcpConnection.h)
 
         add_subdirectory(demo)
 

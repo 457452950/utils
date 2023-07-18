@@ -2,10 +2,11 @@
 #ifndef UTILS_EVENT_H
 #define UTILS_EVENT_H
 
-#include "IOEvent.h"
+#include <cassert>
+
 #include "wutils/SharedPtr.h"
 #include "wutils/network/base/ISocket.h"
-#include <cassert>
+#include "IOEvent.h"
 
 namespace wutils::network::event {
 
@@ -18,12 +19,12 @@ class IOHandle;
 
 class IOContext {
 public:
-    IOContext()          = default;
-    virtual ~IOContext() = default;
+    IOContext()                                  = default;
+    virtual ~IOContext()                         = default;
 
     // noncopyable
-    IOContext(const IOContext &)            = delete;
-    IOContext &operator=(const IOContext &) = delete;
+    IOContext(const IOContext &)                 = delete;
+    IOContext &operator=(const IOContext &)      = delete;
 
     // control
     virtual bool AddSocket(IOHandle *handler)    = 0;
@@ -31,18 +32,18 @@ public:
     virtual void DelSocket(IOHandle *handler)    = 0;
 
     // life control
-    virtual bool Init() = 0;
-    virtual void Loop() = 0;
-    virtual void Stop() = 0;
+    virtual bool Init()                          = 0;
+    virtual void Loop()                          = 0;
+    virtual void Stop()                          = 0;
 };
 
 
 class IOHandle {
 public:
-    using Observer = IOEvent *;
+    using Listener = IOEvent *;
 
     ISocket             socket_{INVALID_SOCKET};
-    Observer            observer_{nullptr};
+    Listener            listener_{nullptr};
     weak_ptr<IOContext> context_;
 
 private:

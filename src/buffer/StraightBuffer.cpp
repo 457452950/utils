@@ -4,11 +4,11 @@
 
 namespace wutils {
 
-StraightBuffer::StraightBuffer() {}
+StraightBuffer::StraightBuffer() = default;
 
 StraightBuffer::StraightBuffer(const StraightBuffer &other) : buffer_(other.buffer_), offset_(other.offset_) {}
 
-StraightBuffer::StraightBuffer(const StraightBuffer &&other) noexcept :
+StraightBuffer::StraightBuffer(StraightBuffer &&other) noexcept :
     buffer_(std::move(other.buffer_)), offset_(other.offset_) {}
 
 StraightBuffer &StraightBuffer::operator=(const StraightBuffer &other) {
@@ -77,7 +77,7 @@ void StraightBuffer::UpdateWriteBytes(uint64_t bytes) {
     this->offset_ += bytes;
 }
 
-bool StraightBuffer::WriteFixBytes(const uint8_t *data, uint64_t bytes) {
+bool StraightBuffer::Write(const uint8_t *data, uint64_t bytes) {
     if(this->GetWriteableBytes() < bytes) {
         return false;
     }
@@ -87,7 +87,7 @@ bool StraightBuffer::WriteFixBytes(const uint8_t *data, uint64_t bytes) {
     return true;
 }
 
-bool StraightBuffer::ReadFixBytes(uint8_t *buffer, uint64_t buffer_len) {
+bool StraightBuffer::Read(uint8_t *buffer, uint64_t buffer_len) {
     if(this->GetReadableBytes() < buffer_len) {
         return false;
     }
@@ -97,7 +97,7 @@ bool StraightBuffer::ReadFixBytes(uint8_t *buffer, uint64_t buffer_len) {
     return true;
 }
 
-uint64_t StraightBuffer::Write(const uint8_t *data, uint64_t bytes) {
+uint64_t StraightBuffer::WriteSome(const uint8_t *data, uint64_t bytes) {
     auto len = std::min(bytes, this->GetWriteableBytes());
 
     std::copy(data, data + len, this->buffer_.data() + this->offset_);
@@ -105,7 +105,7 @@ uint64_t StraightBuffer::Write(const uint8_t *data, uint64_t bytes) {
     return len;
 }
 
-uint64_t StraightBuffer::Read(uint8_t *buffer, uint64_t buffer_len) {
+uint64_t StraightBuffer::ReadSome(uint8_t *buffer, uint64_t buffer_len) {
     auto len = std::min(buffer_len, this->GetWriteableBytes());
 
     std::copy(this->buffer_.data(), this->buffer_.data() + len, buffer);
@@ -115,16 +115,5 @@ uint64_t StraightBuffer::Read(uint8_t *buffer, uint64_t buffer_len) {
     return len;
 }
 
-void StraightBuffer::WriteUntil(writecb cb) {
-    auto len = cb(this->PeekWrite(), this->GetWriteableBytes());
-    assert(this->offset_ + len <= this->MaxSize());
-    this->UpdateWriteBytes(len);
-}
-
-void StraightBuffer::ReadUntil(readcb cb) {
-    auto len = cb(this->ConstPeekRead(), this->GetReadableBytes());
-    assert(len > this->GetReadableBytes());
-    this->SkipReadBytes(len);
-}
 
 } // namespace wutils

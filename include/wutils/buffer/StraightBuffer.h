@@ -1,18 +1,18 @@
 #ifndef UTILS_STRAIGHT_BUFFER_H
 #define UTILS_STRAIGHT_BUFFER_H
 
-#include "../Buffer.h"
 
 #include <vector>
+#include "../Buffer.h"
 
 namespace wutils {
 
-class StraightBuffer final : public Buffer {
+class StraightBuffer final : public IBuffer {
 public:
     StraightBuffer();
     ~StraightBuffer() override { this->Release(); }
     StraightBuffer(const StraightBuffer &other);
-    StraightBuffer(const StraightBuffer &&other) noexcept;
+    StraightBuffer(StraightBuffer &&other) noexcept;
     StraightBuffer &operator=(const StraightBuffer &other);
 
 public:
@@ -37,14 +37,22 @@ public:
     void SkipAllReadBytes() override;
     void UpdateWriteBytes(uint64_t bytes) override;
 
-    bool WriteFixBytes(const uint8_t *data, uint64_t bytes) override;
-    bool ReadFixBytes(uint8_t *buffer, uint64_t buffer_len) override;
+    bool Write(const uint8_t *data, uint64_t bytes) override;
+    bool Read(uint8_t *buffer, uint64_t buffer_len) override;
 
-    uint64_t Write(const uint8_t *data, uint64_t bytes) override;
-    uint64_t Read(uint8_t *buffer, uint64_t buffer_len) override;
+    uint64_t WriteSome(const uint8_t *data, uint64_t bytes) override;
+    uint64_t ReadSome(uint8_t *buffer, uint64_t buffer_len) override;
 
-    void WriteUntil(writecb cb) override;
-    void ReadUntil(readcb cb) override;
+    // void WriteUntil(writecb cb) override {
+    //     auto len = cb(this->PeekWrite(), this->GetWriteableBytes());
+    //     assert(this->offset_ + len <= this->MaxSize());
+    //     this->UpdateWriteBytes(len);
+    // };
+    // void ReadUntil(readcb cb) override{
+    //    auto len = cb(this->ConstPeekRead(), this->GetReadableBytes());
+    //    assert(len > this->GetReadableBytes());
+    //    this->SkipReadBytes(len);
+    // };
 
 private:
     ByteArray buffer_;

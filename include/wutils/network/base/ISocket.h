@@ -16,7 +16,7 @@ public:
 
     ISocket(const ISocket &other) = default;
 
-    ~ISocket() = default;
+    ~ISocket()                    = default;
 
     ISocket &operator=(const ISocket &other) {
         if(this != &other) {

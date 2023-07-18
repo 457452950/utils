@@ -9,14 +9,20 @@
 
 namespace wutils::network::tcp {
 
+enum SHUT_DOWN : int8_t { READ = SHUT_RD, WRITE = SHUT_WR, RDWR = SHUT_RDWR };
+
 class Socket : public ISocket {
 public:
     Socket()  = default;
     ~Socket() = default;
 
     Socket(const Socket &other) = default;
+    explicit Socket(const ISocket &other) { this->socket_ = other.Get(); };
 
+    using ISocket::operator=;
     Socket &operator=(const Socket &other) = default;
+
+    using ISocket::operator bool;
 
     // Common
     bool Open(AF_FAMILY family) {
@@ -44,7 +50,7 @@ public:
     int64_t Send(const uint8_t *data, uint32_t len) {
         int64_t total = 0;
         while(len) {
-            auto l = ::send(this->socket_, data, len, 0);
+            auto l = this->SendSome(data, len);
             if(l == -1) {
                 if(errno == EAGAIN) {
                     continue;
@@ -53,13 +59,15 @@ public:
             }
             total += l;
 
-            len -= l;
+            len  -= l;
             data += l;
         }
         return total;
     }
 
     int64_t Recv(uint8_t *buffer, uint32_t len) { return recv(this->socket_, buffer, len, 0); }
+
+    void ShutDown(SHUT_DOWN how) { ::shutdown(this->socket_, how); }
 
     EndPoint GetLocal() {
         EndPoint info;

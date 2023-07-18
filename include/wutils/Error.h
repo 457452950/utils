@@ -33,7 +33,9 @@ public:
     std::string Message() const override { return ::strerror(this->error_code_); }
 
     bool operator==(const SystemError &other) { return this->error_code_ == other.error_code_; }
+    bool operator!=(const SystemError &other) { return this->error_code_ != other.error_code_; }
     bool operator==(int code) { return this->error_code_ == code; }
+    bool operator!=(int code) { return this->error_code_ != code; }
 
     friend std::ostream &operator<<(std::ostream &o, const SystemError &error) {
         o << "{System error:code=" << error.error_code_ << ", message=" << error.Message() << "}";

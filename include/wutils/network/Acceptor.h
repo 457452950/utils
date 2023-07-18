@@ -4,17 +4,17 @@
 
 #include <functional>
 
-#include "easy/Acceptor.h"
-#include "io_event/IOContext.h"
-#include "io_event/IOEvent.h"
 #include "wutils/Error.h"
+#include "io_event/IOEvent.h"
+#include "io_event/IOContext.h"
+#include "easy/Acceptor.h"
 
 namespace wutils::network {
 
 class Acceptor : public event::IOReadEvent {
 public:
     Acceptor(weak_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
-        handle_->observer_ = this;
+        handle_->listener_ = this;
         handle_->context_  = std::move(context);
 
         handle_->SetEvents(event::EventType::EV_IN);
@@ -27,7 +27,7 @@ public:
     bool Start(const EndPoint &info) {
         bool ok = false;
 
-        ok = this->acceptor_.Open(info.GetFamily());
+        ok      = this->acceptor_.Open(info.GetFamily());
         if(!ok) {
             return false;
         }

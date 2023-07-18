@@ -119,7 +119,7 @@ private:
                 }
 
                 if(SetCheckFd(i->socket_, write_set_)) {
-                    i->observer_->IOOut();
+                    i->listener_->IOOut();
                 }
 
                 if(!this->handler_set.count(i)) {
@@ -127,7 +127,7 @@ private:
                 }
 
                 if(SetCheckFd(i->socket_, read_set_)) {
-                    i->observer_->IOIn();
+                    i->listener_->IOIn();
                 }
             }
         }

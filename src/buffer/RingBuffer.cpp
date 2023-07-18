@@ -4,7 +4,7 @@
 
 namespace wutils {
 
-RingBuffer::RingBuffer() {}
+RingBuffer::RingBuffer() = default;
 
 // clang-format off
 RingBuffer::RingBuffer(const RingBuffer &other) :
@@ -13,7 +13,7 @@ RingBuffer::RingBuffer(const RingBuffer &other) :
     write_offset_(other.write_offset_),
     is_full_(other.is_full_) {}
 
-RingBuffer::RingBuffer(const RingBuffer &&other) noexcept :
+RingBuffer::RingBuffer(RingBuffer &&other) noexcept :
     buffer_(std::move(other.buffer_)),
     read_offset_(other.read_offset_),
     write_offset_(other.write_offset_),
@@ -143,23 +143,23 @@ void RingBuffer::UpdateWriteBytes(uint64_t bytes) {
     }
 }
 
-bool RingBuffer::WriteFixBytes(const uint8_t *data, uint64_t bytes) {
+bool RingBuffer::Write(const uint8_t *data, uint64_t bytes) {
     if((this->UsedBytes() + bytes) > this->MaxSize()) {
         return false;
     }
-    this->Write(data, bytes);
+    this->WriteSome(data, bytes);
     return true;
 }
 
-bool RingBuffer::ReadFixBytes(uint8_t *buffer, uint64_t buffer_len) {
+bool RingBuffer::Read(uint8_t *buffer, uint64_t buffer_len) {
     if(this->UsedBytes() < buffer_len) {
         return false;
     }
-    this->Read(buffer, buffer_len);
+    this->ReadSome(buffer, buffer_len);
     return true;
 }
 
-uint64_t RingBuffer::Write(const uint8_t *data, uint64_t bytes) {
+uint64_t RingBuffer::WriteSome(const uint8_t *data, uint64_t bytes) {
     const auto len = std::min(bytes, this->MaxSize() - this->UsedBytes());
 
     if(write_offset_ + len >= this->MaxSize()) {
@@ -178,7 +178,7 @@ uint64_t RingBuffer::Write(const uint8_t *data, uint64_t bytes) {
     return len;
 }
 
-uint64_t RingBuffer::Read(uint8_t *buffer, uint64_t buffer_len) {
+uint64_t RingBuffer::ReadSome(uint8_t *buffer, uint64_t buffer_len) {
     const auto len = std::min(buffer_len, this->UsedBytes());
 
     if(read_offset_ + len > this->MaxSize()) {
@@ -196,22 +196,5 @@ uint64_t RingBuffer::Read(uint8_t *buffer, uint64_t buffer_len) {
     return len;
 }
 
-void RingBuffer::WriteUntil(writecb cb) {
-    uint64_t len = 0;
-
-    do {
-        len = cb(this->PeekWrite(), this->GetWriteableBytes());
-        this->UpdateWriteBytes(len);
-    } while(!this->IsFull() && len != 0);
-}
-
-void RingBuffer::ReadUntil(readcb cb) {
-    uint64_t len = 0;
-
-    do {
-        len = cb(this->ConstPeekRead(), this->GetReadableBytes());
-        this->SkipReadBytes(len);
-    } while(!this->IsEmpty() && len != 0);
-}
 
 } // namespace wutils

@@ -25,12 +25,12 @@ namespace wutils {
  * writeable area: [w_offset, r_offset)
  *
  */
-class RingBuffer final : public Buffer {
+class RingBuffer final : public IBuffer {
 public:
     RingBuffer();
     ~RingBuffer() override = default;
     RingBuffer(const RingBuffer &other);
-    RingBuffer(const RingBuffer &&other) noexcept;
+    RingBuffer(RingBuffer &&other) noexcept;
     RingBuffer &operator=(const RingBuffer &other);
 
 
@@ -56,14 +56,29 @@ public:
     void SkipAllReadBytes() override;
     void UpdateWriteBytes(uint64_t bytes) override;
 
-    bool WriteFixBytes(const uint8_t *data, uint64_t bytes) override;
-    bool ReadFixBytes(uint8_t *buffer, uint64_t buffer_len) override;
+    bool Write(const uint8_t *data, uint64_t bytes) override;
+    bool Read(uint8_t *buffer, uint64_t buffer_len) override;
 
-    uint64_t Write(const uint8_t *data, uint64_t bytes) override;
-    uint64_t Read(uint8_t *buffer, uint64_t buffer_len) override;
+    uint64_t WriteSome(const uint8_t *data, uint64_t bytes) override;
+    uint64_t ReadSome(uint8_t *buffer, uint64_t buffer_len) override;
 
-    void WriteUntil(writecb cb) override;
-    void ReadUntil(readcb cb) override;
+    //    void WriteUntil(writecb cb) {
+    //        uint64_t len = 0;
+    //
+    //        do {
+    //            len = cb(this->PeekWrite(), this->GetWriteableBytes());
+    //            this->UpdateWriteBytes(len);
+    //        } while(!this->IsFull() && len != 0);
+    //    }
+    //
+    //    void ReadUntil(readcb cb) {
+    //        uint64_t len = 0;
+    //
+    //        do {
+    //            len = cb(this->ConstPeekRead(), this->GetReadableBytes());
+    //            this->SkipReadBytes(len);
+    //        } while(!this->IsEmpty() && len != 0);
+    //    }
 
 private:
     ByteArray buffer_;

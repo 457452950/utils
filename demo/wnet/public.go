@@ -124,7 +124,7 @@ func test_tcp2() {
 
 		// fmt.Println("start f")
 		sendData := []byte("asdasdasdasdasdasdasdasdasdasasfasfsaafabfubfusbfuwkebfusdbfsdfbjsbfsjdffuskbfksbfkbskjsbjkdasdasdsfasfvaababfeafbaebfabf")
-		_, err = socket.Write(sendData) // 发送数据
+		_, err = socket.WriteSome(sendData) // 发送数据
 		if err != nil {
 			fmt.Println("发送数据失败，err: ", err)
 			syscall.Exit(-1)
@@ -135,7 +135,7 @@ func test_tcp2() {
 
 		for {
 			tmp := make([]byte, 1024)
-			n, err := socket.Read(tmp) // 接收数据
+			n, err := socket.ReadSome(tmp) // 接收数据
 			if err != nil {
 				fmt.Println("接收数据失败, err: ", err)
 				syscall.Exit(-1)

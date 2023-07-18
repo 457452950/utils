@@ -5,16 +5,16 @@
 #include <chrono>
 #include <functional>
 
-#include "easy/Timer.h"
-#include "io_event/IOContext.h"
 #include "io_event/IOEvent.h"
+#include "io_event/IOContext.h"
+#include "easy/Timer.h"
 
 namespace wutils::network {
 
 class Timer : public event::IOReadEvent {
 public:
     Timer(weak_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
-        handle_->observer_ = this;
+        handle_->listener_ = this;
         handle_->context_  = std::move(context);
         handle_->socket_   = this->socket_;
 
@@ -49,13 +49,13 @@ public:
         this->times_ = loop_times;
 
         ::itimerspec it{};
-        auto         sec = duration_cast<seconds>(first);
+        auto         sec    = duration_cast<seconds>(first);
 
         it.it_value.tv_sec  = sec.count();
         it.it_value.tv_nsec = duration_cast<nanoseconds>(first - sec).count();
 
         if(loop_times != 0) {
-            sec = duration_cast<seconds>(loop);
+            sec                    = duration_cast<seconds>(loop);
 
             it.it_interval.tv_sec  = sec.count();
             it.it_interval.tv_nsec = duration_cast<nanoseconds>(loop - sec).count();

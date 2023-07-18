@@ -3,57 +3,7 @@
 #include <iostream>
 
 namespace wutils::network {
-//
-//********************************************
-// * Timer
-// *********************************************/
-// Timer::Timer(std::weak_ptr<io_context_t> handle) {
-//    this->handler_             = make_shared<io_hdle_t>();
-//    this->handler_->socket_    = CreateNewTimerfd();
-//    this->handler_->user_data_ = this;
-//    this->handler_->context_    = std::move(handle);
-//    this->handler_->SetEvents(EventType::EV_IN);
-//}
-//
-// Timer::~Timer() { this->Stop(); }
-//
-// void Timer::IOIn() {
-//    uint64_t exp = 0;
-//    ::read(this->handler_->socket_, &exp, sizeof(exp));
-//    if(OnTime) {
-//        OnTime();
-//    }
-//}
-//
-// bool Timer::Start(long time_ms, long interval_ms) {
-//    struct itimerspec next_time {};
-//
-//    next_time.it_value.tv_sec     = time_ms / 1000L;
-//    next_time.it_value.tv_nsec    = (time_ms % 1000L) * 1000'000L;
-//    next_time.it_interval.tv_sec  = interval_ms / 1000L;
-//    next_time.it_interval.tv_nsec = (interval_ms % 1000L) * 1000'000L;
-//
-//    if(!SetTimerTime(this->handler_->socket_, SetTimeFlag::REL, &next_time)) {
-//        return false;
-//    }
-//
-//    if(!this->handler_->IsEnable()) {
-//        this->handler_->Enable();
-//    }
-//
-//    return true;
-//}
-//
-// bool Timer::StartOnce(long time_ms) { return this->Start(time_ms, 0); }
-//
-// bool Timer::StartLoop(long interval_ms) { return this->Start(interval_ms, interval_ms); }
-//
-// void Timer::Stop() {
-//    if(this->handler_->IsEnable()) {
-//        this->handler_->DisEnable();
-//    }
-//}
-//
+
 ///***********************************************************
 // * Channel
 // ************************************************************/
@@ -99,7 +49,7 @@ namespace wutils::network {
 //    // has buf
 //    if(max_send_buf_size_ != 0 && !s_buf->IsEmpty() > 0) {
 //        // push data to buf
-//        auto l = s_buf->Write(send_message, message_len);
+//        auto l = s_buf->WriteSome(send_message, message_len);
 //        if(l != message_len) {
 //            abort();
 //            return;
@@ -127,7 +77,7 @@ namespace wutils::network {
 //    if(res < message_len) {
 //        assert(max_send_buf_size_ != 0);
 //
-//        auto l = s_buf->Write(send_message + res, message_len - (uint32_t)res);
+//        auto l = s_buf->WriteSome(send_message + res, message_len - (uint32_t)res);
 //        assert(l == (message_len - res));
 //
 //        auto events = this->event_handler_->GetEvents();
@@ -164,7 +114,7 @@ namespace wutils::network {
 //
 //    //    std::cout << "Channel channel in recv " << recv_len << std::endl;
 //
-//    if(recv_len == 0) { // has emitted in recv_buf_->Write
+//    if(recv_len == 0) { // has emitted in recv_buf_->WriteSome
 //        this->onChannelClose();
 //        return;
 //    } else if(recv_len == -1) {

@@ -137,7 +137,7 @@ private:
                 uint8_t eev = pHandle->GetEvents();
 
                 if(ev & EPOLLOUT && eev & EventType::EV_OUT) {
-                    pHandle->observer_->IOOut();
+                    pHandle->listener_->IOOut();
                 }
 
                 if(this->ready_to_del_.count(pHandle)) {
@@ -145,7 +145,7 @@ private:
                 }
 
                 if(ev & EPOLLIN && eev & EventType::EV_IN) {
-                    pHandle->observer_->IOIn();
+                    pHandle->listener_->IOIn();
                 }
             }
 
