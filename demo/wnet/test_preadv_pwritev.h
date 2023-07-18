@@ -80,18 +80,18 @@ void server_thread() {
     auto [ip, port] = EndPoint::Dump(en);
     cout << "client : ip " << ip << " port:" << port << endl;
 
-    const char  str0[]    = "helasdadafsafaafsadfdsaasfasfafafasfaufasnukfgagfasnjknfajkfbjasbfab,"
-                            "gkhjbgherabllhjbfahjlbehjrlgbhaejrbgjaelrkbghaerjbghajergberhjgbeshjbl";
-    const char *str1      = "1\n";
-    const char *str2      = "2\n";
-    const char *str3      = "3\n";
-    const char *str4      = "4\n";
-    const char *str5      = "5\n";
-    const char *str6      = "6\n";
-    const char *str7      = "7\n";
-    const char *str8      = "8\n";
-    const char *str9      = "9\n";
-    const char  strs[][1] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+    const char   str0[]    = "helasdadafsafaafsadfdsaasfasfafafasfaufasnukfgagfasnjknfajkfbjasbfab,"
+                             "gkhjbgherabllhjbfahjlbehjrlgbhaejrbgjaelrkbghaerjbghajergberhjgbeshjbl";
+    const char  *str1      = "1\n";
+    const char  *str2      = "2\n";
+    const char  *str3      = "3\n";
+    const char  *str4      = "4\n";
+    const char  *str5      = "5\n";
+    const char  *str6      = "6\n";
+    const char  *str7      = "7\n";
+    const char  *str8      = "8\n";
+    const char  *str9      = "9\n";
+    const char   strs[][1] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
     // char        *str10 = "10\n";
     struct iovec iov[2];
     ssize_t      nwritten;
@@ -192,13 +192,13 @@ void client_thread() {
 
 
 void test_preadv_pwritev() {
-    using namespace test_preadv_pwritev_config;
-
-    thread sr(server_thread);
-    thread cl(client_thread);
-
-    sr.join();
-    cl.join();
+    //    using namespace test_preadv_pwritev_config;
+    //
+    //    thread sr(server_thread);
+    //    thread cl(client_thread);
+    //
+    //    sr.join();
+    //    cl.join();
 }
 
 #endif

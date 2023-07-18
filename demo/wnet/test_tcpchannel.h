@@ -43,58 +43,43 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 
 } // namespace cli
 
-inline auto in_cb = [](socket_t sock, IOEvent *data) {
-    auto *ch = (IOReadEvent *)data;
-    // cout << "get channel call channel in" << std::endl;
-    ch->IOIn();
-};
-inline auto out_cb = [](socket_t sock, IOEvent *data) {
-    auto *ch = (IOWriteEvent *)data;
-    // cout << "get channel call channel in" << std::endl;
-    ch->IOOut();
-};
-
-class TestSession : public Channel::Listener {
+class TestSession : public Connection::Listener {
 public:
-    TestSession(std::shared_ptr<Channel> ch_) : ch(std::move(ch_)) {}
+    TestSession(std::shared_ptr<Connection> ch_) : ch(std::move(ch_)) { ch->listener_ = this; }
 
-    void onChannelDisConnect() override {
+    void OnDisconnect() override {
         std::cout << "disconnect" << std::endl;
         this->ch.reset();
     }
-    void onReceive(const uint8_t *message, uint64_t message_len) override {
+    void OnReceive(Data data) override {
         //        cout << "recv " << std::string((char *)message, (int)message_len) << " size " << message_len << endl;
-        ch->Send(message, message_len);
+        ch->Send(data.data, data.bytes);
     }
-    void onError(wutils::SystemError error) override { std::cout << error << endl; }
+    void OnError(wutils::SystemError error) override { std::cout << error << endl; }
 
     // private:
-    std::shared_ptr<Channel> ch;
+    std::shared_ptr<Connection> ch;
 };
 
-std::shared_ptr<TestSession>    se;
-std::atomic_bool                active{true};
-std::shared_ptr<Epoll<IOEvent>> ep_;
+std::shared_ptr<TestSession>         se;
+std::atomic_bool                     active{true};
+std::shared_ptr<event::EpollContext> ep_;
 
-inline auto ac_cb = [](const EndPoint &local, const EndPoint &remote, io_hdle_p handler) {
+inline auto ac_cb = [](const EndPoint &local, const EndPoint &remote, unique_ptr<event::IOHandle> handler) {
     auto info = EndPoint::Dump(remote);
 
     cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
-    auto ch = std::make_shared<Channel>(local, remote, handler);
-    ch->SetRecvBufferMaxSize(16000);
-    se = std::make_shared<TestSession>(ch);
-    ch->SetListener(se);
+    auto ch = std::make_shared<Connection>(local, remote, std::move(handler));
+    se      = std::make_shared<TestSession>(ch);
 };
 
 
 void server_thread() {
     using namespace srv;
 
-    auto ep = std::make_shared<Epoll<IOEvent>>();
+    auto ep = std::make_shared<event::EpollContext>();
     ep->Init();
     ep_ = ep;
-
-    setCommonCallBack(ep.get());
 
     EndPoint local_ed;
     if(!local_ed.Assign(listen::ip, listen::port, listen::family)) {
@@ -102,7 +87,7 @@ void server_thread() {
     }
 
     auto accp_channel = new Acceptor(ep);
-    accp_channel->Start(local_ed, true);
+    accp_channel->Start(local_ed);
     accp_channel->OnAccept = ac_cb;
 
     ep->Loop();
@@ -151,6 +136,8 @@ void client_thread() {
         }
     });
 
+    using namespace std::chrono;
+
     Timer t(ep_);
     t.OnTime = [cli, &t]() {
         // cout << std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -166,7 +153,7 @@ void client_thread() {
         if(i == 10000)
             t.Stop();
     };
-    t.Start(100, 1);
+    t.Start(100ms, 1ms);
 
     thr1.join();
     ::close(cli);

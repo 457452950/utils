@@ -27,7 +27,7 @@ public:
     bool Start(const EndPoint &info) {
         bool ok = false;
 
-        ok      = this->acceptor_.Open(info.GetFamily());
+        ok = this->acceptor_.Open(info.GetFamily());
         if(!ok) {
             return false;
         }
@@ -75,10 +75,10 @@ public:
     bool SetPortReuse(bool is_set) { return this->acceptor_.SetPortReuse(is_set); }
 
     using Accept_cb =
-            std::function<void(const EndPoint &local, const EndPoint &remote, shared_ptr<event::IOHandle> handle)>;
+            std::function<void(const EndPoint &local, const EndPoint &remote, unique_ptr<event::IOHandle> handle)>;
     using Error_cb = std::function<void(SystemError)>;
 
-    Accept_cb OnAcceptor;
+    Accept_cb OnAccept;
     Error_cb  OnError;
 
 private:
@@ -91,12 +91,12 @@ private:
             return;
         }
 
-        auto handle       = make_shared<event::IOHandle>();
+        auto handle       = make_unique<event::IOHandle>();
         handle_->socket_  = cli_socket;
         handle_->context_ = this->handle_->context_;
 
-        if(OnAcceptor) {
-            OnAcceptor(this->GetLocal(), remote, handle);
+        if(OnAccept) {
+            OnAccept(this->GetLocal(), remote, std::move(handle));
         } else {
             cli_socket.Close();
         }

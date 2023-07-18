@@ -16,7 +16,7 @@ public:
 
     ISocket(const ISocket &other) = default;
 
-    ~ISocket()                    = default;
+    ~ISocket() = default;
 
     ISocket &operator=(const ISocket &other) {
         if(this != &other) {
@@ -25,7 +25,7 @@ public:
         return *this;
     }
 
-    operator bool() const { return this->socket_ != INVALID_SOCKET; }
+    explicit operator bool() const { return this->socket_ != INVALID_SOCKET; }
 
     socket_t Get() const { return socket_; }
 

@@ -18,9 +18,9 @@ public:
         handle_->context_  = std::move(context);
         handle_->socket_   = this->socket_;
 
-        handle_->SetEvents(event::EventType::EV_IN);
+        std::cout << "timer socket " << this->socket_.Get() << std::endl;
 
-        this->socket_.SetNonBlock(true);
+        handle_->SetEvents(event::EventType::EV_IN);
     }
     ~Timer() override {
         this->Stop();
@@ -49,13 +49,13 @@ public:
         this->times_ = loop_times;
 
         ::itimerspec it{};
-        auto         sec    = duration_cast<seconds>(first);
+        auto         sec = duration_cast<seconds>(first);
 
         it.it_value.tv_sec  = sec.count();
         it.it_value.tv_nsec = duration_cast<nanoseconds>(first - sec).count();
 
         if(loop_times != 0) {
-            sec                    = duration_cast<seconds>(loop);
+            sec = duration_cast<seconds>(loop);
 
             it.it_interval.tv_sec  = sec.count();
             it.it_interval.tv_nsec = duration_cast<nanoseconds>(loop - sec).count();
@@ -97,21 +97,22 @@ private:
     void IOIn() final {
         auto count = this->socket_.Read();
 
-        if(times_ > 0) {
-            --times_;
-        } // else if (times == -1) { // no thing to do; }
-        if(times_ == 0) {
-            this->Stop();
-            return;
-        }
-
         if(!OnTime) {
+            this->Stop();
             return;
         }
 
         for(int i = 0; i < count; ++i) {
             if(IsActive()) {
                 OnTime();
+            }
+
+            if(times_ > 0) {
+                --times_;
+            } // else if (times == -1) { // no thing to do; }
+            if(times_ == 0) {
+                this->Stop();
+                return;
             }
         }
     }

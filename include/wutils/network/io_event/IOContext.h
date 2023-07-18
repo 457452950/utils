@@ -19,12 +19,12 @@ class IOHandle;
 
 class IOContext {
 public:
-    IOContext()                                  = default;
-    virtual ~IOContext()                         = default;
+    IOContext()          = default;
+    virtual ~IOContext() = default;
 
     // noncopyable
-    IOContext(const IOContext &)                 = delete;
-    IOContext &operator=(const IOContext &)      = delete;
+    IOContext(const IOContext &)            = delete;
+    IOContext &operator=(const IOContext &) = delete;
 
     // control
     virtual bool AddSocket(IOHandle *handler)    = 0;
@@ -32,9 +32,9 @@ public:
     virtual void DelSocket(IOHandle *handler)    = 0;
 
     // life control
-    virtual bool Init()                          = 0;
-    virtual void Loop()                          = 0;
-    virtual void Stop()                          = 0;
+    virtual bool Init() = 0;
+    virtual void Loop() = 0;
+    virtual void Stop() = 0;
 };
 
 
@@ -59,7 +59,8 @@ public:
         if(enable_) {
             return;
         }
-        this->context_.lock()->AddSocket(this);
+        std::cout << "enable " << std::endl;
+        assert(this->context_.lock()->AddSocket(this));
         this->enable_ = true;
     }
     void DisEnable() {

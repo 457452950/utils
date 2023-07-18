@@ -9,9 +9,10 @@
 
 namespace wutils::network::event {
 
-static inline constexpr eventfd_t WAKE_UP = 1;
 
 class EpollContext final : public IOContext {
+    static inline constexpr eventfd_t WAKE_UP = 1;
+
 public:
     EpollContext() = default;
     ~EpollContext() override {
@@ -35,11 +36,12 @@ public:
         ep_data.ptr = handler;
         auto ev     = parseToEpollEvent(handler->GetEvents());
 
-        if(!ep.AddSocket(handler->socket_, ev, ep_data)) {
+        if(!ep.AddSocket(handler->socket_.Get(), ev, ep_data)) {
             return false;
         }
 
         ++this->fd_count_;
+        std::cout << "add socket " << handler->socket_.Get() << std::endl;
 
         return true;
     }
@@ -49,7 +51,7 @@ public:
         ep_data.ptr = handler;
         auto ev     = parseToEpollEvent(handler->GetEvents());
 
-        return ep.ModifySocket(handler->socket_, ev, ep_data);
+        return ep.ModifySocket(handler->socket_.Get(), ev, ep_data);
     }
     void DelSocket(IOHandle *handler) override { this->ready_to_del_.insert({handler, handler}); }
 
@@ -63,6 +65,7 @@ public:
             return false;
         }
 
+        this->fd_count_ = 1;
         return this->ep.AddSocket(wakeup_fd_, EPOLLIN);
     }
     void Loop() override {
@@ -94,7 +97,6 @@ private:
             int events_size = fd_count_;
             events.reset(new epoll_event[events_size]);
 
-            // std::cout << "epoll wait !!! " << fd_count_ << std::endl;
             events_size = ep.GetEvents(events.get(), events_size, -1);
 
             if(!this->active_) {
@@ -127,7 +129,7 @@ private:
 
                 // check
                 assert(pHandle);
-                assert(pHandle->socket_ > 0);
+                assert(pHandle->socket_.Get() > 0);
 
                 if(this->ready_to_del_.count(pHandle)) {
                     break;
@@ -154,7 +156,7 @@ private:
     }
     void realDel() {
         for(auto &item : ready_to_del_) {
-            if(!this->ep.RemoveSocket(item->socket_)) {
+            if(!this->ep.RemoveSocket(item->socket_.Get())) {
                 return;
             }
             --this->fd_count_;

@@ -25,9 +25,8 @@ using SHUT_DOWN = tcp::SHUT_DOWN;
 
 class Connection : public event::IOEvent {
 public:
-    Connection(EndPoint local, EndPoint remote, weak_ptr<event::IOContext> context) :
-        local_(std::move(local)), remote_(std::move(remote)), handle_(make_unique<event::IOHandle>()) {
-        handle_->context_  = std::move(context);
+    Connection(EndPoint local, EndPoint remote, unique_ptr<event::IOHandle> handle) :
+        local_(std::move(local)), remote_(std::move(remote)), handle_(std::move(handle)) {
         handle_->listener_ = this;
 
         socket_ = handle_->socket_;
@@ -46,7 +45,7 @@ public:
 
     class Listener {
     public:
-        virtual void OnDisconnection()          = 0;
+        virtual void OnDisconnect()             = 0;
         virtual void OnReceive(Data data)       = 0;
         virtual void OnError(SystemError error) = 0;
 
@@ -55,7 +54,7 @@ public:
 
     void ShutDown(SHUT_DOWN how = SHUT_DOWN::RDWR) { this->socket_.ShutDown(how); }
 
-    void Send(uint8_t *data, uint32_t bytes) {
+    void Send(const uint8_t *data, uint32_t bytes) {
         int64_t len = 0;
         if(send_buffer_.IsEmpty()) {
             len = this->socket_.SendSome(data, bytes);
@@ -80,7 +79,7 @@ public:
         this->handle_->SetEvents(event::EventType::EV_OUT);
         this->handle_->Enable();
     }
-    void Send(Buffer buffer) { this->Send(buffer.buffer, buffer.buffer_len); }
+    void Send(Data data) { this->Send(data.data, data.bytes); }
 
     const EndPoint &GetLocalInfo() { return local_; }
     const EndPoint &GetRemoteInfo() { return remote_; }
@@ -93,7 +92,7 @@ private:
     }
     void handleDisconnection() {
         if(listener_) {
-            listener_->OnDisconnection();
+            listener_->OnDisconnect();
         }
     }
     void handleRecv(const uint8_t *data, uint32_t bytes) {

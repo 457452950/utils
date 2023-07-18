@@ -8,8 +8,6 @@
 #include "test_preadv_pwritev.h"
 
 #include "test_ipv6.h"
-#include "test_wepoll.h"
-#include "test_wselect.h"
 
 #include "test_aschannel.h"
 #include "test_mychannel.h"
@@ -29,6 +27,7 @@ using namespace wutils::network;
 
 int main() {
 
+    Logger::GetInstance()->LogCout()->SetLogLevel(LDEBUG)->Start();
 
     // signal(SIGPIPE, handle_pipe); // 自定义处理函数
 

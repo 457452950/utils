@@ -14,9 +14,10 @@
 
 namespace wutils::network::event {
 
-static inline constexpr eventfd_t WAKE_UP = 1;
 
 class SelectContext final : public IOContext {
+    static inline constexpr eventfd_t WAKE_UP = 1;
+
 public:
     SelectContext() = default;
 
@@ -35,7 +36,7 @@ public:
         bool ok(true);
         std::tie(std::ignore, ok) = this->handler_set.insert(handler);
         if(ok) {
-            parseAndSetEvents(handler->socket_, handler->GetEvents());
+            parseAndSetEvents(handler->socket_.Get(), handler->GetEvents());
             ++this->fd_count_;
             return true;
         }
@@ -44,7 +45,7 @@ public:
     bool ModifySocket(IOHandle *handler) override {
         auto it = handler_set.find(handler);
         if(it != handler_set.end()) { // found
-            parseAndSetEvents(handler->socket_, handler->GetEvents());
+            parseAndSetEvents(handler->socket_.Get(), handler->GetEvents());
             return true;
         }
         return false;
@@ -57,8 +58,8 @@ public:
 
         this->handler_set.erase(it);
 
-        SetDelFd(handler->socket_, read_set_);
-        SetDelFd(handler->socket_, write_set_);
+        SetDelFd(handler->socket_.Get(), read_set_);
+        SetDelFd(handler->socket_.Get(), write_set_);
 
         --this->fd_count_;
     }
@@ -90,7 +91,7 @@ private:
         while(this->active_) {
             initAllToSet();
 
-            res = SelectWait(int32_t(max_fd_), &read_set_, &write_set_, nullptr, -1);
+            res = SelectWait(int32_t(max_fd_), read_set_, write_set_, nullptr, -1);
 
             if(res == -1) {
                 std::cerr << "error : " << SystemError::GetSysErrCode() << std::endl;
@@ -118,7 +119,7 @@ private:
                     break;
                 }
 
-                if(SetCheckFd(i->socket_, write_set_)) {
+                if(SetCheckFd(i->socket_.Get(), write_set_)) {
                     i->listener_->IOOut();
                 }
 
@@ -126,7 +127,7 @@ private:
                     break;
                 }
 
-                if(SetCheckFd(i->socket_, read_set_)) {
+                if(SetCheckFd(i->socket_.Get(), read_set_)) {
                     i->listener_->IOIn();
                 }
             }
@@ -143,13 +144,13 @@ private:
 
         max_fd_ = wakeup_fd_;
         for(auto &it : handler_set) {
-            if(max_fd_ < it->socket_) {
-                max_fd_ = it->socket_;
+            if(max_fd_ < it->socket_.Get()) {
+                max_fd_ = it->socket_.Get();
             }
 
-            std::cout << "set " << it->socket_ << " " << (int)it->GetEvents() << std::endl;
-            this->parseAndSetEvents(it->socket_, it->GetEvents());
-            assert(SetCheckFd(it->socket_, &read_set_));
+            std::cout << "set " << it->socket_.Get() << " " << (int)it->GetEvents() << std::endl;
+            this->parseAndSetEvents(it->socket_.Get(), it->GetEvents());
+            assert(SetCheckFd(it->socket_.Get(), read_set_));
         }
 
         SetAddFd(wakeup_fd_, read_set_);
@@ -175,8 +176,8 @@ private:
     }
 
 private:
-    fd_set_p read_set_{nullptr};
-    fd_set_p write_set_{nullptr};
+    fd_set_p read_set_{new fd_set_t};
+    fd_set_p write_set_{new fd_set_t};
 
     std::unordered_set<IOHandle *> handler_set;
     uint32_t                       fd_count_{0};

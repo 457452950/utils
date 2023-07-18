@@ -19,11 +19,12 @@ public:
     // Common
     uint64_t Read() {
         uint64_t exp = 0;
-        return ::read(this->socket_, &exp, sizeof(exp));
+        ::read(this->socket_, &exp, sizeof(exp));
+        return exp;
     }
 
-    bool SetTimeOut(const ::itimerspec *next_time, ::itimerspec *prev_time = nullptr) {
-        return SetTimerTimeOut(this->socket_, SetTimeFlag::REL, next_time, prev_time);
+    bool SetTimeOut(const ::itimerspec *the_new, ::itimerspec *the_last = nullptr) {
+        return SetTimerTimeOut(this->socket_, SetTimeFlag::REL, the_new, the_last);
     }
 
     // Socket optional
