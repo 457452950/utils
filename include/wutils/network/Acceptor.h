@@ -13,7 +13,7 @@ namespace wutils::network {
 
 class Acceptor : public event::IOReadEvent {
 public:
-    Acceptor(weak_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
+    explicit Acceptor(weak_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
         handle_->listener_ = this;
         handle_->context_  = std::move(context);
 
@@ -91,9 +91,11 @@ private:
             return;
         }
 
-        auto handle       = make_unique<event::IOHandle>();
-        handle_->socket_  = cli_socket;
-        handle_->context_ = this->handle_->context_;
+        auto handle      = make_unique<event::IOHandle>();
+        handle->socket_  = cli_socket;
+        handle->context_ = this->handle_->context_;
+
+        assert(handle->socket_);
 
         if(OnAccept) {
             OnAccept(this->GetLocal(), remote, std::move(handle));

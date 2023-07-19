@@ -43,6 +43,10 @@ inline void test_timer() {
             if(!t.expired())
                 assert(t.lock()->Loop(100ms, 10));
         }
+        if(i == 10) {
+            LOG(LINFO, "timer") << "stop";
+            context->Stop();
+        }
     };
     LOG(LINFO, "timer") << "start" << duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
     assert(timer->Once(1s));

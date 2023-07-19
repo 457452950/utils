@@ -15,7 +15,6 @@
 #include "test_udpchannel.h"
 
 
-#include "Channel.h"
 #include "wutils/Debugger.hpp"
 #include "wutils/network/NetWork.h"
 
@@ -31,7 +30,7 @@ int main() {
     test_timer();
     test_ipv6();
 
-    //    test_tcpchannel();
+    test_tcpchannel();
     //    test_aschannel();
     // test_udp();
     // test_udpchannel();

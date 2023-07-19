@@ -88,7 +88,7 @@ public:
     // Server
     bool Bind(const EndPoint &local) { return ::bind(this->socket_, local.AsSockAddr(), local.GetSockSize()) == 0; }
 
-    bool Listen() { return ::listen(this->socket_, MAX_LISTEN_BACK_LOG); }
+    bool Listen() { return ::listen(this->socket_, MAX_LISTEN_BACK_LOG) == 0; }
 
     ISocket Accept(EndPoint &info, bool set_nonblock = false) {
         if(set_nonblock) {

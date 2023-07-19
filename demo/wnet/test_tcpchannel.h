@@ -68,10 +68,11 @@ std::shared_ptr<event::EpollContext> ep_;
 inline auto ac_cb = [](const EndPoint &local, const EndPoint &remote, unique_ptr<event::IOHandle> handler) {
     auto info = EndPoint::Dump(remote);
 
-    cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
+    cout << "accept : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
     auto ch = std::make_shared<Connection>(local, remote, std::move(handler));
     se      = std::make_shared<TestSession>(ch);
 };
+inline auto err_cb = [](wutils::SystemError error) { std::cout << error << std::endl; };
 
 
 void server_thread() {
@@ -87,8 +88,12 @@ void server_thread() {
     }
 
     auto accp_channel = new Acceptor(ep);
-    accp_channel->Start(local_ed);
+    if(!accp_channel->Start(local_ed)) {
+        LOG(LERROR, "acceptor") << wutils::SystemError::GetSysErrCode();
+        abort();
+    }
     accp_channel->OnAccept = ac_cb;
+    accp_channel->OnError  = err_cb;
 
     ep->Loop();
     cout << wutils::SystemError::GetSysErrCode() << endl;
@@ -128,10 +133,10 @@ void client_thread() {
             }
             total += l;
             // clang-format off
-//            cout
-//                 << "cli recv :" << std::string(buf, l)
-//                << " total : " << total
-//                << endl;
+            cout
+                 << "cli recv :" << std::string(buf, l)
+                << " total : " << total
+                << endl;
             // clang-format on
         }
     });
@@ -153,7 +158,7 @@ void client_thread() {
         if(i == 10000)
             t.Stop();
     };
-    t.Start(100ms, 1ms);
+    //    t.Start(100ms, 1ms);
 
     thr1.join();
     ::close(cli);
