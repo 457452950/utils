@@ -125,7 +125,7 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 //    bool res = ConnectToHost(cli, cli_ed);
 //
 //    if(!res) {
-//        cout << "[test_tcpchannel]connect error : " << strerror(errno) << endl;
+//        cout << "[test_connection]connect error : " << strerror(errno) << endl;
 //        ::close(cli);
 //        return;
 //    } else {

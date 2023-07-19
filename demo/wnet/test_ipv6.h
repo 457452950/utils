@@ -51,7 +51,7 @@ void server_thread() {
         return;
     }
 
-    DEFER([sock]() { ::close(sock); })
+    DEFER([sock]() { ::close(sock); });
 
     // int  res  = Bind(sock, local_ip, 4000, 0);
     int res = Bind(sock, srv_ed);
@@ -81,7 +81,7 @@ void server_thread() {
         cout << "Accept ok" << endl;
     }
 
-    DEFER([res]() { ::close(res); })
+    DEFER([res]() { ::close(res); });
 
     auto [ip, port] = EndPoint::Dump(en);
     cout << "client : ip " << ip << " port:" << port << endl;
@@ -97,7 +97,7 @@ void client_thread() {
         return;
     }
 
-    DEFER([cli]() { ::close(cli); })
+    DEFER([cli]() { ::close(cli); });
 
     auto res = ConnectToHost(cli, cli_ed);
     if(!res) {

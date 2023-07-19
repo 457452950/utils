@@ -17,7 +17,14 @@ public:
 #define STR_CONTACT(A, B) A##B
 #define STR_CONTACT2(A, B) STR_CONTACT(A, B)
 
-#define DEFER(func) auto STR_CONTACT2(__temp_, __LINE__) = std::make_shared<wutils::DeferHelper>(func);
+/**
+ * @example
+ * {                                                        \n
+ *      int *pint = new int[10];                            \n
+ *      DEFER( [pint]()->void{ delete[] pint; } );          \n
+ * }
+ */
+#define DEFER(func) auto STR_CONTACT2(__temp_, __LINE__) = std::make_shared<wutils::DeferHelper>(func)
 
 } // namespace wutils
 

@@ -30,7 +30,7 @@ int main() {
     test_timer();
     test_ipv6();
 
-    test_tcpchannel();
+    test_connection();
     //    test_aschannel();
     // test_udp();
     // test_udpchannel();

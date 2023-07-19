@@ -11,20 +11,18 @@ using namespace wutils::network;
 
 
 /**
- * test_tcpchannel
+ * test_connection
  */
-namespace test_tcpchannel_config {
+namespace test_connection_config {
 
 namespace srv {
 namespace listen {
 // constexpr char     *ip     = "0:0:0:0:0:0:0:0";
 // constexpr int       port   = 4000;
 // constexpr AF_FAMILY family = AF_FAMILY::INET6;
-// constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 constexpr char     *ip     = "0.0.0.0";
 constexpr int       port   = 4000;
 constexpr AF_FAMILY family = AF_FAMILY::INET;
-constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 } // namespace listen
 } // namespace srv
 
@@ -34,11 +32,9 @@ namespace connect {
 // constexpr char     *ip     = "0:0:0:0:0:0:0:0";
 // constexpr int       port   = 4000;
 // constexpr AF_FAMILY family = AF_FAMILY::INET6;
-// constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 constexpr char     *ip     = "0.0.0.0";
 constexpr int       port   = 4000;
 constexpr AF_FAMILY family = AF_FAMILY::INET;
-constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 } // namespace connect
 
 } // namespace cli
@@ -55,7 +51,10 @@ public:
         //        cout << "recv " << std::string((char *)message, (int)message_len) << " size " << message_len << endl;
         ch->Send(data.data, data.bytes);
     }
-    void OnError(wutils::SystemError error) override { std::cout << error << endl; }
+    void OnError(wutils::SystemError error) override {
+        std::cout << error << endl;
+        this->ch.reset();
+    }
 
     // private:
     std::shared_ptr<Connection> ch;
@@ -88,8 +87,10 @@ void server_thread() {
     }
 
     auto accp_channel = new Acceptor(ep);
+    DEFER([accp_channel]() { delete accp_channel; });
+
     if(!accp_channel->Start(local_ed)) {
-        LOG(LERROR, "acceptor") << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
         abort();
     }
     accp_channel->OnAccept = ac_cb;
@@ -98,9 +99,8 @@ void server_thread() {
     ep->Loop();
     cout << wutils::SystemError::GetSysErrCode() << endl;
 
+    LOG(LERROR, "server") << "server thread end";
     // 激活客户端的 阻塞recv
-    //    se->ch->Send((uint8_t *)"s", 1);
-    delete accp_channel;
 }
 
 void client_thread() {
@@ -110,58 +110,66 @@ void client_thread() {
     if(!cli_ed.Assign(connect::ip, connect::port, connect::family)) {
         return;
     }
-    auto cli = MakeSocket(connect::family, connect::protol);
-    bool res = ConnectToHost(cli, cli_ed);
+    tcp::Socket cli;
+    cli.Open(connect::family);
+    bool res = cli.Connect(cli_ed);
+
+    DEFER([&cli]() { cli.Close(); });
 
     if(!res) {
-        cout << "[test_tcpchannel]connect error : " << strerror(errno) << endl;
-        ::close(cli);
+        LOG(LERROR, "client") << wutils::SystemError::GetSysErrCode();
         return;
     } else {
-        cout << "connect ok" << endl;
-        ::send(cli, "123123", 6, 0);
+        LOG(LINFO, "client") << "connect ok";
+        cli.Send((uint8_t *)"123123", 6);
     }
 
-    std::thread thr1([cli]() {
+    std::thread thr1([&cli]() {
         // ::send(cli, "hello", 5, 0);
         int  total = 0;
         char buf[1500];
         while(active) {
-            auto l = ::recv(cli, buf, 1500, 0);
+            auto l = cli.Recv((uint8_t *)buf, 1500);
             if(l == 0) {
                 break;
             }
             total += l;
             // clang-format off
             cout
-                 << "cli recv :" << std::string(buf, l)
+//                << "cli recv :" << std::string(buf, l)
                 << " total : " << total
                 << endl;
             // clang-format on
+            if(total == 730006) {
+                LOG(LINFO, "client") << "stop.";
+                ep_->Stop();
+                return;
+            }
         }
     });
 
     using namespace std::chrono;
 
     Timer t(ep_);
-    t.OnTime = [cli, &t]() {
+    t.OnTime = [&cli, &t]() {
         // cout << std::chrono::duration_cast<std::chrono::milliseconds>(
         //                 std::chrono::system_clock::now().time_since_epoch())
         //                 .count()
         //      << " ontime!!!" << endl;
         static int i = 0;
 
-        ::send(cli, "hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73, 0);
-        ::send(cli, "hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73, 0);
-        ::send(cli, "hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73, 0);
+        cli.Send((uint8_t *)"hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73);
+        cli.Send((uint8_t *)"hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73);
+        cli.Send((uint8_t *)"hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73);
         ++i;
-        if(i == 10000)
+        if(i == 10000) {
             t.Stop();
+        }
     };
-    //    t.Start(100ms, 1ms);
+    t.Start(100ms, 2ms);
 
     thr1.join();
-    ::close(cli);
+    LOG(LINFO, "client") << "client thread end";
 }
 
 
@@ -172,11 +180,11 @@ void handle_pipe(int signal) {
 }
 
 
-} // namespace test_tcpchannel_config
+} // namespace test_connection_config
 
 
-inline void test_tcpchannel() {
-    using namespace test_tcpchannel_config;
+inline void test_connection() {
+    using namespace test_connection_config;
     cout << "test channel " << endl;
 
     signal(SIGPIPE, handle_pipe); // 自定义处理函数
