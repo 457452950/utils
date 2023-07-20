@@ -42,7 +42,6 @@ public:
         }
 
         ++this->fd_count_;
-        std::cout << "add socket " << handler->socket_.Get() << std::endl;
 
         return true;
     }

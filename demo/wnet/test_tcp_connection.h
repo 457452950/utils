@@ -135,12 +135,12 @@ void client_thread() {
             }
             total += l;
             // clang-format off
-            cout
+//            cout
 //                << "cli recv :" << std::string(buf, l)
-                << " total : " << total
-                << endl;
+//                << " total : " << total
+//                << endl;
             // clang-format on
-            if(total == 730006) {
+            if(total == 2190006) {
                 LOG(LINFO, "client") << "stop.";
                 ep_->Stop();
                 return;
@@ -170,7 +170,7 @@ void client_thread() {
 
 
 void handle_pipe(int signal) {
-    cout << "signal" << endl;
+    LOG(LINFO, "signal") << "signal " << signal;
     ep_->Stop();
     active.store(false);
     se.reset();
@@ -182,7 +182,7 @@ void handle_pipe(int signal) {
 
 inline void test_connection() {
     using namespace test_connection_config;
-    cout << "test channel " << endl;
+    cout << "-------------------- test channel --------------------" << endl;
 
     signal(SIGPIPE, handle_pipe); // 自定义处理函数
     signal(SIGINT, handle_pipe);  // 自定义处理函数
@@ -192,6 +192,11 @@ inline void test_connection() {
 
     sr.join();
     cl.join();
+
+    if(ep_)
+        ep_.reset();
+    if(se)
+        se.reset();
 }
 
 

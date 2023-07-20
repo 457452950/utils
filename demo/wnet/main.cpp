@@ -7,9 +7,8 @@
 #include "test_timer.h"
 #include "test_ipv6.h"
 
-#include "test_aschannel.h"
-#include "test_mychannel.h"
-#include "test_tcpchannel.h"
+#include "test_tcp_connection.h"
+#include "test_tcp_aconnection.h"
 #include "test_tcpserver.h"
 #include "test_udp.h"
 #include "test_udpchannel.h"
@@ -31,7 +30,7 @@ int main() {
     test_ipv6();
 
     test_connection();
-    //    test_aschannel();
+    test_aconnection();
     // test_udp();
     // test_udpchannel();
     // test_tcpserver();

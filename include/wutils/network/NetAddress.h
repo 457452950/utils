@@ -19,7 +19,7 @@ struct NetAddress {
         std::copy(other.data_.get(), other.data_.get() + other.GetSockSize(), this->data_.get());
     }
     NetAddress(NetAddress &&other) noexcept : family_(other.family_), data_(std::move(other.data_)), hash(other.hash) {}
-    NetAddress() = default;
+    ~NetAddress() = default;
 
     NetAddress &operator=(const NetAddress &other) {
         if(this == &other) {
@@ -31,6 +31,8 @@ struct NetAddress {
 
         this->data_ = make_unique<uint8_t[]>(other.GetSockSize());
         std::copy(other.data_.get(), other.data_.get() + other.GetSockSize(), this->data_.get());
+
+        return *this;
     }
 
     static NetAddress *MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family) {

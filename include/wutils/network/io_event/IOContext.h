@@ -59,7 +59,6 @@ public:
         if(enable_) {
             return;
         }
-        std::cout << "enable " << std::endl;
         assert(this->context_.lock()->AddSocket(this));
         this->enable_ = true;
     }

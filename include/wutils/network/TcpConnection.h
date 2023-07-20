@@ -178,15 +178,39 @@ public:
 
         if(!this->send_buffers_.empty()) {
             this->send_buffers_.push_back(buffer);
-        } else {
-            // try to send
+        } else { // try to send
+
+            send_index_ = this->socket_.SendSome(buffer.buffer, buffer.buffer_len);
+
+            // send complete
+            if(send_index_ == buffer.buffer_len) {
+                handleSent(buffer);
+                return;
+            }
+            // send error
+            else if(send_index_ == -1) {
+                auto err = SystemError::GetSysErrCode();
+                if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+                    handleError(err);
+                    return;
+                }
+                send_index_ = 0;
+            }
+            // connection close
+            else if(send_index_ == 0) {
+                handleDisconnection();
+                return;
+            }
+
+            //
+            this->send_buffers_.push_back(buffer);
         }
 
         this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_OUT);
         this->handle_->Enable();
     }
 
-    void AReceive(Buffer &buffer) {
+    void AReceive(Buffer buffer) {
         this->recv_buffer_ = buffer;
 
         this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_IN);
@@ -212,6 +236,11 @@ private:
             listener_->OnReceived(buffer);
         }
     }
+    void handleSent(const Buffer &buffer) {
+        if(listener_) {
+            listener_->OnSent(buffer);
+        }
+    }
 
     void IOIn() override {
         auto len = this->socket_.Recv(recv_buffer_.buffer, recv_buffer_.buffer_len);
@@ -227,10 +256,37 @@ private:
             return;
         }
 
-        handleRecv(recv_buffer_);
+        handleRecv({.buffer = recv_buffer_.buffer, .buffer_len = (uint32_t)len});
     }
     void IOOut() override {
-        if(!this->send_buffers_.empty()) {
+        while(!this->send_buffers_.empty()) {
+            auto it = this->send_buffers_.begin();
+
+            auto len = this->socket_.SendSome(it->buffer + send_index_, it->buffer_len - send_index_);
+
+            // send error
+            if(len == -1) {
+                auto err = SystemError::GetSysErrCode();
+                if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+                    handleError(err);
+                    return;
+                }
+                len = 0;
+            }
+            // connection close
+            else if(len == 0) {
+                handleDisconnection();
+                return;
+            }
+
+            send_index_ += len;
+            // send complete
+            if(send_index_ == it->buffer_len) {
+                this->send_buffers_.erase(it);
+                send_index_ = 0;
+            } else {
+                break;
+            }
         }
 
         if(this->send_buffers_.empty()) {
@@ -250,6 +306,7 @@ private:
     // buffer
     Buffer            recv_buffer_;
     std::list<Buffer> send_buffers_;
+    uint32_t          send_index_{0};
 };
 
 } // namespace wutils::network
