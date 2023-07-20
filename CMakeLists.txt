@@ -39,10 +39,10 @@ if (UNIX)
         target_link_libraries(jsonreader hiredis)
 
 
-        add_library(
+        add_library (
                 wutils
+
                 src/ByteArray.cpp
-                src/Error.cpp
 
                 src/threadpool/ThreadPool.cpp
 
@@ -57,11 +57,24 @@ if (UNIX)
 
                 include/wutils/network/base/ISocket.h
                 include/wutils/network/base/Definition.h
+                include/wutils/network/base/Native.h
+
                 include/wutils/network/easy/Udp.h
                 include/wutils/network/easy/Tcp.h
                 include/wutils/network/easy/Timer.h
+                include/wutils/network/easy/Acceptor.h
+                include/wutils/network/easy/Epoll.h
+                include/wutils/network/easy/Select.h
+                include/wutils/network/easy/Tools.h
+
+                include/wutils/network/io_event/IOEvent.h
+                include/wutils/network/io_event/IOContext.h
                 include/wutils/network/io_event/EpollContext.h
-                include/wutils/network/io_event/SelectContext.h
+                include/wutils/network/io_event/SelectContext.h 
+                
+                include/wutils/network/EndPoint.h
+                include/wutils/network/Factory.h
+                include/wutils/network/NetWork.h
                 include/wutils/network/Timer.h
                 include/wutils/network/Acceptor.h
                 include/wutils/network/TcpConnection.h)

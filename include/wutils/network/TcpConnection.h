@@ -146,7 +146,109 @@ private:
 /**
  * async connection
  */
-class AConnection : public event::IOEvent {};
+class AConnection : public event::IOEvent {
+public:
+    AConnection(EndPoint local, EndPoint remote, unique_ptr<event::IOHandle> handle) :
+        local_(std::move(local)), remote_(std::move(remote)), handle_(std::move(handle)) {
+        handle_->listener_ = this;
+
+        socket_ = handle_->socket_;
+        assert(socket_);
+
+        this->send_buffer_.Init(0);
+    };
+    ~AConnection() override {
+        handle_->DisEnable();
+        handle_.reset();
+        socket_.Close();
+    }
+
+    class Listener {
+    public:
+        virtual void OnDisconnect()             = 0;
+        virtual void OnReceived(Buffer buffer)  = 0;
+        virtual void OnSent(Buffer buffer)      = 0;
+        virtual void OnError(SystemError error) = 0;
+
+        virtual ~Listener() = default;
+    } *listener_{nullptr};
+
+    void ShutDown(SHUT_DOWN how = SHUT_DOWN::RDWR) { this->socket_.ShutDown(how); }
+
+    void ASend(const uint8_t *data, uint32_t bytes) { this->ASend({const_cast<uint8_t *>(data), bytes}); }
+    void ASend(const Buffer &buffer) {
+        int64_t len = 0;
+
+        this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_OUT);
+        this->handle_->Enable();
+    }
+
+    void AReceive(Buffer &buffer) {
+        this->recv_buffer_ = buffer;
+
+        this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_IN);
+        this->handle_->Enable();
+    }
+
+    const EndPoint &GetLocalInfo() { return local_; }
+    const EndPoint &GetRemoteInfo() { return remote_; }
+
+private:
+    void handleError(const SystemError &error) {
+        if(listener_) {
+            listener_->OnError(error);
+        }
+    }
+    void handleDisconnection() {
+        if(listener_) {
+            listener_->OnDisconnect();
+        }
+    }
+    void handleRecv(const Buffer &buffer) {
+        if(listener_) {
+            listener_->OnReceived(buffer);
+        }
+    }
+
+    void IOIn() override {
+        auto len = this->socket_.Recv(recv_buffer_.buffer, recv_buffer_.buffer_len);
+
+        if(len == -1) {
+            auto err = SystemError::GetSysErrCode();
+            if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+                handleError(err);
+            }
+            return;
+        } else if(len == 0) {
+            handleDisconnection();
+            return;
+        }
+
+        handleRecv(recv_buffer_);
+    }
+    void IOOut() override {
+        if(!this->send_buffer_.IsEmpty()) {
+            auto len = this->socket_.SendSome(send_buffer_.PeekRead(), send_buffer_.GetReadableBytes());
+            this->send_buffer_.SkipReadBytes(len);
+        }
+
+        if(this->send_buffer_.IsEmpty()) {
+            auto flag = this->handle_->GetEvents();
+            this->handle_->SetEvents(flag & (~event::EventType::EV_OUT));
+            return;
+        }
+    }
+
+private:
+    EndPoint                    local_;
+    EndPoint                    remote_;
+    tcp::Socket                 socket_;
+    unique_ptr<event::IOHandle> handle_;
+
+    // buffer
+    Buffer            recv_buffer_;
+    std::list<Buffer> send_buffers_;
+};
 
 } // namespace wutils::network
 

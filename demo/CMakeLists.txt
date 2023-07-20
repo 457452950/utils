@@ -13,9 +13,3 @@ if (LINUX)
     add_subdirectory(objectpool)
 endif ()
 
-if (WINDOWS)
-    message("demo for WINDOWS")
-    add_subdirectory(buffer)
-endif ()
-
-
