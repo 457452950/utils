@@ -19,14 +19,14 @@ public:
     // Common
     bool Open(AF_FAMILY family) { return this->accept_socket_.Open(family); }
 
-    bool Bind(const EndPoint &local) {
+    bool Bind(const NetAddress &local) {
         this->local_endpoint_ = local;
         return this->accept_socket_.Bind(this->local_endpoint_);
     }
 
     bool Listen() { return this->accept_socket_.Listen(); }
 
-    ISocket Accept(EndPoint &info, bool set_nonblock = false) {
+    ISocket Accept(NetAddress &info, bool set_nonblock = false) {
         return this->accept_socket_.Accept(info, set_nonblock);
     }
 
@@ -34,7 +34,7 @@ public:
 
     socket_t Get() const { return accept_socket_.Get(); }
 
-    const EndPoint &GetLocal() { return local_endpoint_; }
+    const NetAddress &GetLocal() { return local_endpoint_; }
 
     bool IsNonBlock() { return this->accept_socket_.IsNonBlock(); }
     bool SetNonBlock(bool is_set) { return this->accept_socket_.SetNonBlock(is_set); }
@@ -42,8 +42,8 @@ public:
     bool SetAddrReuse(bool is_set) { return this->accept_socket_.SetAddrReuse(is_set); }
 
 private:
-    Socket   accept_socket_;
-    EndPoint local_endpoint_;
+    Socket     accept_socket_;
+    NetAddress local_endpoint_;
 };
 
 } // namespace wutils::network::tcp

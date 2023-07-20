@@ -76,8 +76,8 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 // std::atomic_bool                active{true};
 // std::shared_ptr<Epoll<IOEvent>> ep_;
 //
-// inline auto ac_cb = [](const EndPoint &local, const EndPoint &remote, io_hdle_p handler) {
-//    auto info = EndPoint::Dump(remote);
+// inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, io_hdle_p handler) {
+//    auto info = NetAddress::Dump(remote);
 //
 //    cout << "recv : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
 //    auto ch = std::make_shared<ASChannel>(local, remote, handler);
@@ -97,7 +97,7 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 //
 //    setCommonCallBack(ep.get());
 //
-//    EndPoint local_ed;
+//    NetAddress local_ed;
 //    if(!local_ed.Assign(listen::ip, listen::port, listen::family)) {
 //        return;
 //    }
@@ -117,7 +117,7 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 // void client_thread() {
 //    using namespace cli;
 //
-//    EndPoint cli_ed;
+//    NetAddress cli_ed;
 //    if(!cli_ed.Assign(connect::ip, connect::port, connect::family)) {
 //        return;
 //    }

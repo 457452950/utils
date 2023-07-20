@@ -24,7 +24,7 @@ public:
         acceptor_.Close();
     }
 
-    bool Start(const EndPoint &info) {
+    bool Start(const NetAddress &info) {
         bool ok = false;
 
         ok = this->acceptor_.Open(info.GetFamily());
@@ -70,12 +70,12 @@ public:
         }
     }
 
-    const EndPoint &GetLocal() { return acceptor_.GetLocal(); }
+    const NetAddress &GetLocal() { return acceptor_.GetLocal(); }
 
     bool SetPortReuse(bool is_set) { return this->acceptor_.SetPortReuse(is_set); }
 
     using Accept_cb =
-            std::function<void(const EndPoint &local, const EndPoint &remote, unique_ptr<event::IOHandle> handle)>;
+            std::function<void(const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handle)>;
     using Error_cb = std::function<void(SystemError)>;
 
     Accept_cb OnAccept;
@@ -83,8 +83,8 @@ public:
 
 private:
     void IOIn() override {
-        EndPoint remote;
-        ISocket  cli_socket = acceptor_.Accept(remote, true);
+        NetAddress remote;
+        ISocket    cli_socket = acceptor_.Accept(remote, true);
 
         if(!cli_socket) {
             dealError();

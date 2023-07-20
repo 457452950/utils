@@ -9,7 +9,7 @@
 #include <netinet/tcp.h> // tcp_nodelay
 
 #include "wutils/base/HeadOnly.h"
-#include "wutils/network/EndPoint.h"
+#include "wutils/network/NetAddress.h"
 #include "wutils/network/base/Native.h"
 
 namespace wutils::network {
@@ -38,7 +38,7 @@ HEAD_ONLY bool SetTimerTimeOut(timerfd_t                fd,
 }
 
 // server methods
-HEAD_ONLY bool Bind(socket_t socket, const EndPoint &serverInfo) {
+HEAD_ONLY bool Bind(socket_t socket, const NetAddress &serverInfo) {
     auto ok = ::bind(socket, serverInfo.AsSockAddr(), serverInfo.GetSockSize());
     if(ok == 0) {
         return true;
@@ -47,7 +47,7 @@ HEAD_ONLY bool Bind(socket_t socket, const EndPoint &serverInfo) {
     return false;
 }
 
-HEAD_ONLY socket_t MakeBindedSocket(const EndPoint &info) {
+HEAD_ONLY socket_t MakeBindedSocket(const NetAddress &info) {
     socket_t bind_sock = INVALID_SOCKET;
     auto     fami      = info.GetFamily();
 
@@ -64,7 +64,7 @@ HEAD_ONLY socket_t MakeBindedSocket(const EndPoint &info) {
     return INVALID_SOCKET;
 }
 
-HEAD_ONLY socket_t MakeListenedSocket(const EndPoint &info) {
+HEAD_ONLY socket_t MakeListenedSocket(const NetAddress &info) {
     socket_t listen_sock(INVALID_SOCKET);
     auto     fami = info.GetFamily();
 
@@ -88,7 +88,7 @@ HEAD_ONLY socket_t MakeListenedSocket(const EndPoint &info) {
  * TCP Utils
  ****************************************************/
 // return -1 if fail
-HEAD_ONLY socket_t Accept(socket_t socket, EndPoint &info) {
+HEAD_ONLY socket_t Accept(socket_t socket, NetAddress &info) {
     sockaddr_in6 temp{};
     socklen_t    len{sizeof(temp)};
     socket_t     _client_sock = ::accept(socket, (sockaddr *)&temp, &len);
@@ -104,7 +104,7 @@ HEAD_ONLY socket_t Accept(socket_t socket, EndPoint &info) {
     return _client_sock;
 }
 // return -1 if fail
-HEAD_ONLY socket_t Accept4(socket_t socket, EndPoint &info, int flags) {
+HEAD_ONLY socket_t Accept4(socket_t socket, NetAddress &info, int flags) {
     sockaddr_in6 temp{};
     socklen_t    len{sizeof(temp)};
     socket_t     _client_sock = ::accept4(socket, (sockaddr *)&temp, &len, flags);
@@ -121,7 +121,7 @@ HEAD_ONLY socket_t Accept4(socket_t socket, EndPoint &info, int flags) {
 }
 
 // return INVALID_SOCKET if fail
-HEAD_ONLY bool ConnectToHost(socket_t socket, const EndPoint &info) {
+HEAD_ONLY bool ConnectToHost(socket_t socket, const NetAddress &info) {
     if(::connect(socket, info.AsSockAddr(), info.GetSockSize()) == 0) {
         return true;
     }
@@ -133,7 +133,7 @@ HEAD_ONLY bool ConnectToHost(socket_t socket, const EndPoint &info) {
  * UDP Utils
  ****************************************************/
 
-HEAD_ONLY int64_t RecvFrom(socket_t socket, uint8_t *buf, uint32_t buf_len, EndPoint &info) {
+HEAD_ONLY int64_t RecvFrom(socket_t socket, uint8_t *buf, uint32_t buf_len, NetAddress &info) {
     socklen_t    len = 0;
     sockaddr_in6 temp{0};
 
@@ -190,7 +190,7 @@ HEAD_ONLY bool SetTcpSocketKeepAlive(socket_t socket, bool is_set) {
 }
 
 //
-HEAD_ONLY bool GetSockName(socket_t socket, EndPoint &info) {
+HEAD_ONLY bool GetSockName(socket_t socket, NetAddress &info) {
     sockaddr_in6 sa{};
     socklen_t    len = sizeof(sockaddr_in6);
 
@@ -201,7 +201,7 @@ HEAD_ONLY bool GetSockName(socket_t socket, EndPoint &info) {
 
     return ok;
 }
-HEAD_ONLY bool GetPeerName(socket_t socket, EndPoint &info) {
+HEAD_ONLY bool GetPeerName(socket_t socket, NetAddress &info) {
     v6::SockAddr sa{};
     socklen_t    len = v6::SOCKADDR_LEN;
 

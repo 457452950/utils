@@ -47,7 +47,7 @@ private:
 // ******************************************/
 // class Channel : public IOEvent {
 // public:
-//    explicit Channel(const EndPoint &, const EndPoint &, io_hdle_p);
+//    explicit Channel(const NetAddress &, const NetAddress &, io_hdle_p);
 //    ~Channel() override;
 //
 //    bool Init();
@@ -55,12 +55,12 @@ private:
 //
 //    virtual void Send(const uint8_t *send_message, uint32_t message_len);
 //
-//    const EndPoint &GetLocalInfo() { return local_endpoint_; }
-//    const EndPoint &GetRemoteInfo() { return remote_endpoint_; }
+//    const NetAddress &GetLocalAddress() { return local_endpoint_; }
+//    const NetAddress &GetRemoteAddress() { return remote_endpoint_; }
 //
 // protected:
-//    EndPoint     local_endpoint_;
-//    EndPoint     remote_endpoint_;
+//    NetAddress     local_endpoint_;
+//    NetAddress     remote_endpoint_;
 //    io_hdle_p    event_handler_;
 //
 //    // listener
@@ -109,18 +109,18 @@ private:
 //// TODO: like asio
 // class ASChannel : public IOEvent {
 // public:
-//     ASChannel(const EndPoint &, const EndPoint &, io_hdle_p);
+//     ASChannel(const NetAddress &, const NetAddress &, io_hdle_p);
 //     ~ASChannel() override;
 //
 //     bool Init() { return true; }
 //     void ShutDown(int how);
 //
-//     const EndPoint &GetLocalInfo() { return local_endpoint_; }
-//     const EndPoint &GetRemoteInfo() { return remote_endpoint_; }
+//     const NetAddress &GetLocalAddress() { return local_endpoint_; }
+//     const NetAddress &GetRemoteAddress() { return remote_endpoint_; }
 //
 // protected:
-//     EndPoint     local_endpoint_;
-//     EndPoint     remote_endpoint_;
+//     NetAddress     local_endpoint_;
+//     NetAddress     remote_endpoint_;
 //     io_hdle_p    event_handler_;
 //
 // public:

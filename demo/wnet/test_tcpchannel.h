@@ -64,8 +64,8 @@ std::shared_ptr<TestSession>         se;
 std::atomic_bool                     active{true};
 std::shared_ptr<event::EpollContext> ep_;
 
-inline auto ac_cb = [](const EndPoint &local, const EndPoint &remote, unique_ptr<event::IOHandle> handler) {
-    auto info = EndPoint::Dump(remote);
+inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
+    auto info = NetAddress::Dump(remote);
 
     cout << "accept : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
     auto ch = std::make_shared<Connection>(local, remote, std::move(handler));
@@ -81,7 +81,7 @@ void server_thread() {
     ep->Init();
     ep_ = ep;
 
-    EndPoint local_ed;
+    NetAddress local_ed;
     if(!local_ed.Assign(listen::ip, listen::port, listen::family)) {
         return;
     }
@@ -106,10 +106,9 @@ void server_thread() {
 void client_thread() {
     using namespace cli;
 
-    EndPoint cli_ed;
-    if(!cli_ed.Assign(connect::ip, connect::port, connect::family)) {
-        return;
-    }
+    NetAddress cli_ed;
+    assert(cli_ed.Assign(connect::ip, connect::port, connect::family));
+
     tcp::Socket cli;
     cli.Open(connect::family);
     bool res = cli.Connect(cli_ed);
@@ -131,6 +130,7 @@ void client_thread() {
         while(active) {
             auto l = cli.Recv((uint8_t *)buf, 1500);
             if(l == 0) {
+                LOG(LINFO, "client") << "dis connected.";
                 break;
             }
             total += l;
@@ -152,10 +152,6 @@ void client_thread() {
 
     Timer t(ep_);
     t.OnTime = [&cli, &t]() {
-        // cout << std::chrono::duration_cast<std::chrono::milliseconds>(
-        //                 std::chrono::system_clock::now().time_since_epoch())
-        //                 .count()
-        //      << " ontime!!!" << endl;
         static int i = 0;
 
         cli.Send((uint8_t *)"hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73);
@@ -177,6 +173,7 @@ void handle_pipe(int signal) {
     cout << "signal" << endl;
     ep_->Stop();
     active.store(false);
+    se.reset();
 }
 
 

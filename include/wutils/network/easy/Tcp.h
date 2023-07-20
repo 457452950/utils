@@ -3,7 +3,7 @@
 #define UTIL_TCP_H
 
 #include "Tools.h"
-#include "wutils/network/EndPoint.h"
+#include "wutils/network/NetAddress.h"
 #include "wutils/network/base/Definition.h"
 #include "wutils/network/base/ISocket.h"
 
@@ -69,16 +69,16 @@ public:
 
     void ShutDown(SHUT_DOWN how) { ::shutdown(this->socket_, how); }
 
-    EndPoint GetLocal() {
-        EndPoint info;
+    NetAddress GetLocal() {
+        NetAddress info;
 
         GetSockName(this->socket_, info);
 
         return info;
     }
 
-    EndPoint GetRemote() {
-        EndPoint info;
+    NetAddress GetRemote() {
+        NetAddress info;
 
         GetPeerName(this->socket_, info);
 
@@ -86,11 +86,11 @@ public:
     }
 
     // Server
-    bool Bind(const EndPoint &local) { return ::bind(this->socket_, local.AsSockAddr(), local.GetSockSize()) == 0; }
+    bool Bind(const NetAddress &local) { return ::bind(this->socket_, local.AsSockAddr(), local.GetSockSize()) == 0; }
 
     bool Listen() { return ::listen(this->socket_, MAX_LISTEN_BACK_LOG) == 0; }
 
-    ISocket Accept(EndPoint &info, bool set_nonblock = false) {
+    ISocket Accept(NetAddress &info, bool set_nonblock = false) {
         if(set_nonblock) {
             return network::Accept4(this->socket_, info, SOCK_NONBLOCK);
         }
@@ -98,7 +98,7 @@ public:
     }
 
     // Client
-    bool Connect(const EndPoint &remote) { return ConnectToHost(this->socket_, remote); }
+    bool Connect(const NetAddress &remote) { return ConnectToHost(this->socket_, remote); }
 
     // Socket optional
     bool IsNonBlock() { return IsSocketNonBlock(this->socket_); }

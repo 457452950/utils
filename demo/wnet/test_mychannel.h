@@ -9,7 +9,7 @@ using namespace std;
 using namespace wutils::network;
 
 
-auto acc2_cb = [](wutils::network::socket_t socket, wutils::network::EndPoint &endpoint) -> bool {
+auto acc2_cb = [](wutils::network::socket_t socket, wutils::network::NetAddress &endpoint) -> bool {
     // cout << "accpt : " << socket << " info " << endpoint.ip_address << " " << endpoint.port << std::endl;
     // TODO: 使用抽象工厂模式
     // ch = new MyChannel(socket, endpoint);

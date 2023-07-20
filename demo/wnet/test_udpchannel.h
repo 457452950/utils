@@ -51,8 +51,8 @@ constexpr AF_PROTOL protol = AF_PROTOL::UDP;
 // struct udpSession : public UDPChannel::Listener {
 //
 //    void OnMessage(const uint8_t *message, uint64_t message_len) override {
-//        auto [lip, lport] = EndPoint::Dump(srv_ed);
-//        auto [rip, rport] = EndPoint::Dump(cli_ed);
+//        auto [lip, lport] = NetAddress::Dump(srv_ed);
+//        auto [rip, rport] = NetAddress::Dump(cli_ed);
 //
 //        fprintf(stdout,
 //                "remote[%s:%d] --> local[%s:%d] msg:[%s] len:%ld\n",
@@ -68,8 +68,8 @@ constexpr AF_PROTOL protol = AF_PROTOL::UDP;
 //    };
 //    void OnError(wutils::SystemError error) override { cout << "[test_udp]onerr err : " << error << endl; }
 //
-//    EndPoint                    srv_ed;
-//    EndPoint                    cli_ed;
+//    NetAddress                    srv_ed;
+//    NetAddress                    cli_ed;
 //    std::unique_ptr<UDPChannel> udp_chl;
 //};
 //
@@ -84,15 +84,15 @@ constexpr AF_PROTOL protol = AF_PROTOL::UDP;
 //    ep->read_  = in_cb;
 //    ep->write_ = out_cb;
 //
-//    EndPoint srv_ed;
+//    NetAddress srv_ed;
 //    if(!srv_ed.Assign(bind::ip, bind::port, bind::family)) {
 //        return;
 //    }
 //
-//    auto [ip, port] = EndPoint::Dump(srv_ed);
+//    auto [ip, port] = NetAddress::Dump(srv_ed);
 //    cout << "[" << ip << ":" << port << "]" << std::endl;
 //
-//    EndPoint cli_ed;
+//    NetAddress cli_ed;
 //    // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
 //    if(!cli_ed.Assign(send::ip, send::port, send::family)) {
 //        return;
@@ -114,7 +114,7 @@ constexpr AF_PROTOL protol = AF_PROTOL::UDP;
 //    using namespace wutils;
 //    using namespace cli;
 //
-//    EndPoint cli_ed;
+//    NetAddress cli_ed;
 //    // cli_ed.Assign("::1", 4001, AF_FAMILY::INET6);
 //    cli_ed.Assign(bind::ip, bind::port, bind::family);
 //    auto cli = MakeBindedSocket(cli_ed, true);
@@ -122,14 +122,14 @@ constexpr AF_PROTOL protol = AF_PROTOL::UDP;
 //        return;
 //    }
 //
-//    EndPoint srv_ed;
+//    NetAddress srv_ed;
 //    if(!srv_ed.Assign(send::ip, send::port, send::family)) {
 //        return;
 //    }
 //
 //    char send_msg[] = "afsafsfsfagrtgtbgfbstrbsrbrtbrbstrgbtrbsfdsvbfsdsvbsrtbv";
 //
-//    EndPoint     srv_;
+//    NetAddress     srv_;
 //    char         cli_buf[1500] = {0};
 //    int32_t      len           = 0;
 //
@@ -137,7 +137,7 @@ constexpr AF_PROTOL protol = AF_PROTOL::UDP;
 //    if(len <= 0) {
 //        std::cout << "cli sendto err " << SystemError::GetSysErrCode() << endl;
 //    } else {
-//        auto [ip, port] = EndPoint::Dump(srv_ed);
+//        auto [ip, port] = NetAddress::Dump(srv_ed);
 //        cout << "cli sendto [" << ip << " : " << port << "] " << std::string(send_msg, strlen(send_msg)).c_str()
 //             << endl;
 //    }
@@ -147,7 +147,7 @@ constexpr AF_PROTOL protol = AF_PROTOL::UDP;
 //    if(len <= 0) {
 //        std::cout << "cli recv from err " << SystemError::GetSysErrCode() << endl;
 //    } else {
-//        auto [ip, port] = EndPoint::Dump(srv_);
+//        auto [ip, port] = NetAddress::Dump(srv_);
 //        cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
 //    }
 //
@@ -157,7 +157,7 @@ constexpr AF_PROTOL protol = AF_PROTOL::UDP;
 //    if(len <= 0) {
 //        std::cout << "cli recv from err " << SystemError::GetSysErrCode() << endl;
 //    } else {
-//        auto [ip, port] = EndPoint::Dump(srv_);
+//        auto [ip, port] = NetAddress::Dump(srv_);
 //        cout << "cli recv [" << ip << " : " << port << "] " << std::string(cli_buf, len).c_str() << endl;
 //    }
 //

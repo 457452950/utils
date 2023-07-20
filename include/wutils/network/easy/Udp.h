@@ -3,7 +3,7 @@
 #define UTIL_UDP_H
 
 #include "Tools.h"
-#include "wutils/network/EndPoint.h"
+#include "wutils/network/NetAddress.h"
 #include "wutils/network/base/Definition.h"
 #include "wutils/network/base/ISocket.h"
 
@@ -30,11 +30,11 @@ public:
         }
         return this->socket_ != INVALID_SOCKET;
     }
-    int64_t SendTo(const uint8_t *data, uint32_t len, const EndPoint &remote) {
+    int64_t SendTo(const uint8_t *data, uint32_t len, const NetAddress &remote) {
         assert(len < MAX_WAN_UDP_PACKAGE_LEN);
         return ::sendto(this->socket_, data, len, 0, remote.AsSockAddr(), remote.GetSockSize());
     }
-    int64_t RecvFrom(uint8_t *buffer, uint32_t len, const EndPoint &remote) {
+    int64_t RecvFrom(uint8_t *buffer, uint32_t len, const NetAddress &remote) {
         sockaddr_in6 sa{};
         socklen_t    salen{sizeof(sa)};
         return ::recvfrom(this->socket_, buffer, len, 0, (sockaddr *)&sa, &salen);
@@ -45,8 +45,8 @@ public:
     }
     int64_t Recv(uint8_t *buffer, uint32_t len) { return recv(this->socket_, buffer, len, 0); }
 
-    EndPoint GetLocal() {
-        EndPoint info;
+    NetAddress GetLocal() {
+        NetAddress info;
 
         GetSockName(this->socket_, info);
 
@@ -54,10 +54,10 @@ public:
     }
 
     // Server
-    bool Bind(const EndPoint &local) { return ::bind(this->socket_, local.AsSockAddr(), local.GetSockSize()) == 0; }
+    bool Bind(const NetAddress &local) { return ::bind(this->socket_, local.AsSockAddr(), local.GetSockSize()) == 0; }
 
     // Client
-    bool Connect(const EndPoint &remote) { return ConnectToHost(this->socket_, remote); }
+    bool Connect(const NetAddress &remote) { return ConnectToHost(this->socket_, remote); }
 
     // Socket optional
     bool IsNonBlock() { return IsSocketNonBlock(this->socket_); }

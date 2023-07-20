@@ -8,7 +8,7 @@ namespace wutils::network {
 // * Channel
 // ************************************************************/
 //
-// Channel::Channel(const EndPoint &local, const EndPoint &remote, io_hdle_p h) :
+// Channel::Channel(const NetAddress &local, const NetAddress &remote, io_hdle_p h) :
 //    local_endpoint_(local), remote_endpoint_(remote), event_handler_(std::move(h)) {
 //
 //    assert(this->event_handler_);
@@ -17,7 +17,7 @@ namespace wutils::network {
 //    this->event_handler_->SetEvents(EventType::EV_IN);
 //    this->event_handler_->Enable();
 //
-//    auto [ip, port] = EndPoint::Dump(this->remote_endpoint_);
+//    auto [ip, port] = NetAddress::Dump(this->remote_endpoint_);
 //    std::cout << "Channel " << ip << port << std::endl;
 //}
 //
@@ -207,14 +207,14 @@ namespace wutils::network {
 // * ASChannel
 // ************************************************************/
 //
-// ASChannel::ASChannel(const EndPoint &local, const EndPoint &remote, io_hdle_p h) :
+// ASChannel::ASChannel(const NetAddress &local, const NetAddress &remote, io_hdle_p h) :
 //    local_endpoint_(local), remote_endpoint_(remote), event_handler_(std::move(h)) {
 //
 //    assert(this->event_handler_);
 //
 //    this->event_handler_->user_data_ = this;
 //
-//    auto [ip, port] = EndPoint::Dump(this->remote_endpoint_);
+//    auto [ip, port] = NetAddress::Dump(this->remote_endpoint_);
 //    std::cout << "ASChannel " << ip << port << " " << this->event_handler_.get() << std::endl;
 //}
 // ASChannel::~ASChannel() {

@@ -13,19 +13,19 @@
 namespace wutils::network {
 
 struct Buffer {
-    uint8_t *buffer;
-    uint32_t buffer_len;
+    uint8_t *buffer{nullptr};
+    uint32_t buffer_len{0};
 };
 struct Data {
-    const uint8_t *data;
-    uint32_t       bytes;
+    const uint8_t *data{nullptr};
+    uint32_t       bytes{0};
 };
 
 using SHUT_DOWN = tcp::SHUT_DOWN;
 
 class Connection : public event::IOEvent {
 public:
-    Connection(EndPoint local, EndPoint remote, unique_ptr<event::IOHandle> handle) :
+    Connection(NetAddress local, NetAddress remote, unique_ptr<event::IOHandle> handle) :
         local_(std::move(local)), remote_(std::move(remote)), handle_(std::move(handle)) {
         handle_->listener_ = this;
 
@@ -81,8 +81,8 @@ public:
     }
     void Send(Data data) { this->Send(data.data, data.bytes); }
 
-    const EndPoint &GetLocalInfo() { return local_; }
-    const EndPoint &GetRemoteInfo() { return remote_; }
+    const NetAddress &GetLocalAddress() { return local_; }
+    const NetAddress &GetRemoteAddress() { return remote_; }
 
 private:
     void handleError(const SystemError &error) {
@@ -134,8 +134,8 @@ private:
     }
 
 private:
-    EndPoint                    local_;
-    EndPoint                    remote_;
+    NetAddress                  local_;
+    NetAddress                  remote_;
     tcp::Socket                 socket_;
     unique_ptr<event::IOHandle> handle_;
 
@@ -148,14 +148,12 @@ private:
  */
 class AConnection : public event::IOEvent {
 public:
-    AConnection(EndPoint local, EndPoint remote, unique_ptr<event::IOHandle> handle) :
+    AConnection(NetAddress local, NetAddress remote, unique_ptr<event::IOHandle> handle) :
         local_(std::move(local)), remote_(std::move(remote)), handle_(std::move(handle)) {
         handle_->listener_ = this;
 
         socket_ = handle_->socket_;
         assert(socket_);
-
-        this->send_buffer_.Init(0);
     };
     ~AConnection() override {
         handle_->DisEnable();
@@ -175,9 +173,14 @@ public:
 
     void ShutDown(SHUT_DOWN how = SHUT_DOWN::RDWR) { this->socket_.ShutDown(how); }
 
-    void ASend(const uint8_t *data, uint32_t bytes) { this->ASend({const_cast<uint8_t *>(data), bytes}); }
     void ASend(const Buffer &buffer) {
         int64_t len = 0;
+
+        if(!this->send_buffers_.empty()) {
+            this->send_buffers_.push_back(buffer);
+        } else {
+            // try to send
+        }
 
         this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_OUT);
         this->handle_->Enable();
@@ -190,8 +193,8 @@ public:
         this->handle_->Enable();
     }
 
-    const EndPoint &GetLocalInfo() { return local_; }
-    const EndPoint &GetRemoteInfo() { return remote_; }
+    const NetAddress &GetLocalAddress() { return local_; }
+    const NetAddress &GetRemoteAddress() { return remote_; }
 
 private:
     void handleError(const SystemError &error) {
@@ -227,12 +230,10 @@ private:
         handleRecv(recv_buffer_);
     }
     void IOOut() override {
-        if(!this->send_buffer_.IsEmpty()) {
-            auto len = this->socket_.SendSome(send_buffer_.PeekRead(), send_buffer_.GetReadableBytes());
-            this->send_buffer_.SkipReadBytes(len);
+        if(!this->send_buffers_.empty()) {
         }
 
-        if(this->send_buffer_.IsEmpty()) {
+        if(this->send_buffers_.empty()) {
             auto flag = this->handle_->GetEvents();
             this->handle_->SetEvents(flag & (~event::EventType::EV_OUT));
             return;
@@ -240,8 +241,9 @@ private:
     }
 
 private:
-    EndPoint                    local_;
-    EndPoint                    remote_;
+    NetAddress local_;
+    NetAddress remote_;
+
     tcp::Socket                 socket_;
     unique_ptr<event::IOHandle> handle_;
 

@@ -41,7 +41,7 @@ constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 void server_thread() {
     // bind and listen
 
-    EndPoint srv_ed;
+    NetAddress srv_ed;
     if(!srv_ed.Assign(srv::listen::ip, srv::listen::port, srv::listen::family)) {
         return;
     }
@@ -71,7 +71,7 @@ void server_thread() {
 
     // accept
 
-    EndPoint en;
+    NetAddress en;
     res = Accept(sock, en);
 
     if(res == -1) {
@@ -83,12 +83,12 @@ void server_thread() {
 
     DEFER([res]() { ::close(res); });
 
-    auto [ip, port] = EndPoint::Dump(en);
+    auto [ip, port] = NetAddress::Dump(en);
     cout << "client : ip " << ip << " port:" << port << endl;
 }
 
 void client_thread() {
-    EndPoint cli_ed;
+    NetAddress cli_ed;
     if(!cli_ed.Assign(cli::connect::ip, cli::connect::port, cli::connect::family)) {
         return;
     }

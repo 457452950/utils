@@ -1,6 +1,6 @@
 #pragma once
-#ifndef UTIL_ENDPOINT_H
-#define UTIL_ENDPOINT_H
+#ifndef UTIL_NETADDRESS_H
+#define UTIL_NETADDRESS_H
 
 #include <cassert>
 #include <cstring> // memcpy
@@ -12,17 +12,16 @@
 namespace wutils::network {
 
 // sockaddr + family + hash
-struct EndPoint {
-    EndPoint() = default;
-    EndPoint(const EndPoint &other) : family_(other.family_), hash(other.hash) {
+struct NetAddress {
+    NetAddress() = default;
+    NetAddress(const NetAddress &other) : family_(other.family_), hash(other.hash) {
         this->data_ = make_unique<uint8_t[]>(other.GetSockSize());
         std::copy(other.data_.get(), other.data_.get() + other.GetSockSize(), this->data_.get());
     }
-    EndPoint(EndPoint &&other) noexcept :
-        family_(other.family_), data_(std::move(other.data_)), hash(other.hash) {}
-    ~EndPoint() = default;
+    NetAddress(NetAddress &&other) noexcept : family_(other.family_), data_(std::move(other.data_)), hash(other.hash) {}
+    NetAddress() = default;
 
-    EndPoint &operator=(const EndPoint &other) {
+    NetAddress &operator=(const NetAddress &other) {
         if(this == &other) {
             return *this;
         }
@@ -34,8 +33,8 @@ struct EndPoint {
         std::copy(other.data_.get(), other.data_.get() + other.GetSockSize(), this->data_.get());
     }
 
-    static EndPoint *MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family) {
-        auto ep = new EndPoint();
+    static NetAddress *MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family) {
+        auto ep = new NetAddress();
 
         if(ep->Assign(address, port, family)) {
             return ep;
@@ -100,8 +99,8 @@ struct EndPoint {
         return false;
     }
 
-    static EndPoint *Emplace(const sockaddr *addr, AF_FAMILY family) {
-        auto info     = new EndPoint();
+    static NetAddress *Emplace(const sockaddr *addr, AF_FAMILY family) {
+        auto info     = new NetAddress();
         info->family_ = family;
         info->data_   = make_unique<uint8_t[]>(info->GetSockSize());
 
@@ -125,7 +124,7 @@ struct EndPoint {
     AF_FAMILY       GetFamily() const { return family_; }
     unsigned long   GetSockSize() const { return family_ == v4::FAMILY ? v4::SOCKADDR_LEN : v6::SOCKADDR_LEN; }
 
-    static std::tuple<std::string, uint16_t> Dump(const EndPoint &info) {
+    static std::tuple<std::string, uint16_t> Dump(const NetAddress &info) {
         std::string s;
         uint16_t    p{0};
 
@@ -156,7 +155,7 @@ struct EndPoint {
     }
 
 private:
-    AF_FAMILY                  family_{AF_FAMILY::INET};
+    AF_FAMILY             family_{AF_FAMILY::INET};
     unique_ptr<uint8_t[]> data_{nullptr};
 
 private:
@@ -188,7 +187,7 @@ private:
             const uint64_t address = ntohl(SockAddrIn->sin_addr.s_addr);
             const uint64_t port    = (ntohs(SockAddrIn->sin_port));
 
-            this->hash = port << 48;
+            this->hash  = port << 48;
             this->hash |= address << 16;
             this->hash |= 0x0000; // AF_INET.
 
@@ -202,7 +201,7 @@ private:
             const auto     address2 = a[0];
             const uint64_t port     = ntohs(sockAddrIn6->sin6_port);
 
-            this->hash = port << 48;
+            this->hash  = port << 48;
             this->hash |= static_cast<uint64_t>(address1) << 16;
             this->hash |= address2 >> 16 & 0xFFFC;
             this->hash |= 0x0002; // AF_INET6.
@@ -231,8 +230,8 @@ private:
 
 public:
     uint64_t hash{0u};
-    bool     operator==(const EndPoint &other) const noexcept { return this->hash == other.hash; }
-    bool     operator!=(const EndPoint &other) const noexcept { return this->hash != other.hash; }
+    bool     operator==(const NetAddress &other) const noexcept { return this->hash == other.hash; }
+    bool     operator!=(const NetAddress &other) const noexcept { return this->hash != other.hash; }
 };
 
 } // namespace wutils::network
@@ -240,11 +239,11 @@ public:
 
 namespace std {
 template <>
-class hash<wutils::network::EndPoint> {
+class hash<wutils::network::NetAddress> {
 public:
-    size_t operator()(const wutils::network::EndPoint &it) const noexcept { return it.hash; }
+    size_t operator()(const wutils::network::NetAddress &it) const noexcept { return it.hash; }
 };
 } // namespace std
 
 
-#endif // UTIL_ENDPOINT_H
+#endif // UTIL_NETADDRESS_H

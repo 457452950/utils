@@ -39,7 +39,7 @@ if (UNIX)
         target_link_libraries(jsonreader hiredis)
 
 
-        add_library (
+        add_library(
                 wutils
 
                 src/ByteArray.cpp
@@ -70,9 +70,9 @@ if (UNIX)
                 include/wutils/network/io_event/IOEvent.h
                 include/wutils/network/io_event/IOContext.h
                 include/wutils/network/io_event/EpollContext.h
-                include/wutils/network/io_event/SelectContext.h 
-                
-                include/wutils/network/EndPoint.h
+                include/wutils/network/io_event/SelectContext.h
+
+                include/wutils/network/NetAddress.h
                 include/wutils/network/Factory.h
                 include/wutils/network/NetWork.h
                 include/wutils/network/Timer.h
