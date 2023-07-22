@@ -36,7 +36,7 @@ constexpr AF_FAMILY family2 = AF_FAMILY::INET;
 
 class TestSession : public Connection::Listener {
 public:
-    TestSession(std::shared_ptr<Connection> ch_) : ch(std::move(ch_)) { ch->listener_ = this; }
+    explicit TestSession(std::shared_ptr<Connection> ch_) : ch(std::move(ch_)) { ch->listener_ = this; }
 
     void OnDisconnect() override {
         std::cout << "disconnect" << std::endl;
@@ -177,6 +177,8 @@ inline void test_tcp_echo() {
         ep_.reset();
     if(se)
         se.reset();
+    if(se2)
+        se2.reset();
 }
 
 
