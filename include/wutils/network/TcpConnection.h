@@ -210,8 +210,11 @@ public:
         this->handle_->Enable();
     }
 
-    void AReceive(Buffer buffer) {
+    enum ARecvFlag : int8_t { NoRecv = -1, Once = 0, Keep = 1 };
+
+    void AReceive(Buffer buffer, ARecvFlag flag = Once) {
         this->recv_buffer_ = buffer;
+        this->arecv_flag_  = flag;
 
         this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_IN);
         this->handle_->Enable();
@@ -256,7 +259,15 @@ private:
             return;
         }
 
+        if(arecv_flag_ == Once)
+            arecv_flag_ = NoRecv;
+
         handleRecv({.buffer = recv_buffer_.buffer, .buffer_len = (uint32_t)len});
+
+        if(arecv_flag_ == NoRecv) {
+            auto e = this->handle_->GetEvents();
+            this->handle_->SetEvents(e & (~event::EventType::EV_IN));
+        }
     }
     void IOOut() override {
         while(!this->send_buffers_.empty()) {
@@ -306,6 +317,8 @@ private:
     // buffer
     Buffer            recv_buffer_;
     std::list<Buffer> send_buffers_;
+    // extra
+    ARecvFlag         arecv_flag_;
     uint32_t          send_index_{0};
 };
 

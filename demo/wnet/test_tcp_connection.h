@@ -11,9 +11,9 @@ using namespace wutils::network;
 
 
 /**
- * test_connection
+ * test_tcp_echo
  */
-namespace test_connection_config {
+namespace test_tcp_connection_config {
 
 namespace srv {
 namespace listen {
@@ -61,7 +61,6 @@ public:
 };
 
 std::shared_ptr<TestSession>         se;
-std::atomic_bool                     active{true};
 std::shared_ptr<event::EpollContext> ep_;
 
 inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
@@ -127,7 +126,7 @@ void client_thread() {
         // ::send(cli, "hello", 5, 0);
         int  total = 0;
         char buf[1500];
-        while(active) {
+        while(true) {
             auto l = cli.Recv((uint8_t *)buf, 1500);
             if(l == 0) {
                 LOG(LINFO, "client") << "dis connected.";
@@ -172,16 +171,15 @@ void client_thread() {
 void handle_pipe(int signal) {
     LOG(LINFO, "signal") << "signal " << signal;
     ep_->Stop();
-    active.store(false);
     se.reset();
 }
 
 
-} // namespace test_connection_config
+} // namespace test_tcp_connection_config
 
 
-inline void test_connection() {
-    using namespace test_connection_config;
+inline void test_tcp_connection() {
+    using namespace test_tcp_connection_config;
     cout << "-------------------- test channel --------------------" << endl;
 
     signal(SIGPIPE, handle_pipe); // 自定义处理函数

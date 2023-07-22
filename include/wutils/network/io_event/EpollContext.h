@@ -29,7 +29,6 @@ public:
         auto it = this->ready_to_del_.find(handler);
         if(it != this->ready_to_del_.end()) {
             this->ready_to_del_.erase(it);
-            return this->ModifySocket(handler);
         }
 
         epoll_data_t ep_data{};
@@ -53,7 +52,12 @@ public:
 
         return ep.ModifySocket(handler->socket_.Get(), ev, ep_data);
     }
-    void DelSocket(IOHandle *handler) override { this->ready_to_del_.insert({handler, handler}); }
+    void DelSocket(IOHandle *handler) override {
+        this->ep.RemoveSocket(handler->socket_.Get());
+        --this->fd_count_;
+
+        this->ready_to_del_.insert(handler);
+    }
 
     bool Init() override {
         if(!ep.Init()) {
@@ -154,15 +158,7 @@ private:
             this->realDel();
         }
     }
-    void realDel() {
-        for(auto &item : ready_to_del_) {
-            if(!this->ep.RemoveSocket(item->socket_.Get())) {
-                return;
-            }
-            --this->fd_count_;
-        }
-        this->ready_to_del_.clear();
-    }
+    void realDel() { this->ready_to_del_.clear(); }
 
 private:
     network::Epoll ep;

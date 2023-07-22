@@ -12,6 +12,14 @@
 using namespace std;
 using namespace wutils::network;
 
+#ifdef TEST_IPV4
+#undef TEST_IPV4
+#endif
+#ifdef TEST_IPV6
+#undef TEST_IPV6
+#endif
+
+#define TEST_IPV4
 
 /**
  * test_aconnection
@@ -20,24 +28,30 @@ namespace test_aconnection_config {
 
 namespace srv {
 namespace listen {
+#ifdef TEST_IPV6
 // constexpr char     *ip     = "0:0:0:0:0:0:0:0";
 // constexpr int       port   = 4000;
 // constexpr AF_FAMILY family = AF_FAMILY::INET6;
+#elif defined TEST_IPV4
 constexpr char     *ip     = "0.0.0.0";
 constexpr int       port   = 4000;
 constexpr AF_FAMILY family = AF_FAMILY::INET;
+#endif
 } // namespace listen
 } // namespace srv
 
 namespace cli {
 
 namespace connect {
+#ifdef TEST_IPV6
 // constexpr char     *ip     = "0:0:0:0:0:0:0:0";
 // constexpr int       port   = 4000;
 // constexpr AF_FAMILY family = AF_FAMILY::INET6;
+#elif defined TEST_IPV4
 constexpr char     *ip     = "0.0.0.0";
 constexpr int       port   = 4000;
 constexpr AF_FAMILY family = AF_FAMILY::INET;
+#endif
 } // namespace connect
 
 } // namespace cli
@@ -49,7 +63,7 @@ public:
         buffer_.buffer     = new uint8_t[4096];
         buffer_.buffer_len = 4096;
 
-        ch->AReceive(buffer_);
+        ch->AReceive(buffer_, AConnection::ARecvFlag::Keep);
     }
     ~TestSession() override { delete[] buffer_.buffer; }
 
@@ -75,7 +89,6 @@ public:
 };
 
 std::shared_ptr<TestSession>         se;
-std::atomic_bool                     active{true};
 std::shared_ptr<event::EpollContext> ep_;
 
 inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
@@ -141,7 +154,7 @@ void client_thread() {
         // ::send(cli, "hello", 5, 0);
         int  total = 0;
         char buf[1500];
-        while(active) {
+        while(true) {
             auto l = cli.Recv((uint8_t *)buf, 1500);
             if(l == 0) {
                 LOG(LINFO, "client") << "dis connected.";
@@ -149,10 +162,10 @@ void client_thread() {
             }
             total += l;
             // clang-format off
-            cout
+//            cout
 //                << "cli recv :" << std::string(buf, l)
-                << " total : " << total
-                << endl;
+//                << " total : " << total
+//                << endl;
             // clang-format on
             if(total == 2190006) {
                 LOG(LINFO, "client") << "stop.";
@@ -186,7 +199,6 @@ void client_thread() {
 void handle_pipe(int signal) {
     cout << "signal" << endl;
     ep_->Stop();
-    active.store(false);
     se.reset();
 }
 
@@ -196,7 +208,7 @@ void handle_pipe(int signal) {
 
 inline void test_aconnection() {
     using namespace test_aconnection_config;
-    cout << "test channel " << endl;
+    cout << "------------------------ test achannel ---------------------------" << endl;
 
     signal(SIGPIPE, handle_pipe); // 自定义处理函数
     signal(SIGINT, handle_pipe);  // 自定义处理函数

@@ -13,9 +13,7 @@
 #include "test_udp.h"
 #include "test_udpchannel.h"
 
-
-#include "wutils/Debugger.hpp"
-#include "wutils/network/NetWork.h"
+#include "test_echo_tcp.h"
 
 using namespace std;
 using namespace wutils::network;
@@ -29,10 +27,12 @@ int main() {
     test_timer();
     test_ipv6();
 
-    test_connection();
+    test_tcp_connection();
     test_aconnection();
     // test_udp();
     // test_udpchannel();
     // test_tcpserver();
     // test_myChannel();
+
+    test_tcp_echo();
 }
