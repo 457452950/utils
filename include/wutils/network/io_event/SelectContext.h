@@ -33,8 +33,16 @@ public:
             return false;
         }
 
+        if(del_set_.count(handler)) {
+            del_set_.erase(handler);
+        }
+
+        if(this->handler_set_.count(handler)) {
+            return true;
+        }
+
         bool ok(true);
-        std::tie(std::ignore, ok) = this->handler_set.insert(handler);
+        std::tie(std::ignore, ok) = this->handler_set_.insert(handler);
         if(ok) {
             parseAndSetEvents(handler->socket_.Get(), handler->GetEvents());
             ++this->fd_count_;
@@ -43,25 +51,23 @@ public:
         return false;
     }
     bool ModifySocket(IOHandle *handler) override {
-        auto it = handler_set.find(handler);
-        if(it != handler_set.end()) { // found
+        auto it = handler_set_.find(handler);
+        if(it != handler_set_.end()) { // found
             parseAndSetEvents(handler->socket_.Get(), handler->GetEvents());
             return true;
         }
         return false;
     }
     void DelSocket(IOHandle *handler) override {
-        auto it = this->handler_set.find(handler);
-        if(it == this->handler_set.end()) {
+        auto it = this->handler_set_.find(handler);
+        if(it == this->handler_set_.end()) {
             return;
         }
 
-        this->handler_set.erase(it);
+        this->del_set_.insert(handler);
 
         SetDelFd(handler->socket_.Get(), read_set_);
         SetDelFd(handler->socket_.Get(), write_set_);
-
-        --this->fd_count_;
     }
 
     // thread control
@@ -109,13 +115,13 @@ private:
                 break;
             }
 
-            auto temp_end = this->handler_set.end();
+            auto temp_end = this->handler_set_.end();
             // 迭代器失效
 
-            for(auto it = this->handler_set.begin(); it != temp_end; ++it) {
+            for(auto it = this->handler_set_.begin(); it != temp_end; ++it) {
                 IOHandle *i = it.operator*();
 
-                if(!this->handler_set.count(i)) {
+                if(!this->handler_set_.count(i)) {
                     break;
                 }
 
@@ -123,7 +129,7 @@ private:
                     i->listener_->IOOut();
                 }
 
-                if(!this->handler_set.count(i)) {
+                if(!this->handler_set_.count(i)) {
                     break;
                 }
 
@@ -131,7 +137,17 @@ private:
                     i->listener_->IOIn();
                 }
             }
+
+            this->real_del();
         }
+    }
+
+    void real_del() {
+        for(auto it : this->del_set_) {
+            this->handler_set_.erase(it);
+            --this->fd_count_;
+        }
+        this->del_set_.clear();
     }
 
     // 清理所有描述符
@@ -143,12 +159,11 @@ private:
         clearAllSet();
 
         max_fd_ = wakeup_fd_;
-        for(auto &it : handler_set) {
+        for(auto &it : handler_set_) {
             if(max_fd_ < it->socket_.Get()) {
                 max_fd_ = it->socket_.Get();
             }
 
-            std::cout << "set " << it->socket_.Get() << " " << (int)it->GetEvents() << std::endl;
             this->parseAndSetEvents(it->socket_.Get(), it->GetEvents());
             assert(SetCheckFd(it->socket_.Get(), read_set_));
         }
@@ -179,7 +194,8 @@ private:
     fd_set_p read_set_{new fd_set_t};
     fd_set_p write_set_{new fd_set_t};
 
-    std::unordered_set<IOHandle *> handler_set;
+    std::unordered_set<IOHandle *> handler_set_;
+    std::unordered_set<IOHandle *> del_set_;
     uint32_t                       fd_count_{0};
     socket_t                       max_fd_{INVALID_SOCKET};
 

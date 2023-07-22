@@ -11,6 +11,8 @@
 using namespace std;
 using namespace wutils::network;
 
+#define CONTEXT event::EpollContext
+// #define CONTEXT event::SelectContext
 
 /**
  * test_tcp_echo
@@ -86,9 +88,9 @@ public:
 };
 
 
-std::shared_ptr<event::EpollContext> ep_;
-std::shared_ptr<TestSession>         se;
-std::shared_ptr<TestASession>        se2;
+std::shared_ptr<CONTEXT>      ep_;
+std::shared_ptr<TestSession>  se;
+std::shared_ptr<TestASession> se2;
 
 
 inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
@@ -111,7 +113,7 @@ inline auto err_cb = [](wutils::SystemError error) { std::cout << error << std::
 void server_thread() {
     using namespace srv;
 
-    auto ep = std::make_shared<event::EpollContext>();
+    auto ep = std::make_shared<CONTEXT>();
     ep->Init();
     ep_ = ep;
 
