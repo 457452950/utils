@@ -133,11 +133,12 @@ private:
 
                 // check
                 assert(pHandle);
-                assert(pHandle->socket_.Get() > 0);
 
                 if(this->ready_to_del_.count(pHandle)) {
                     break;
                 }
+
+                assert(pHandle->socket_.Get() > 0);
 
                 // get event
                 uint8_t eev = pHandle->GetEvents();
