@@ -77,7 +77,8 @@ if (UNIX)
                 include/wutils/network/NetWork.h
                 include/wutils/network/Timer.h
                 include/wutils/network/Acceptor.h
-                include/wutils/network/TcpConnection.h)
+                include/wutils/network/TcpConnection.h
+                include/wutils/network/UdpPoint.h)
 
         add_subdirectory(demo)
 

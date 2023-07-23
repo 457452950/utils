@@ -9,6 +9,9 @@
 
 #include "test_tcp_connection.h"
 #include "test_tcp_aconnection.h"
+
+#include "wutils/network/UdpPoint.h"
+
 #include "test_tcpserver.h"
 #include "test_udp.h"
 #include "test_udpchannel.h"

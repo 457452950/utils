@@ -26,8 +26,8 @@ const auto default_context_type = ContextType::SELECT;
 #define MAX_CHANNEL_RECV_BUFFER_SIZE (320 * 1024ULL) // 320k
 #define MAX_CHANNEL_SEND_BUFFER_SIZE (160 * 1024ULL) // 160k
 
-#define MAX_LAN_UDP_PACKAGE_LEN 1472
-#define MAX_WAN_UDP_PACKAGE_LEN 548
+#define MAX_LAN_UDP_MSS 1472
+#define MAX_WAN_UDP_MSS 548
 #define MAX_UDP_BUFFER_LEN 1500
 
 /**
@@ -36,7 +36,7 @@ const auto default_context_type = ContextType::SELECT;
 #define MAX_LISTEN_BACK_LOG 2048
 
 
-}
+} // namespace wutils::network
 
 
 #endif // UTIL_DEFINITION_H

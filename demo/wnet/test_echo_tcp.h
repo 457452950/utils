@@ -74,9 +74,9 @@ public:
         //        cout << "recv " << std::string((char *)buffer.buffer, (int)buffer.buffer_len) << " size " <<
         //        buffer.buffer_len
         //             << endl;
-        ch->ASend(buffer);
+        ch->ASend({buffer.buffer, buffer.buffer_len});
     }
-    void OnSent(wutils::network::Buffer buffer) override { assert(buffer.buffer == buffer_.buffer); }
+    void OnSent(Data data) override { assert(data.data == buffer_.buffer); }
     void OnError(wutils::SystemError error) override {
         std::cout << error << endl;
         this->ch.reset();

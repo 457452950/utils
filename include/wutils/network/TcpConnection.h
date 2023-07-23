@@ -21,7 +21,14 @@ struct Data {
     uint32_t       bytes{0};
 };
 
-using SHUT_DOWN = tcp::SHUT_DOWN;
+HEAD_ONLY Data CopyData(const Data &data) {
+    Data newData;
+    newData.data  = new uint8_t[data.bytes];
+    newData.bytes = data.bytes;
+    std::copy(data.data, data.data + data.bytes, const_cast<uint8_t *>(newData.data));
+
+    return newData;
+}
 
 class Connection : public event::IOEvent {
 public:
@@ -52,6 +59,7 @@ public:
         virtual ~Listener() = default;
     } *listener_{nullptr};
 
+    using SHUT_DOWN = tcp::SHUT_DOWN;
     void ShutDown(SHUT_DOWN how = SHUT_DOWN::RDWR) { this->socket_.ShutDown(how); }
 
     void Send(const uint8_t *data, uint32_t bytes) {
@@ -159,32 +167,39 @@ public:
         handle_->DisEnable();
         handle_.reset();
         socket_.Close();
+
+        for(Data &it : this->send_buffers_) {
+            delete[] it.data;
+        }
+        this->send_buffers_.clear();
     }
 
     class Listener {
     public:
         virtual void OnDisconnect()             = 0;
         virtual void OnReceived(Buffer buffer)  = 0;
-        virtual void OnSent(Buffer buffer)      = 0;
+        virtual void OnSent(Data data)          = 0;
         virtual void OnError(SystemError error) = 0;
 
         virtual ~Listener() = default;
     } *listener_{nullptr};
 
+    using SHUT_DOWN = tcp::SHUT_DOWN;
     void ShutDown(SHUT_DOWN how = SHUT_DOWN::RDWR) { this->socket_.ShutDown(how); }
 
-    void ASend(const Buffer &buffer) {
+    void ASend(const Data &data) {
         int64_t len = 0;
 
         if(!this->send_buffers_.empty()) {
-            this->send_buffers_.push_back(buffer);
+            // need to copy data,
+            this->send_buffers_.push_back(CopyData(data));
         } else { // try to send
 
-            send_index_ = this->socket_.SendSome(buffer.buffer, buffer.buffer_len);
+            send_index_ = this->socket_.SendSome(data.data, data.bytes);
 
             // send complete
-            if(send_index_ == buffer.buffer_len) {
-                handleSent(buffer);
+            if(send_index_ == data.bytes) {
+                handleSent(data);
                 return;
             }
             // send error
@@ -203,7 +218,7 @@ public:
             }
 
             //
-            this->send_buffers_.push_back(buffer);
+            this->send_buffers_.push_back(CopyData(data));
         }
 
         this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_OUT);
@@ -239,9 +254,9 @@ private:
             listener_->OnReceived(buffer);
         }
     }
-    void handleSent(const Buffer &buffer) {
+    void handleSent(const Data &data) {
         if(listener_) {
-            listener_->OnSent(buffer);
+            listener_->OnSent(data);
         }
     }
 
@@ -273,7 +288,7 @@ private:
         while(!this->send_buffers_.empty()) {
             auto it = this->send_buffers_.begin();
 
-            auto len = this->socket_.SendSome(it->buffer + send_index_, it->buffer_len - send_index_);
+            auto len = this->socket_.SendSome(it->data + send_index_, it->bytes - send_index_);
 
             // send error
             if(len == -1) {
@@ -292,7 +307,9 @@ private:
 
             send_index_ += len;
             // send complete
-            if(send_index_ == it->buffer_len) {
+            if(send_index_ == it->bytes) {
+                handleSent(it.operator*());
+                delete[] it->data;
                 this->send_buffers_.erase(it);
                 send_index_ = 0;
             } else {
@@ -315,11 +332,11 @@ private:
     unique_ptr<event::IOHandle> handle_;
 
     // buffer
-    Buffer            recv_buffer_;
-    std::list<Buffer> send_buffers_;
+    Buffer          recv_buffer_;
+    std::list<Data> send_buffers_;
     // extra
-    ARecvFlag         arecv_flag_;
-    uint32_t          send_index_{0};
+    ARecvFlag       arecv_flag_;
+    uint32_t        send_index_{0};
 };
 
 } // namespace wutils::network

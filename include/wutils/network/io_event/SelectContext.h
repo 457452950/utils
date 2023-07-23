@@ -150,7 +150,7 @@ private:
         this->del_set_.clear();
     }
 
-    // 清理所有描述符
+    // 清理所有socket
     void clearAllSet() {
         SetClearFd(read_set_);
         SetClearFd(write_set_);
