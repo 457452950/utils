@@ -16,5 +16,5 @@ add_executable(
         main.cpp
 )
 
-target_link_libraries(json_demo logger)
+target_link_libraries(json_demo)
 

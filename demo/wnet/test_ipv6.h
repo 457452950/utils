@@ -5,7 +5,7 @@
 #include <iostream>
 #include <thread>
 
-#include "wutils/network/NetWork.h"
+#include "wutils/network/Network.h"
 #include "wutils/base/Defer.h"
 
 using namespace std;

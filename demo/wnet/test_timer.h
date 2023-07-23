@@ -2,7 +2,7 @@
 #define UTILS_DEMO_WNET_TEST_TIMER_H
 
 #include "wutils/logger/StreamLogger.h"
-#include "wutils/network/NetWork.h"
+#include "wutils/network/Network.h"
 
 using namespace wutils::log;
 using namespace wutils::network;

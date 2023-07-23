@@ -22,6 +22,7 @@
 #include "Acceptor.h"
 #include "Timer.h"
 #include "TcpConnection.h"
+#include "UdpPoint.h"
 
 namespace wutils::network {
 
@@ -68,6 +69,11 @@ class Acceptor;
 
 /* TcpConnection.h */
 class Connection;
+class AConnection;
+
+/* UdpPoint.h */
+class UdpPoint;
+class AUdpPoint;
 
 } // namespace wutils::network
 

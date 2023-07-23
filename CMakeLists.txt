@@ -74,7 +74,7 @@ if (UNIX)
 
                 include/wutils/network/NetAddress.h
                 include/wutils/network/Factory.h
-                include/wutils/network/NetWork.h
+                include/wutils/network/Network.h
                 include/wutils/network/Timer.h
                 include/wutils/network/Acceptor.h
                 include/wutils/network/TcpConnection.h

@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "wutils/network/NetWork.h"
+#include "wutils/network/Network.h"
 
 using namespace std;
 using namespace wutils::network;
