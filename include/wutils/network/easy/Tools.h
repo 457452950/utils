@@ -3,6 +3,7 @@
 #define UTILS_NETWORK_UTILS_H
 
 #include <fcntl.h>       // fcntl
+#include <unistd.h>      // close
 
 #include <sys/timerfd.h> // timerfd_settime
 

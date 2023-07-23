@@ -5,15 +5,14 @@
 #ifndef UTILS_NETWORK_H
 #define UTILS_NETWORK_H
 
-#include "Factory.h"
 #include "base/Definition.h"
 #include "base/Native.h"
+#include "easy/Tools.h"
 #include "easy/Acceptor.h"
 #include "easy/Epoll.h"
 #include "easy/Select.h"
 #include "easy/Tcp.h"
 #include "easy/Timer.h"
-#include "easy/Tools.h"
 #include "easy/Udp.h"
 #include "io_event/EpollContext.h"
 #include "io_event/IOContext.h"
@@ -23,6 +22,8 @@
 #include "Timer.h"
 #include "TcpConnection.h"
 #include "UdpPoint.h"
+
+#include "Factory.h"
 
 namespace wutils::network {
 
