@@ -24,13 +24,17 @@ public:
         acceptor_.Close();
     }
 
-    bool Start(const NetAddress &info) {
+    bool Open(AF_FAMILY family) {
         bool ok = false;
 
-        ok = this->acceptor_.Open(info.GetFamily());
+        ok = this->acceptor_.Open(family);
         if(!ok) {
             return false;
         }
+    }
+
+    bool Start(const NetAddress &info) {
+        bool ok = false;
 
         ok = this->acceptor_.SetNonBlock(true);
         if(!ok) {
