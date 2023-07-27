@@ -75,11 +75,11 @@ public:
         return this->ep.AddSocket(control_fd_.Get(), EPOLLIN);
     }
     void Loop() override {
-        this->active_ = true;
+        this->active_.store(true);
         this->eventLoop();
     }
     void Stop() override {
-        this->active_ = false;
+        this->active_.store(false);
         this->Wake(QUIT);
     }
     void Wake(WakeUpEvent ev) { this->control_fd_.Write(ev); };
@@ -125,15 +125,15 @@ private:
                 continue;
             }
 
-            for(int i = 0; i < events_size; ++i) {
-
-                if(!this->active_) {
-                    break;
-                }
+            for(int i = 0; i < events_size && this->active_; ++i) {
 
                 uint32_t ev = events[i].events;
 
                 if(events[i].data.fd == this->control_fd_.Get()) {
+                    auto val = this->control_fd_.Read();
+                    if(val == QUIT) {
+                        break;
+                    }
                     continue;
                 }
 
@@ -169,10 +169,10 @@ private:
     }
 
 private:
-    network::Epoll ep;
-    uint16_t       fd_count_{0};
-    Socket         control_fd_; // event_fd
-    bool           active_{false};
+    Epoll            ep;
+    uint16_t         fd_count_{0};
+    Socket           control_fd_; // event_fd
+    std::atomic_bool active_{false};
 
     std::unordered_set<IOHandle *> ready_to_del_;
 };
