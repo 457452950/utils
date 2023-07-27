@@ -24,14 +24,7 @@ public:
         acceptor_.Close();
     }
 
-    bool Open(AF_FAMILY family) {
-        bool ok = false;
-
-        ok = this->acceptor_.Open(family);
-        if(!ok) {
-            return false;
-        }
-    }
+    bool Open(AF_FAMILY family) { return this->acceptor_.Open(family); }
 
     bool Start(const NetAddress &info) {
         bool ok = false;

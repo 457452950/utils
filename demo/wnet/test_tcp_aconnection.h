@@ -116,6 +116,12 @@ void server_thread() {
     auto accp_channel = new Acceptor(ep);
     DEFER([accp_channel]() { delete accp_channel; });
 
+    if(!accp_channel->Open(local_ed.GetFamily())) {
+        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
+        abort();
+    }
+    
+
     if(!accp_channel->Start(local_ed)) {
         LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
         abort();

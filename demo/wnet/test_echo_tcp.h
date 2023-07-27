@@ -133,12 +133,24 @@ void server_thread() {
         delete accp_channel2;
     });
 
+    if(!accp_channel->Open(local_ed.GetFamily())) {
+        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
+        abort();
+    }
+
+
     if(!accp_channel->Start(local_ed)) {
         LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
         abort();
     }
     accp_channel->OnAccept = ac_cb;
     accp_channel->OnError  = err_cb;
+
+    if(!accp_channel2->Open(local2_ed.GetFamily())) {
+        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
+        abort();
+    }
+    
     if(!accp_channel2->Start(local2_ed)) {
         LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
         abort();
