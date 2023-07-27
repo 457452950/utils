@@ -66,6 +66,7 @@ if (UNIX)
                 include/wutils/network/easy/Epoll.h
                 include/wutils/network/easy/Select.h
                 include/wutils/network/easy/Tools.h
+                include/wutils/network/easy/Event.h
 
                 include/wutils/network/io_event/IOEvent.h
                 include/wutils/network/io_event/IOContext.h
