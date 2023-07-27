@@ -29,11 +29,6 @@ public:
 
     // control
     bool AddSocket(IOHandle *handler) override {
-        auto it = this->ready_to_del_.find(handler);
-        if(it != this->ready_to_del_.end()) {
-            this->ready_to_del_.erase(it);
-        }
-
         epoll_data_t ep_data{};
 
         ep_data.ptr = handler;
