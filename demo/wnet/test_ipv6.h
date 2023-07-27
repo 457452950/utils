@@ -83,7 +83,7 @@ void server_thread() {
 
     DEFER([res]() { ::close(res); });
 
-    auto [ip, port] = NetAddress::Dump(en);
+    auto [ip, port] = en.Dump();
     cout << "client : ip " << ip << " port:" << port << endl;
 }
 

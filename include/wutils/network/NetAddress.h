@@ -35,7 +35,7 @@ struct NetAddress {
         return *this;
     }
 
-    static NetAddress *MakeWEndPointInfo(const std::string &address, uint16_t port, AF_FAMILY family) {
+    static NetAddress *Make(const std::string &address, uint16_t port, AF_FAMILY family) {
         auto ep = new NetAddress();
 
         if(ep->Assign(address, port, family)) {
@@ -49,7 +49,6 @@ struct NetAddress {
     bool Assign(const std::string &address, uint16_t port, AF_FAMILY family) {
         this->family_ = family;
         this->data_   = make_unique<uint8_t[]>(GetSockSize());
-        bool ok       = false;
 
         switch(this->family_) {
         case AF_FAMILY::INET:
@@ -126,13 +125,13 @@ struct NetAddress {
     AF_FAMILY       GetFamily() const { return family_; }
     unsigned long   GetSockSize() const { return family_ == v4::FAMILY ? v4::SOCKADDR_LEN : v6::SOCKADDR_LEN; }
 
-    static std::tuple<std::string, uint16_t> Dump(const NetAddress &info) {
+    std::tuple<std::string, uint16_t> Dump() const {
         std::string s;
         uint16_t    p{0};
 
         do {
-            if(info.family_ == v4::FAMILY) {
-                auto *SockAddrIn = reinterpret_cast<const struct sockaddr_in *>(info.data_.get());
+            if(this->family_ == v4::FAMILY) {
+                auto *SockAddrIn = reinterpret_cast<const struct sockaddr_in *>(this->data_.get());
 
                 if(!IpAddrToString(SockAddrIn->sin_addr, s)) {
                     break;
@@ -141,8 +140,8 @@ struct NetAddress {
                     break;
                 }
 
-            } else if(info.family_ == v6::FAMILY) {
-                auto *sockAddrIn6 = reinterpret_cast<const struct sockaddr_in6 *>(info.data_.get());
+            } else if(this->family_ == v6::FAMILY) {
+                auto *sockAddrIn6 = reinterpret_cast<const struct sockaddr_in6 *>(this->data_.get());
 
                 if(!IpAddrToString(sockAddrIn6->sin6_addr, s)) {
                     break;

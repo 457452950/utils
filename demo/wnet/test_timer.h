@@ -26,7 +26,7 @@ inline void test_timer() {
     signal(SIGPIPE, handle_pipe); // 自定义处理函数
     signal(SIGINT, handle_pipe);  // 自定义处理函数
 
-    context = std::make_shared<event::EpollContext>();
+    context = event::EpollContext::Create();
 
     context->Init();
 

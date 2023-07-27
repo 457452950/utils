@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #ifndef UTIL_TCPCONNECTION_H
 #define UTIL_TCPCONNECTION_H
 
@@ -188,35 +189,36 @@ public:
     void ShutDown(SHUT_DOWN how = SHUT_DOWN::RDWR) { this->socket_.ShutDown(how); }
 
     void ASend(const Data &data) {
-        int64_t len = 0;
+        //        int64_t len = 0;
 
         if(!this->send_buffers_.empty()) {
             // need to copy data,
             this->send_buffers_.push_back(CopyData(data));
         } else { // try to send
 
-            send_index_ = this->socket_.SendSome(data.data, data.bytes);
+            int64_t len = this->socket_.SendSome(data.data, data.bytes);
 
             // send complete
-            if(send_index_ == data.bytes) {
+            if(len == data.bytes) {
                 handleSent(data);
                 return;
             }
             // send error
-            else if(send_index_ == -1) {
+            else if(len == -1) {
                 auto err = SystemError::GetSysErrCode();
                 if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
                     handleError(err);
                     return;
                 }
-                send_index_ = 0;
+                len = 0;
             }
             // connection close
-            else if(send_index_ == 0) {
+            else if(len == 0) {
                 handleDisconnection();
                 return;
             }
 
+            send_index_ = len;
             //
             this->send_buffers_.push_back(CopyData(data));
         }

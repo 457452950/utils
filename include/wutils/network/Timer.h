@@ -13,7 +13,7 @@ namespace wutils::network {
 
 class Timer : public event::IOReadEvent {
 public:
-    Timer(weak_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
+    explicit Timer(weak_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
         handle_->listener_ = this;
         handle_->context_  = std::move(context);
         handle_->socket_   = this->socket_;
@@ -103,7 +103,7 @@ private:
             return;
         }
 
-        for(int i = 0; i < count; ++i) {
+        for(uint64_t i = 0; i < count; ++i) {
             if(IsActive()) {
                 OnTime();
             }
@@ -121,7 +121,7 @@ private:
 private:
     unique_ptr<event::IOHandle> handle_;
     timer::Socket               socket_;
-    int32_t                     times_;
+    int32_t                     times_{};
 };
 
 } // namespace wutils::network

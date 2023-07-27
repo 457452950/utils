@@ -18,23 +18,21 @@ namespace wutils::network::event {
 class SelectContext final : public IOContext {
     static inline constexpr eventfd_t WAKE_UP = 1;
 
-public:
     SelectContext() = default;
 
+public:
     ~SelectContext() override {
         delete this->write_set_;
         delete this->read_set_;
     };
+
+    static shared_ptr<SelectContext> Create() { return shared_ptr<SelectContext>(new SelectContext()); }
 
     // control
     bool AddSocket(IOHandle *handler) override {
         // select fd 上限 1024
         if(this->fd_count_ >= 1024) {
             return false;
-        }
-
-        if(del_set_.count(handler)) {
-            del_set_.erase(handler);
         }
 
         if(this->handler_set_.count(handler)) {

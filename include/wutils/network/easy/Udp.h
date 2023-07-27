@@ -50,7 +50,7 @@ public:
         if(remote) {
             remote->Assign((sockaddr *)&sa, salen);
         }
-        return len;
+        return rlen;
     }
     int64_t Send(const uint8_t *data, uint32_t len) {
         assert(len < MAX_WAN_UDP_MSS);

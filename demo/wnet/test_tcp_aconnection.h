@@ -92,7 +92,7 @@ std::shared_ptr<TestSession>         se;
 std::shared_ptr<event::EpollContext> ep_;
 
 inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
-    auto info = NetAddress::Dump(remote);
+    auto info = remote.Dump();
 
     cout << "accept : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
     auto ch = std::make_shared<AConnection>(local, remote, std::move(handler));
@@ -104,7 +104,7 @@ inline auto err_cb = [](wutils::SystemError error) { std::cout << error << std::
 void server_thread() {
     using namespace srv;
 
-    auto ep = std::make_shared<event::EpollContext>();
+    auto ep = event::EpollContext::Create();
     ep->Init();
     ep_ = ep;
 
@@ -120,7 +120,7 @@ void server_thread() {
         LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
         abort();
     }
-    
+
 
     if(!accp_channel->Start(local_ed)) {
         LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();

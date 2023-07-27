@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #ifndef UTIL_EVENT_EPOLLCONTEXT_H
 #define UTIL_EVENT_EPOLLCONTEXT_H
 
@@ -7,6 +8,7 @@
 #include "IOContext.h"
 #include "wutils/network/easy/Epoll.h"
 #include "wutils/network/easy/Event.h"
+#include "wutils/SharedPtr.h"
 
 namespace wutils::network::event {
 
@@ -16,8 +18,9 @@ class EpollContext final : public IOContext {
         QUIT = 1,
     };
 
-public:
     EpollContext() = default;
+
+public:
     ~EpollContext() override {
         this->Stop();
 
@@ -26,6 +29,8 @@ public:
         ep.Close();
         this->ready_to_del_.clear();
     }
+
+    static shared_ptr<EpollContext> Create() { return shared_ptr<EpollContext>(new EpollContext()); }
 
     // control
     bool AddSocket(IOHandle *handler) override {
