@@ -6,19 +6,22 @@
 
 #include "IOContext.h"
 #include "wutils/network/easy/Epoll.h"
+#include "wutils/network/easy/Event.h"
 
 namespace wutils::network::event {
 
 
 class EpollContext final : public IOContext {
-    static inline constexpr eventfd_t WAKE_UP = 1;
+    enum WakeUpEvent : eventfd_t {
+        QUIT = 1,
+    };
 
 public:
     EpollContext() = default;
     ~EpollContext() override {
         this->Stop();
 
-        ::close(wakeup_fd_);
+        this->control_fd_.Close();
 
         ep.Close();
         this->ready_to_del_.clear();
@@ -64,13 +67,12 @@ public:
             return false;
         }
 
-        wakeup_fd_ = eventfd(0, 0);
-        if(wakeup_fd_ == INVALID_SOCKET) {
+        if(!control_fd_) {
             return false;
         }
 
         this->fd_count_ = 1;
-        return this->ep.AddSocket(wakeup_fd_, EPOLLIN);
+        return this->ep.AddSocket(control_fd_.Get(), EPOLLIN);
     }
     void Loop() override {
         this->active_ = true;
@@ -78,9 +80,9 @@ public:
     }
     void Stop() override {
         this->active_ = false;
-        this->Wake();
+        this->Wake(QUIT);
     }
-    void Wake() { eventfd_write(this->wakeup_fd_, WAKE_UP); };
+    void Wake(WakeUpEvent ev) { this->control_fd_.Write(ev); };
 
 private:
     static uint32_t parseToEpollEvent(uint8_t events) {
@@ -93,6 +95,8 @@ private:
         }
         return ev;
     }
+    void realDel() { this->ready_to_del_.clear(); }
+
     void eventLoop() {
 
         std::unique_ptr<epoll_event[]> events;
@@ -105,9 +109,8 @@ private:
 
             if(!this->active_) {
                 std::cout << "close !!!" << std::endl;
-                eventfd_t cnt;
-                eventfd_read(this->wakeup_fd_, &cnt);
-                if(cnt == WAKE_UP) {
+                auto ev = this->control_fd_.Read();
+                if(ev == QUIT) {
                     break;
                 } else {
                     abort();
@@ -128,8 +131,13 @@ private:
                     break;
                 }
 
-                uint32_t ev      = events[i].events;
-                auto    *pHandle = static_cast<IOHandle *>(events[i].data.ptr);
+                uint32_t ev = events[i].events;
+
+                if(events[i].data.fd == this->control_fd_.Get()) {
+                    continue;
+                }
+
+                auto *pHandle = static_cast<IOHandle *>(events[i].data.ptr);
 
                 // check
                 assert(pHandle);
@@ -159,12 +167,11 @@ private:
             this->realDel();
         }
     }
-    void realDel() { this->ready_to_del_.clear(); }
 
 private:
     network::Epoll ep;
     uint16_t       fd_count_{0};
-    int            wakeup_fd_{INVALID_SOCKET}; // event_fd
+    Socket         control_fd_; // event_fd
     bool           active_{false};
 
     std::unordered_set<IOHandle *> ready_to_del_;

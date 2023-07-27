@@ -217,7 +217,7 @@ public:
     }
 
     bool AddSocket(socket_t socket, uint32_t events) {
-        assert(socket != -1);
+        assert(socket != INVALID_SOCKET);
         assert(events > 0);
 
         if(!EpollAddSocket(this->epoll_fd_, socket, events)) {
