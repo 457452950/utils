@@ -3,6 +3,7 @@
 #define UTILS_LOGGER_BASE_H
 
 #include <string>
+#include <unistd.h> // getpid
 
 #include "wutils/Format.h"
 #include "wutils/SharedPtr.h"

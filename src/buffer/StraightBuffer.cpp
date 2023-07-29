@@ -60,11 +60,6 @@ void StraightBuffer::SkipReadBytes(uint64_t bytes) {
         return;
     }
 
-    uint64_t len = this->offset_ - bytes;
-
-    //    for(uint64_t i = 0; i < len; ++i) {
-    //        this->buffer_[i] = this->buffer_[i + bytes];
-    //    }
     std::copy(this->buffer_.data() + bytes, this->buffer_.data() + this->offset_, this->buffer_.data());
 
     this->offset_ -= bytes;

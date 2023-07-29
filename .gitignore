@@ -36,3 +36,5 @@ build.ninja
 *.pem
 demo/bin/
 *.log
+*.cbp
+.VSCodeCounter

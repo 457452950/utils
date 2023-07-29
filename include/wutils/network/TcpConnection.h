@@ -15,11 +15,11 @@ namespace wutils::network {
 
 struct Buffer {
     uint8_t *buffer{nullptr};
-    uint32_t buffer_len{0};
+    uint64_t buffer_len{0};
 };
 struct Data {
     const uint8_t *data{nullptr};
-    uint32_t       bytes{0};
+    uint64_t       bytes{0};
 };
 
 HEAD_ONLY Data CopyData(const Data &data) {
@@ -63,7 +63,12 @@ public:
     using SHUT_DOWN = tcp::SHUT_DOWN;
     void ShutDown(SHUT_DOWN how = SHUT_DOWN::RDWR) { this->socket_.ShutDown(how); }
 
-    void Send(const uint8_t *data, uint32_t bytes) {
+    void Send(const uint8_t *data, uint64_t bytes) {
+        if(bytes > MAX_CHANNEL_SEND_SIZE) {
+            std::cerr << "warn : bytes{" << bytes << "} is logger then max send size " << MAX_CHANNEL_SEND_SIZE << "."
+                      << std::endl;
+        }
+
         int64_t len = 0;
         if(send_buffer_.IsEmpty()) {
             len = this->socket_.SendSome(data, bytes);
@@ -79,14 +84,14 @@ public:
         } else if(len == 0) {
             handleDisconnection();
             return;
-        } else if(len == bytes) {
-            // sent all
-            return;
         }
 
-        this->send_buffer_.Write(data + len, bytes - len);
-        this->handle_->SetEvents(event::EventType::EV_OUT);
-        this->handle_->Enable();
+        bytes -= len;
+        if(bytes) { // has left
+            this->send_buffer_.Write(data + len, bytes - len);
+            this->handle_->SetEvents(event::EventType::EV_OUT);
+            this->handle_->Enable();
+        }
     }
     void Send(Data data) { this->Send(data.data, data.bytes); }
 
@@ -163,24 +168,23 @@ public:
 
         socket_ = handle_->socket_;
         assert(socket_);
+
+        this->send_buffer_.Init(0);
     };
     ~AConnection() override {
         handle_->DisEnable();
         handle_.reset();
         socket_.Close();
 
-        for(Data &it : this->send_buffers_) {
-            delete[] it.data;
-        }
-        this->send_buffers_.clear();
+        this->send_buffer_.Release();
     }
 
     class Listener {
     public:
-        virtual void OnDisconnect()             = 0;
-        virtual void OnReceived(Buffer buffer)  = 0;
-        virtual void OnSent(Data data)          = 0;
-        virtual void OnError(SystemError error) = 0;
+        virtual void OnReceived(uint64_t bytes_recved) = 0;
+        virtual void OnSent(uint64_t bytes_sent)       = 0;
+        virtual void OnError(SystemError error)        = 0;
+        virtual void OnDisconnect()                    = 0;
 
         virtual ~Listener() = default;
     } *listener_{nullptr};
@@ -189,22 +193,17 @@ public:
     void ShutDown(SHUT_DOWN how = SHUT_DOWN::RDWR) { this->socket_.ShutDown(how); }
 
     void ASend(const Data &data) {
-        //        int64_t len = 0;
+        int64_t len = 0;
 
-        if(!this->send_buffers_.empty()) {
-            // need to copy data,
-            this->send_buffers_.push_back(CopyData(data));
+        if(!this->send_buffer_.IsEmpty()) {
+            this->send_buffer_.Write(data.data, data.bytes);
+
         } else { // try to send
 
-            int64_t len = this->socket_.SendSome(data.data, data.bytes);
+            len = this->socket_.SendSome(data.data, data.bytes);
 
-            // send complete
-            if(len == data.bytes) {
-                handleSent(data);
-                return;
-            }
             // send error
-            else if(len == -1) {
+            if(len == -1) {
                 auto err = SystemError::GetSysErrCode();
                 if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
                     handleError(err);
@@ -218,23 +217,35 @@ public:
                 return;
             }
 
-            send_index_ = len;
-            //
-            this->send_buffers_.push_back(CopyData(data));
+            // send complete
+            if(len == data.bytes) {
+                handleSent(len);
+                return;
+            }
+
+            this->send_buffer_.Write(data.data + len, data.bytes - len);
         }
 
         this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_OUT);
         this->handle_->Enable();
+
+        handleSent(len);
     }
 
-    enum ARecvFlag : int8_t { NoRecv = -1, Once = 0, Keep = 1 };
+    enum ARecvFlag : int8_t {
+        NoRecv = -1,
+        Once   = 0,
+        Keep   = 1,
+    };
 
     void AReceive(Buffer buffer, ARecvFlag flag = Once) {
         this->recv_buffer_ = buffer;
         this->arecv_flag_  = flag;
 
-        this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_IN);
-        this->handle_->Enable();
+        if(arecv_flag_ != NoRecv) {
+            this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_IN);
+            this->handle_->Enable();
+        }
     }
 
     const NetAddress &GetLocalAddress() { return local_; }
@@ -251,14 +262,14 @@ private:
             listener_->OnDisconnect();
         }
     }
-    void handleRecv(const Buffer &buffer) {
+    void handleRecv(uint64_t bytes_recved) {
         if(listener_) {
-            listener_->OnReceived(buffer);
+            listener_->OnReceived(bytes_recved);
         }
     }
-    void handleSent(const Data &data) {
+    void handleSent(uint64_t bytes_sent) {
         if(listener_) {
-            listener_->OnSent(data);
+            listener_->OnSent(bytes_sent);
         }
     }
 
@@ -276,21 +287,19 @@ private:
             return;
         }
 
-        if(arecv_flag_ == Once)
-            arecv_flag_ = NoRecv;
-
-        handleRecv({.buffer = recv_buffer_.buffer, .buffer_len = (uint32_t)len});
-
-        if(arecv_flag_ == NoRecv) {
+        if(arecv_flag_ == Once) {
             auto e = this->handle_->GetEvents();
             this->handle_->SetEvents(e & (~event::EventType::EV_IN));
+            arecv_flag_ = NoRecv;
         }
+
+        handleRecv(len);
     }
     void IOOut() override {
-        while(!this->send_buffers_.empty()) {
-            auto it = this->send_buffers_.begin();
+        int64_t len = 0;
 
-            auto len = this->socket_.SendSome(it->data + send_index_, it->bytes - send_index_);
+        if(!this->send_buffer_.IsEmpty()) {
+            len = this->socket_.SendSome(this->send_buffer_.PeekRead(), this->send_buffer_.GetReadableBytes());
 
             // send error
             if(len == -1) {
@@ -307,23 +316,16 @@ private:
                 return;
             }
 
-            send_index_ += len;
-            // send complete
-            if(send_index_ == it->bytes) {
-                handleSent(it.operator*());
-                delete[] it->data;
-                this->send_buffers_.erase(it);
-                send_index_ = 0;
-            } else {
-                break;
-            }
+            this->send_buffer_.SkipReadBytes(len);
         }
 
-        if(this->send_buffers_.empty()) {
+        if(this->send_buffer_.IsEmpty()) {
             auto flag = this->handle_->GetEvents();
             this->handle_->SetEvents(flag & (~event::EventType::EV_OUT));
             return;
         }
+
+        handleSent(len);
     }
 
 private:
@@ -334,11 +336,10 @@ private:
     unique_ptr<event::IOHandle> handle_;
 
     // buffer
-    Buffer          recv_buffer_;
-    std::list<Data> send_buffers_;
+    Buffer              recv_buffer_;
+    wutils::ChainBuffer send_buffer_;
     // extra
-    ARecvFlag       arecv_flag_;
-    uint32_t        send_index_{0};
+    ARecvFlag           arecv_flag_;
 };
 
 } // namespace wutils::network

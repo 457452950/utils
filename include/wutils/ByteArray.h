@@ -22,9 +22,9 @@ public:
     ByteArray &operator=(const ByteArray &other) = default;
 
 
-    auto size() const { return this->buffer_.size(); }
-    void resize(uint64_t new_size) { this->buffer_.resize(new_size); }
-    void clear() { this->buffer_.clear(); }
+    uint64_t size() const { return this->buffer_.size(); }
+    void     resize(uint64_t new_size) { this->buffer_.resize(new_size); }
+    void     clear() { this->buffer_.clear(); }
 
     uint8_t       *data() { return this->buffer_.data(); }
     const uint8_t *data() const { return this->buffer_.data(); }

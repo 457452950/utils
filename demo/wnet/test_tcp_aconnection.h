@@ -71,13 +71,13 @@ public:
         std::cout << "disconnect" << std::endl;
         this->ch.reset();
     }
-    void OnReceived(Buffer buffer) override {
+    void OnReceived(uint64_t len) override {
         //        cout << "recv " << std::string((char *)buffer.buffer, (int)buffer.buffer_len) << " size " <<
         //        buffer.buffer_len
         //             << endl;
-        ch->ASend({buffer.buffer, buffer.buffer_len});
+        ch->ASend({this->buffer_.buffer, len});
     }
-    void OnSent(Data data) override { assert(data.data == buffer_.buffer); }
+    void OnSent(uint64_t len) override {}
     void OnError(wutils::SystemError error) override {
         std::cout << error << endl;
         this->ch.reset();
@@ -126,6 +126,9 @@ void server_thread() {
         LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
         abort();
     }
+    auto [ip, port] = local_ed.Dump();
+    LOG(LINFO, "server") << "listen on " << ip << " " << port;
+
     accp_channel->OnAccept = ac_cb;
     accp_channel->OnError  = err_cb;
 
