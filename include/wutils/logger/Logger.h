@@ -81,7 +81,14 @@ public:
 
         if(this->thread_ != nullptr && this->thread_->joinable()) {
             this->thread_->join();
+            delete thread_;
+            thread_ = nullptr;
         }
+
+        for(auto it : this->files_) {
+            delete it;
+        }
+        this->files_.clear();
     }
 
     void Commit(const std::string &message) {

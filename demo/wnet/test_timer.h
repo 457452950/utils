@@ -1,6 +1,8 @@
 #ifndef UTILS_DEMO_WNET_TEST_TIMER_H
 #define UTILS_DEMO_WNET_TEST_TIMER_H
 
+#include <signal.h>
+
 #include "wutils/logger/StreamLogger.h"
 #include "wutils/network/Network.h"
 

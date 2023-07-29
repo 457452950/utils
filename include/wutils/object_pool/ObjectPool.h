@@ -20,8 +20,7 @@ enum IncreaseType {
  *
  * @tparam T
  * @example
- *  class Example \n
- *  :public ObjectPool\<Example\>::Object {}; \n\n
+ *  class Example : public ObjectPool\<Example\>::Object {}; \n
  *  Example* ex1 = new Example(); \n
  *  delete ex1; \n
  *  Example ex2[] = new Example[2]; \n

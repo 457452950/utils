@@ -1,6 +1,7 @@
 #ifndef UTILS_DEMO_WNET_TEST_TCPCHANNEL_H
 #define UTILS_DEMO_WNET_TEST_TCPCHANNEL_H
 
+#include <signal.h>
 #include <iostream>
 #include <utility>
 

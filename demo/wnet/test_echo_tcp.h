@@ -183,6 +183,9 @@ inline void test_tcp_echo() {
 
     thread sr(server_thread);
 
+    std::this_thread::sleep_for(30s);
+    ep_->Stop();
+
     sr.join();
 
     if(ep_)

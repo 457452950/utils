@@ -1,28 +1,19 @@
-#include <csignal>
-#include <iostream>
-#include <memory>
-
-#include <sys/uio.h>
+#include <wutils/logger/StreamLogger.h>
 
 #include "test_timer.h"
 #include "test_ipv6.h"
-
+//
 #include "test_tcp_connection.h"
 #include "test_tcp_aconnection.h"
-
-#include "wutils/network/UdpPoint.h"
-
-#include "test_tcpserver.h"
-#include "test_udp.h"
-#include "test_udpchannel.h"
-
+//
+// #include "test_tcpserver.h"
+// #include "test_udp.h"
+// #include "test_udpchannel.h"
+//
 #include "test_echo_tcp.h"
 
-using namespace std;
-using namespace wutils::network;
 
 int main() {
-
     Logger::GetInstance()->LogCout()->SetLogLevel(LDEBUG)->Start();
 
     // signal(SIGPIPE, handle_pipe); // 自定义处理函数
@@ -38,4 +29,7 @@ int main() {
     // test_myChannel();
 
     test_tcp_echo();
+
+    Logger::GetInstance()->StopAndWait();
+    return 0;
 }
