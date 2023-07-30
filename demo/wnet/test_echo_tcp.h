@@ -25,10 +25,10 @@ namespace listen {
 // constexpr int       port   = 4000;
 // constexpr AF_FAMILY family = AF_FAMILY::INET6;
 constexpr char     *ip      = "0.0.0.0";
-constexpr int       port    = 4000;
+constexpr int       port    = 12000;
 constexpr AF_FAMILY family  = AF_FAMILY::INET;
 constexpr char     *ip2     = "0.0.0.0";
-constexpr int       port2   = 4001;
+constexpr int       port2   = 12001;
 constexpr AF_FAMILY family2 = AF_FAMILY::INET;
 } // namespace listen
 } // namespace srv
@@ -96,14 +96,14 @@ std::shared_ptr<TestASession> se2;
 inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
     auto info = remote.Dump();
 
-    cout << "accept : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
+    LOG(LINFO, "accept2") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info);
     auto ch = std::make_shared<Connection>(local, remote, std::move(handler));
     se      = std::make_shared<TestSession>(ch);
 };
 inline auto ac2_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
     auto info = remote.Dump();
 
-    cout << "accept : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
+    LOG(LINFO, "accept2") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info);
     auto ch = std::make_shared<AConnection>(local, remote, std::move(handler));
     se2     = std::make_shared<TestASession>(ch);
 };
@@ -146,6 +146,9 @@ void server_thread() {
     accp_channel->OnAccept = ac_cb;
     accp_channel->OnError  = err_cb;
 
+    auto info = accp_channel->GetLocal().Dump();
+    LOG(LINFO, "server") << std::get<0>(info) << " " << std::get<1>(info);
+
     if(!accp_channel2->Open(local2_ed.GetFamily())) {
         LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
         abort();
@@ -157,6 +160,9 @@ void server_thread() {
     }
     accp_channel2->OnAccept = ac2_cb;
     accp_channel2->OnError  = err_cb;
+
+    info = accp_channel2->GetLocal().Dump();
+    LOG(LINFO, "server") << std::get<0>(info) << " " << std::get<1>(info);
 
     ep->Loop();
     cout << wutils::SystemError::GetSysErrCode() << endl;

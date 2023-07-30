@@ -21,7 +21,7 @@ namespace test_ipv6_config {
 namespace srv {
 namespace listen {
 constexpr char     *ip     = "0:0:0:0:0:0:0:0";
-constexpr int       port   = 4000;
+constexpr int       port   = 12000;
 constexpr AF_FAMILY family = AF_FAMILY::INET6;
 constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 } // namespace listen
@@ -31,7 +31,7 @@ namespace cli {
 
 namespace connect {
 constexpr char     *ip     = "0:0:0:0:0:0:0:0";
-constexpr int       port   = 4000;
+constexpr int       port   = 12000;
 constexpr AF_FAMILY family = AF_FAMILY::INET6;
 constexpr AF_PROTOL protol = AF_PROTOL::TCP;
 } // namespace connect

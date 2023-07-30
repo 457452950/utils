@@ -34,7 +34,7 @@ namespace listen {
 // constexpr AF_FAMILY family = AF_FAMILY::INET6;
 #elif defined TEST_IPV4
 constexpr char     *ip     = "0.0.0.0";
-constexpr int       port   = 4000;
+constexpr int       port   = 12000;
 constexpr AF_FAMILY family = AF_FAMILY::INET;
 #endif
 } // namespace listen
@@ -49,7 +49,7 @@ namespace connect {
 // constexpr AF_FAMILY family = AF_FAMILY::INET6;
 #elif defined TEST_IPV4
 constexpr char     *ip     = "0.0.0.0";
-constexpr int       port   = 4000;
+constexpr int       port   = 12000;
 constexpr AF_FAMILY family = AF_FAMILY::INET;
 #endif
 } // namespace connect
@@ -94,7 +94,7 @@ std::shared_ptr<event::EpollContext> ep_;
 inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
     auto info = remote.Dump();
 
-    cout << "accept : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
+    LOG(LINFO, "accept") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
     auto ch = std::make_shared<AConnection>(local, remote, std::move(handler));
     se      = std::make_shared<TestSession>(ch);
 };
@@ -121,16 +121,16 @@ void server_thread() {
         abort();
     }
 
-
     if(!accp_channel->Start(local_ed)) {
         LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
         abort();
     }
-    auto [ip, port] = local_ed.Dump();
-    LOG(LINFO, "server") << "listen on " << ip << " " << port;
 
     accp_channel->OnAccept = ac_cb;
     accp_channel->OnError  = err_cb;
+
+    auto info = accp_channel->GetLocal().Dump();
+    LOG(LINFO, "server") << std::get<0>(info) << " " << std::get<1>(info);
 
     ep->Loop();
     cout << wutils::SystemError::GetSysErrCode() << endl;

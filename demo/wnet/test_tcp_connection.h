@@ -22,7 +22,7 @@ namespace listen {
 // constexpr int       port   = 4000;
 // constexpr AF_FAMILY family = AF_FAMILY::INET6;
 constexpr char     *ip     = "0.0.0.0";
-constexpr int       port   = 4000;
+constexpr int       port   = 12000;
 constexpr AF_FAMILY family = AF_FAMILY::INET;
 } // namespace listen
 } // namespace srv
@@ -34,7 +34,7 @@ namespace connect {
 // constexpr int       port   = 4000;
 // constexpr AF_FAMILY family = AF_FAMILY::INET6;
 constexpr char     *ip     = "0.0.0.0";
-constexpr int       port   = 4000;
+constexpr int       port   = 12000;
 constexpr AF_FAMILY family = AF_FAMILY::INET;
 } // namespace connect
 
@@ -67,7 +67,7 @@ std::shared_ptr<event::EpollContext> ep_;
 inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
     auto info = remote.Dump();
 
-    cout << "accept : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
+    LOG(LINFO, "accept") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
     auto ch = std::make_shared<Connection>(local, remote, std::move(handler));
     se      = std::make_shared<TestSession>(ch);
 };
@@ -100,6 +100,9 @@ void server_thread() {
     }
     accp_channel->OnAccept = ac_cb;
     accp_channel->OnError  = err_cb;
+
+    auto info = accp_channel->GetLocal().Dump();
+    LOG(LINFO, "server") << std::get<0>(info) << " " << std::get<1>(info);
 
     ep->Loop();
     cout << wutils::SystemError::GetSysErrCode() << endl;
