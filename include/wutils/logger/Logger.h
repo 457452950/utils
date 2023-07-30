@@ -163,7 +163,7 @@ private:
     std::condition_variable_any cv_;
 };
 
-InstanceInit(nullptr, Logger);
+inline InstanceInit(nullptr, Logger);
 
 } // namespace wutils::log
 
