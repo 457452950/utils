@@ -13,6 +13,9 @@ using namespace wutils::log;
 #ifdef LOG_BASIC_PATH
 const std::string com_path = LOG_BASIC_PATH;
 #else
+#ifndef NDEBUG
+#pragma message("do not defined LOG_BASIC_PATH! will use '/' for basic path")
+#endif
 const std::string com_path = "/";
 #endif
 

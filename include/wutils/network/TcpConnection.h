@@ -203,7 +203,7 @@ public:
             len = this->socket_.SendSome(data.data, data.bytes);
 
             // send error
-            if(len == -1) {
+            if(len < 0) {
                 auto err = SystemError::GetSysErrCode();
                 if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
                     handleError(err);
