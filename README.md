@@ -5,3 +5,4 @@
 3. hiredis (based v1.0.2)
 4. libevent (based v2.1.12)
 5. libuv (based v1.44.2)
+6. asio (based v1.28.0)
