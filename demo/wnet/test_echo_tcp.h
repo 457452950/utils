@@ -143,7 +143,7 @@ void server_thread() {
         LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
         abort();
     }
-    accp_channel->OnAccept = ac_cb;
+    accp_channel->OnAccept = std::bind(ac_cb, local_ed, std::placeholders::_1, std::placeholders::_2);
     accp_channel->OnError  = err_cb;
 
     auto info = accp_channel->GetLocal().Dump();
@@ -158,7 +158,7 @@ void server_thread() {
         LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
         abort();
     }
-    accp_channel2->OnAccept = ac2_cb;
+    accp_channel2->OnAccept = std::bind(ac2_cb, local2_ed, std::placeholders::_1, std::placeholders::_2);
     accp_channel2->OnError  = err_cb;
 
     info = accp_channel2->GetLocal().Dump();

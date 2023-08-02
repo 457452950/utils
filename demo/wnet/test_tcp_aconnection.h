@@ -91,11 +91,12 @@ public:
 std::shared_ptr<TestSession>         se;
 std::shared_ptr<event::EpollContext> ep_;
 
-inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
-    auto info = remote.Dump();
-
-    LOG(LINFO, "accept") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info) << std::endl;
-    auto ch = std::make_shared<AConnection>(local, remote, std::move(handler));
+inline auto ac_cb = [](const NetAddress &local, NetAddress *remote, unique_ptr<event::IOHandle> handler) {
+    auto info = remote->Dump();
+    auto lo   = local.Dump();
+    LOG(LINFO, "accept") << "local " << std::get<0>(lo) << " " << std::get<1>(lo) << " accept : info "
+                         << std::get<0>(info) << " " << std::get<1>(info);
+    auto ch = std::make_shared<AConnection>(local, *remote, std::move(handler));
     se      = std::make_shared<TestSession>(ch);
 };
 inline auto err_cb = [](wutils::SystemError error) { std::cout << error << std::endl; };
@@ -113,20 +114,25 @@ void server_thread() {
         return;
     }
 
-    auto accp_channel = new Acceptor(ep);
-    DEFER([accp_channel]() { delete accp_channel; });
+    auto accp_channel = new AAcceptor(ep);
+    auto remote       = new NetAddress;
+
+    DEFER([=]() {
+        delete accp_channel;
+        delete remote;
+    });
 
     if(!accp_channel->Open(local_ed.GetFamily())) {
         LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
         abort();
     }
 
-    if(!accp_channel->Start(local_ed)) {
+    if(!accp_channel->Start(local_ed, remote, AAcceptor::Keep)) {
         LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
         abort();
     }
 
-    accp_channel->OnAccept = ac_cb;
+    accp_channel->OnAccept = std::bind(ac_cb, local_ed, remote, std::placeholders::_1);
     accp_channel->OnError  = err_cb;
 
     auto info = accp_channel->GetLocal().Dump();

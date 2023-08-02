@@ -237,14 +237,15 @@ public:
         Once   = 0,
         Keep   = 1,
     };
-
-    void AReceive(Buffer buffer, ARecvFlag flag = Once) {
+    void AReceive(Buffer buffer, ARecvFlag flag) {
         this->recv_buffer_ = buffer;
         this->arecv_flag_  = flag;
 
         if(arecv_flag_ != NoRecv) {
             this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_IN);
             this->handle_->Enable();
+        } else {
+            this->handle_->SetEvents(handle_->GetEvents() & (~event::EventType::EV_IN));
         }
     }
 
@@ -287,6 +288,7 @@ private:
             return;
         }
 
+        assert(arecv_flag_ != NoRecv);
         if(arecv_flag_ == Once) {
             auto e = this->handle_->GetEvents();
             this->handle_->SetEvents(e & (~event::EventType::EV_IN));
@@ -339,7 +341,7 @@ private:
     Buffer              recv_buffer_;
     wutils::ChainBuffer send_buffer_;
     // extra
-    ARecvFlag           arecv_flag_;
+    ARecvFlag           arecv_flag_{NoRecv};
 };
 
 } // namespace wutils::network

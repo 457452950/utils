@@ -161,9 +161,9 @@ public:
 
     class Listener {
     public:
-        virtual void OnReceiveFrom(UdpBuffer buffer, NetAddress *remote) = 0;
-        virtual void OnSentTo(Package package, const NetAddress &remote) = 0;
-        virtual void OnError(SystemError error)                          = 0;
+        virtual void OnReceiveFrom(uint64_t len)                      = 0;
+        virtual void OnSentTo(uint64_t len, const NetAddress &remote) = 0;
+        virtual void OnError(SystemError error)                       = 0;
 
         virtual ~Listener() = default;
     } *listener_{nullptr};
@@ -208,7 +208,7 @@ public:
             }
             return;
         }
-        handleSendto(package, this->remote_);
+        handleSendto(len, this->remote_);
     }
 
     void ASendTo(const uint8_t *data, uint16_t bytes, const NetAddress &remote) {
@@ -226,15 +226,26 @@ public:
             }
             return;
         }
-        handleSendto(package, remote);
+        handleSendto(len, remote);
     }
 
-    void AReceive(UdpBuffer buffer, NetAddress *address) {
+    enum ARecvFlag : int8_t {
+        NoRecv = -1,
+        Once   = 0,
+        Keep   = 1,
+    };
+    void AReceive(UdpBuffer buffer, ARecvFlag flag, NetAddress *address) {
         this->recv_buffer_ = buffer;
         this->recv_remote_ = address;
 
-        this->handle_->SetEvents(this->handle_->GetEvents() | event::EventType::EV_IN);
-        this->handle_->Enable();
+        this->arecv_flag_ = flag;
+
+        if(arecv_flag_ != NoRecv) {
+            this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_IN);
+            this->handle_->Enable();
+        } else {
+            this->handle_->SetEvents(handle_->GetEvents() & (~event::EventType::EV_IN));
+        }
     }
 
     bool              IsBinded() const { return is_bind_; }
@@ -248,14 +259,14 @@ private:
             listener_->OnError(error);
         }
     }
-    void handleRecv(const UdpBuffer &buffer, NetAddress *remote) {
+    void handleRecv(uint64_t len) {
         if(listener_) {
-            listener_->OnReceiveFrom(buffer, remote);
+            listener_->OnReceiveFrom(len);
         }
     }
-    void handleSendto(const Package &package, const NetAddress &remote) {
+    void handleSendto(uint64_t len, const NetAddress &remote) {
         if(listener_) {
-            listener_->OnSentTo(package, remote);
+            listener_->OnSentTo(len, remote);
         }
     }
 
@@ -272,7 +283,14 @@ private:
             return;
         }
 
-        handleRecv(recv_buffer_, this->recv_remote_);
+        assert(arecv_flag_ != NoRecv);
+        if(arecv_flag_ == Once) {
+            auto e = this->handle_->GetEvents();
+            this->handle_->SetEvents(e & (~event::EventType::EV_IN));
+            arecv_flag_ = NoRecv;
+        }
+
+        handleRecv(len);
     }
     void IOOut() override { abort(); }
 
@@ -281,6 +299,7 @@ private:
     NetAddress                  remote_;
     UdpBuffer                   recv_buffer_;
     NetAddress                 *recv_remote_{nullptr};
+    ARecvFlag                   arecv_flag_{NoRecv};
     bool                        is_bind_{false};
     bool                        is_connect_{false};
     udp::Socket                 socket_;
