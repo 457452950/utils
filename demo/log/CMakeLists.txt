@@ -18,5 +18,5 @@ add_executable(
         main.cpp
 )
 
-target_link_libraries(log_demo)
+target_link_libraries(log_demo fmt)
 

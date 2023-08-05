@@ -5,6 +5,8 @@
 #include <cstdarg>
 #include <filesystem>
 
+#include <fmt/compile.h>
+
 #include "Logger.h"
 
 namespace fs = std::filesystem;
@@ -12,9 +14,9 @@ using namespace wutils::log;
 
 
 #ifdef LOG_BASIC_PATH
-const std::string com_path = LOG_BASIC_PATH;
+const std::string com_path = fmt::format(FMT_COMPILE("{}"), LOG_BASIC_PATH);
 #else
-const std::string com_path = "/";
+const std::string com_path = fmt::format(FMT_COMPILE("/"));
 #endif
 
 void LogWriteHead(std::string       &buffer,
@@ -23,10 +25,7 @@ void LogWriteHead(std::string       &buffer,
                   const std::string &file,
                   int                lineNo,
                   const char        *_func) {
-    char head[256]{0};
-
-    MakeMessageHead(file.data(), tag, lineNo, level, _func, head, 256);
-    buffer.append(head);
+    buffer.append(MakeMessageHead(level, tag, file, lineNo, _func));
 }
 
 void LogWrite(std::string &buffer, const char *format, ...) {
@@ -66,14 +65,6 @@ void LogWrite(std::string &buffer, const char *format, ...) {
 #define LOG_ERR(tag, ...) LOG_(LERROR, tag, ##__VA_ARGS__)
 
 #define LOG_FAL(tag, ...) LOG_(LFATAL, tag, ##__VA_ARGS__)
-
-inline void example() {
-    LOG_INF("123", "sadasd %d", 1);
-    LOG_DBG("123", "sadasd %d", 1);
-    LOG_WRN("123", "sadasd %d", 1);
-    LOG_ERR("123", "sadasd %d", 1);
-    LOG_FAL("123", "sadasd %d", 1);
-}
 
 
 #endif // UTIL_FORMATLOGGER_H

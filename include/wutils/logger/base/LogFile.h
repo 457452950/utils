@@ -97,13 +97,12 @@ private:
             }
         }
 
-        char name[256]{0};
-        GetLogFileName(p.filename(), name, 256);
+        auto f_name = GetLogFileName(p.filename());
 
         if(!extension.empty()) {
-            p = parent_path.append(name + extension);
+            p = parent_path.append(f_name + extension);
         } else {
-            p = parent_path.append(std::string(name) + ".log");
+            p = parent_path.append(f_name + ".log");
         }
 
         if(file_.is_open()) {
@@ -122,7 +121,7 @@ private:
 
     const int64_t max_file_size_{100 * 1024 * 1024}; // 100MB
     const int     max_check_times{10};
-    int           check_times_{0};                   // 一定轮次检查文件大小
+    int           check_times_{0}; // 一定轮次检查文件大小
 };
 
 } // namespace wutils::log

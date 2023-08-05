@@ -4,6 +4,11 @@
 
 #include <string>
 #include <unistd.h> // getpid
+#include <ctime>
+
+#include <fmt/printf.h>
+#include <fmt/chrono.h>
+#include <fmt/ostream.h>
 
 #include "wutils/Format.h"
 #include "wutils/SharedPtr.h"
@@ -26,61 +31,46 @@ enum LOG_LEVEL : uint8_t {
     LFATAL = 1 << 4,
 };
 
-
-inline void GetLogFileName(const std::string &base_file_name, char *file_name, int max_len) {
+inline std::string GetLogFileName(const std::string &base_file_name) {
     // get data and time
-    time_t _t    = ::time(nullptr);
-    auto  *_time = ::localtime(&_t);
+    std::time_t t = std::time(nullptr);
+    std::tm     now_tm;
+    localtime_r(&t, &now_tm);
 
-    ::snprintf(file_name,
-               max_len,
-               "%s-%d-%02d-%02d-%02d-%02d:%d",
-               base_file_name.c_str(),
-               _time->tm_mon + 1,
-               _time->tm_mday,
-               _time->tm_hour,
-               _time->tm_min,
-               _time->tm_sec,
-               ::getpid());
+    return fmt::format("{}-{:%m-%d-%H-%M-%S}-p{}", base_file_name, now_tm, ::getpid());
 }
 
-inline void GetLogFileName(const std::string &base_file_name, std::string &file_name) {
-    // get data and time
-    time_t _t    = ::time(nullptr);
-    auto  *_time = ::localtime(&_t);
+inline std::string
+MakeMessageHead(const char *level, const char *tag, const std::string &file_name, int line_no, const char *func_name) {
+    timeval curTime{};
+    ::gettimeofday(&curTime, nullptr);
 
-    unique_ptr<char[]> buf = make_unique<char[]>(256);
+    std::time_t t = std::time(nullptr);
+    std::tm     now_tm;
+    localtime_r(&t, &now_tm);
 
-    auto len = ::snprintf(buf.get(),
-                          256,
-                          "%s-%d-%02d-%02d-%02d-%02d:%d",
-                          base_file_name.c_str(),
-                          _time->tm_mon + 1,
-                          _time->tm_mday,
-                          _time->tm_hour,
-                          _time->tm_min,
-                          _time->tm_sec,
-                          ::getpid());
-
-    file_name.assign(buf.get(), len);
-}
-inline void MakeMessageHead(const char *file_name,
-                            const char *tag,
-                            int         line_no,
-                            const char *log_level,
-                            const char *func_name,
-                            char       *head,
-                            int         max_len) {
-
-    char        data_val[150];
-    std::string _file_name(file_name);
-
-    wutils::GetCurrentTimeFormat(data_val, 150);
-    // get head
 #ifndef NDEBUG
-    ::snprintf(head, max_len, "%s[%s|%s][%s:%d:%s]", data_val, log_level, tag, file_name, line_no, func_name);
+    // doc:https://fmt.dev/latest/syntax.html#chrono-specs
+    // [2023-08-05 21:58:30.242.077][LINFO|main][main.cpp:57:operator()][tid:139909122745920]
+    return fmt::format("[{:%Y-%m-%d %T}.{:03}.{:03}][{}|{}][{}:{}:{}][tid:{}]",
+                       now_tm,
+                       curTime.tv_usec / 1000,
+                       curTime.tv_usec % 1000,
+                       level,
+                       tag,
+                       file_name,
+                       line_no,
+                       func_name,
+                       fmt::streamed(std::this_thread::get_id()));
 #else
-    ::snprintf(head, max_len, "%s[%s|%s]", data_val, log_level, tag);
+    // [2023-08-05 22:05:48.852.603][LINFO|main][tid:139909122745920]
+    return fmt::format("[{:%Y-%m-%d %T}.{:03}.{:03}][{}|{}][tid:{}]",
+                       now_tm,
+                       curTime.tv_usec / 1000,
+                       curTime.tv_usec % 1000,
+                       level,
+                       tag,
+                       fmt::streamed(std::this_thread::get_id()));
 #endif
 }
 

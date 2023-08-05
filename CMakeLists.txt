@@ -46,8 +46,6 @@ if (UNIX)
 
                 src/threadpool/ThreadPool.cpp
 
-                src/network/Channel.cpp
-
                 src/buffer/ChainBuffer.cpp
                 src/buffer/RingBuffer.cpp
                 src/buffer/StraightBuffer.cpp

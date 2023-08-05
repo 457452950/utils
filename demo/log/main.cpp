@@ -3,10 +3,10 @@
 
 #include "wutils/logger/Logger.h"
 
-#define FORMAT
+#define STREAM
 
 #ifdef STREAM
-#include "wutils/logger/stream.h"
+#include "wutils/logger/StreamLogger.h"
 #elif defined FORMAT
 #include "wutils/logger/FormatLogger.h"
 #endif
@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     // clang-format off
     Logger::GetInstance()
         ->LogCout()
-        ->LogFile("a/b/bcc/temp.abc.logg")
+        ->LogFile("a/b/bcc/temp")
         ->SetLogLevel(LDEBUG)
         ->Start();
     // clang-format on
@@ -50,13 +50,13 @@ int main(int argc, char **argv) {
             LOG(LERROR, "main") << "debug logger " << h << 123 << 0.001 << 1e10;
             LOG(LFATAL, "main") << "debug logger " << h << 123 << 0.001 << 1e10;
 #elif defined FORMAT
-            LOG_DBG("main", "debug logger %s %d %f %d", h, 123, 0.003, 1e11);
-            LOG_WRN("main", "debug logger %s %d %f %d", h, 123, 0.003, 1e11);
-            LOG_ERR("main", "debug logger %s %d %f %d", h, 123, 0.003, 1e11);
-            LOG_FAL("main", "debug logger %s %d %f %d", h, 123, 0.003, 1e11);
-            LOG_INF("main", "debug logger %s %d %f %d", h, 123, 0.003, 1e11);
+            LOG_DBG("main", "debug logger %s %d %f %ld", h, 123, 0.003, 1e11);
+            LOG_WRN("main", "debug logger %s %d %f %ld", h, 123, 0.003, 1e11);
+            LOG_ERR("main", "debug logger %s %d %f %ld", h, 123, 0.003, 1e11);
+            LOG_FAL("main", "debug logger %s %d %f %ld", h, 123, 0.003, 1e11);
+            LOG_INF("main", "debug logger %s %d %f %ld", h, 123, 0.003, 1e11);
 #endif
-            //            std::this_thread::sleep_for(10ms);
+            std::this_thread::sleep_for(100ms);
         }
         //        usleep(10);
     });
