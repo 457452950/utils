@@ -6,3 +6,4 @@
 4. libevent (based v2.1.12)
 5. libuv (based v1.44.2)
 6. asio (based v1.28.0)
+7. fmtlib (based v10.0.0)
