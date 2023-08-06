@@ -12,7 +12,7 @@ using Value = eventfd_t;
 
 class Socket : public ISocket {
 public:
-    Socket() { this->socket_ = eventfd(0, 0); }
+    Socket() : ISocket(eventfd(0, 0)) {}
     ~Socket() = default;
 
     Socket(const Socket &other) = default;

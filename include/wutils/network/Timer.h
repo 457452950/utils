@@ -68,9 +68,8 @@ public:
         }
 
         if(!this->handle_->IsEnable()) {
-            this->handle_->Enable();
+            return this->handle_->Enable();
         }
-
         return true;
     }
 

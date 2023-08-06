@@ -51,16 +51,19 @@ private:
     bool    enable_{false};
 
 public:
-    void Enable() {
+    [[nodiscard]] bool Enable() {
         // events cant be 0
         assert(this->events_ != 0);
         assert(!this->context_.expired());
 
         if(enable_) {
-            return;
+            return true;
         }
-        assert(this->context_.lock()->AddSocket(this));
-        this->enable_ = true;
+        if(this->context_.lock()->AddSocket(this)) {
+            this->enable_ = true;
+            return true;
+        }
+        return false;
     }
     void DisEnable() {
         if(this->context_.expired()) {

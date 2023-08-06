@@ -11,6 +11,9 @@ using namespace std;
 using namespace wutils::network;
 
 
+// #define CONTEXT event::EpollContext
+#define CONTEXT event::SelectContext
+
 /**
  * test_tcp_echo
  */
@@ -61,8 +64,8 @@ public:
     std::shared_ptr<Connection> ch;
 };
 
-std::shared_ptr<TestSession>         se;
-std::shared_ptr<event::EpollContext> ep_;
+std::shared_ptr<TestSession> se;
+std::shared_ptr<CONTEXT>     ep_;
 
 inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
     auto info = remote.Dump();
@@ -77,7 +80,7 @@ inline auto err_cb = [](wutils::SystemError error) { std::cout << error << std::
 void server_thread() {
     using namespace srv;
 
-    auto ep = event::EpollContext::Create();
+    auto ep = CONTEXT::Create();
     ep->Init();
     ep_ = ep;
 
@@ -94,15 +97,16 @@ void server_thread() {
         abort();
     }
 
+    accp_channel->OnAccept = std::bind(ac_cb, local_ed, std::placeholders::_1, std::placeholders::_2);
+    accp_channel->OnError  = err_cb;
+
     if(!accp_channel->Start(local_ed)) {
         LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
         abort();
     }
-    accp_channel->OnAccept = std::bind(ac_cb, local_ed, std::placeholders::_1, std::placeholders::_2);
-    accp_channel->OnError  = err_cb;
 
     auto info = accp_channel->GetLocal().Dump();
-    LOG(LINFO, "server") << std::get<0>(info) << " " << std::get<1>(info);
+    LOG(LINFO, "server") << "start ok." << std::get<0>(info) << " " << std::get<1>(info);
 
     ep->Loop();
     cout << wutils::SystemError::GetSysErrCode() << endl;
@@ -113,6 +117,8 @@ void server_thread() {
 
 void client_thread() {
     using namespace cli;
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(10ms);
 
     NetAddress cli_ed;
     assert(cli_ed.Assign(connect::ip, connect::port, connect::family));
@@ -124,7 +130,7 @@ void client_thread() {
     DEFER([&cli]() { cli.Close(); });
 
     if(!res) {
-        LOG(LERROR, "client") << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "client") << "connect fail, err : " << wutils::SystemError::GetSysErrCode();
         return;
     } else {
         LOG(LINFO, "client") << "connect ok";
@@ -156,10 +162,7 @@ void client_thread() {
         }
     });
 
-    using namespace std::chrono;
-
-    Timer t(ep_);
-    t.OnTime = [&cli, &t]() {
+    while(true) {
         static int i = 0;
 
         cli.Send((uint8_t *)"hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73);
@@ -167,10 +170,11 @@ void client_thread() {
         cli.Send((uint8_t *)"hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73);
         ++i;
         if(i == 10000) {
-            t.Stop();
+            LOG(LINFO, "client") << "send stop";
+            break;
         }
-    };
-    t.Start(100ms, 2ms);
+        std::this_thread::sleep_for(2ms);
+    }
 
     thr1.join();
     LOG(LINFO, "client") << "client thread end";
@@ -189,7 +193,7 @@ void handle_pipe(int signal) {
 
 inline void test_tcp_connection() {
     using namespace test_tcp_connection_config;
-    cout << "-------------------- test channel --------------------" << endl;
+    cout << "-------------------- test tcp channel --------------------" << endl;
 
     signal(SIGPIPE, handle_pipe); // 自定义处理函数
     signal(SIGINT, handle_pipe);  // 自定义处理函数
@@ -197,13 +201,16 @@ inline void test_tcp_connection() {
     thread sr(server_thread);
     thread cl(client_thread);
 
-    sr.join();
-    cl.join();
+    if(sr.joinable())
+        sr.join();
+    if(cl.joinable())
+        cl.join();
 
     if(ep_)
         ep_.reset();
     if(se)
         se.reset();
+    cout << "-------------------- test tcp channel end --------------------" << endl;
 }
 
 

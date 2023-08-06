@@ -12,6 +12,10 @@
 using namespace std;
 using namespace wutils::network;
 
+
+// #define CONTEXT event::EpollContext
+#define CONTEXT event::SelectContext
+
 #ifdef TEST_IPV4
 #undef TEST_IPV4
 #endif
@@ -88,8 +92,8 @@ public:
     shared_ptr<AConnection> ch;
 };
 
-std::shared_ptr<TestSession>         se;
-std::shared_ptr<event::EpollContext> ep_;
+std::shared_ptr<TestSession> se;
+std::shared_ptr<CONTEXT>     ep_;
 
 inline auto ac_cb = [](const NetAddress &local, NetAddress *remote, unique_ptr<event::IOHandle> handler) {
     auto info = remote->Dump();
@@ -105,7 +109,7 @@ inline auto err_cb = [](wutils::SystemError error) { std::cout << error << std::
 void server_thread() {
     using namespace srv;
 
-    auto ep = event::EpollContext::Create();
+    auto ep = CONTEXT::Create();
     ep->Init();
     ep_ = ep;
 
@@ -141,12 +145,16 @@ void server_thread() {
     ep->Loop();
     cout << wutils::SystemError::GetSysErrCode() << endl;
 
+    if(se)
+        se.reset();
     LOG(LERROR, "server") << "server thread end";
     // 激活客户端的 阻塞recv
 }
 
 void client_thread() {
     using namespace cli;
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(10ms);
 
     NetAddress cli_ed;
     assert(cli_ed.Assign(connect::ip, connect::port, connect::family));
@@ -190,10 +198,7 @@ void client_thread() {
         }
     });
 
-    using namespace std::chrono;
-
-    Timer t(ep_);
-    t.OnTime = [&cli, &t]() {
+    while(true) {
         static int i = 0;
 
         cli.Send((uint8_t *)"hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73);
@@ -201,10 +206,10 @@ void client_thread() {
         cli.Send((uint8_t *)"hello123hello123hello123hello123hello123hello123hello123hello123hello123", 73);
         ++i;
         if(i == 10000) {
-            t.Stop();
+            break;
         }
-    };
-    t.Start(100ms, 2ms);
+        std::this_thread::sleep_for(2ms);
+    }
 
     thr1.join();
     LOG(LINFO, "client") << "client thread end";
@@ -213,6 +218,7 @@ void client_thread() {
 
 void handle_pipe(int signal) {
     cout << "signal" << endl;
+    se.reset();
     ep_->Stop();
     se.reset();
 }
@@ -233,6 +239,12 @@ inline void test_aconnection() {
 
     sr.join();
     cl.join();
+
+    if(ep_) {
+        ep_.reset();
+    }
+
+    cout << "------------------------ test achannel end ---------------------------" << endl;
 }
 
 

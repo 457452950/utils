@@ -44,9 +44,8 @@ public:
         if(ok) {
             parseAndSetEvents(handler->socket_.Get(), handler->GetEvents());
             ++this->fd_count_;
-            return true;
         }
-        return false;
+        return true;
     }
     bool ModifySocket(IOHandle *handler) override {
         auto it = handler_set_.find(handler);

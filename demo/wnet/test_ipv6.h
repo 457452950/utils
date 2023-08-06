@@ -47,7 +47,7 @@ void server_thread() {
     }
 
     auto sock = MakeSocket(srv::listen::family, srv::listen::protol);
-    if(sock == -1) {
+    if(sock == INVALID_SOCKET) {
         return;
     }
 
@@ -75,10 +75,10 @@ void server_thread() {
     res = Accept(sock, en);
 
     if(res == -1) {
-        cout << "Accept error : " << strerror(errno) << endl;
+        LOG(LERROR, "server") << "Accept error : " << strerror(errno);
         return;
     } else {
-        cout << "Accept ok" << endl;
+        LOG(LINFO, "server") << "Accept ok";
     }
 
     DEFER([res]() { ::close(res); });
@@ -88,6 +88,9 @@ void server_thread() {
 }
 
 void client_thread() {
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(10ms);
+
     NetAddress cli_ed;
     if(!cli_ed.Assign(cli::connect::ip, cli::connect::port, cli::connect::family)) {
         return;
@@ -101,7 +104,7 @@ void client_thread() {
 
     auto res = ConnectToHost(cli, cli_ed);
     if(!res) {
-        cout << "[test_ipv6]connect error : " << strerror(errno) << endl;
+        LOG(LERROR, "client") << "[test_ipv6]connect error : " << strerror(errno);
     } else {
         cout << "connect ok" << endl;
     }
@@ -111,12 +114,14 @@ void client_thread() {
 
 inline void test_ipv6() {
     using namespace test_ipv6_config;
+    std::cout << "----------------- test ipv6 -----------------------" << std::endl;
 
     thread sr(server_thread);
     thread cl(client_thread);
 
     sr.join();
     cl.join();
+    std::cout << "----------------- test ipv6 end -----------------------" << std::endl;
 }
 
 

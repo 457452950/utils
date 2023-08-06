@@ -204,15 +204,15 @@ public:
 
     bool Init() {
         this->epoll_fd_ = CreateNewEpollFd();
-        if(this->epoll_fd_ == -1) {
+        if(this->epoll_fd_ == INVALID_SOCKET) {
             return false;
         }
         return true;
     }
     void Close() {
-        if(this->epoll_fd_ != -1) {
+        if(this->epoll_fd_ != INVALID_SOCKET) {
             CloseEpoll(this->epoll_fd_);
-            this->epoll_fd_ = -1;
+            this->epoll_fd_ = INVALID_SOCKET;
         }
     }
 

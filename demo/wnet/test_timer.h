@@ -11,7 +11,6 @@ using namespace wutils::network;
 
 namespace test_timer_config {
 
-int                                  tag = 0;
 std::shared_ptr<event::EpollContext> context;
 
 void handle_pipe(int signal) {
@@ -22,6 +21,8 @@ void handle_pipe(int signal) {
 } // namespace test_timer_config
 
 inline void test_timer() {
+    std::cout << "------------------ test timer ------------------------" << std::endl;
+
     using namespace test_timer_config;
     using namespace std::chrono;
 
@@ -30,7 +31,7 @@ inline void test_timer() {
 
     context = event::EpollContext::Create();
 
-    context->Init();
+    assert(context->Init());
 
     auto                 timer = std::make_shared<Timer>(context);
     std::weak_ptr<Timer> t     = timer; // !!!
@@ -57,6 +58,8 @@ inline void test_timer() {
     context->Loop();
     //    timer->OnTime = []() {}; // 取消绑定中的智能指针, 或者使用弱指针
     context.reset();
+
+    std::cout << "------------------ test timer end ------------------------" << std::endl;
 }
 
 #endif // UTILS_DEMO_WNET_TEST_TIMER_H
