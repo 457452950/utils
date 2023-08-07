@@ -44,7 +44,7 @@ inline void test_timer() {
         static int i = 0;
         if(!i++) {
             if(!t.expired())
-                assert(t.lock()->Loop(100ms, 10));
+                assert(t.lock()->Loop(100ms, 10).value() == 0);
         }
         if(i == 10) {
             LOG(LINFO, "timer") << "stop";
@@ -52,7 +52,7 @@ inline void test_timer() {
         }
     };
     LOG(LINFO, "timer") << "start" << duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    assert(timer->Once(1s));
+    assert(timer->Once(1s).value() == 0);
     assert(timer->IsActive());
 
     context->Loop();

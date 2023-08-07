@@ -46,8 +46,8 @@ public:
     explicit UdpServer(shared_ptr<UdpPoint> point) : point_(std::move(point)) { point_->listener_ = this; }
     ~UdpServer() override { LOG(LINFO, "server") << "recv total :" << recv_total_.load(); }
 
-    void OnError(wutils::SystemError error) override {
-        LOG(LERROR, "server") << error;
+    void OnError(wutils::Error error) override {
+        LOG(LERROR, "server") << error.message();
         point_->listener_ = nullptr;
         point_.reset();
     }
@@ -76,12 +76,12 @@ void server_thread() {
     auto udp_server = make_shared<UdpServer>(udp_srv);
 
     if(!udp_srv->Open(server_na.GetFamily())) {
-        LOG(LERROR, "server") << "open fail." << SystemError::GetSysErrCode();
+        LOG(LERROR, "server") << "open fail." << wutils::GetGenericError().message();
         return;
     }
 
     if(!udp_srv->Bind(server_na)) {
-        LOG(LERROR, "server") << "bind fail." << SystemError::GetSysErrCode();
+        LOG(LERROR, "server") << "bind fail." << wutils::GetGenericError().message();
         return;
     }
     auto [ip, port] = udp_srv->GetLocalAddress().Dump();
@@ -152,11 +152,11 @@ inline void test_udp() {
     signal(SIGINT, handle_pipe);  // 自定义处理函数
 
     if(!server_na.Assign(srv::bind::ip, srv::bind::port, srv::bind::family)) {
-        LOG(LERROR, "test") << "assign server net address fail." << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "test") << "assign server net address fail." << wutils::GetGenericError().message();
         return;
     }
     if(!client_na.Assign(cli::bind::ip, cli::bind::port, cli::bind::family)) {
-        LOG(LERROR, "test") << "assign client net address fail." << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "test") << "assign client net address fail." << wutils::GetGenericError().message();
         return;
     }
 

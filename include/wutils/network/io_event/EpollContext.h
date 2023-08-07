@@ -1,5 +1,4 @@
 #pragma once
-#include <memory>
 #ifndef UTIL_EVENT_EPOLLCONTEXT_H
 #define UTIL_EVENT_EPOLLCONTEXT_H
 
@@ -33,27 +32,32 @@ public:
     static shared_ptr<EpollContext> Create() { return shared_ptr<EpollContext>(new EpollContext()); }
 
     // control
-    bool AddSocket(IOHandle *handler) override {
+    Error AddSocket(IOHandle *handler) override {
         epoll_data_t ep_data{};
 
         ep_data.ptr = handler;
-        auto ev     = parseToEpollEvent(handler->GetEvents());
+        auto ev     = parseToEpollEvent(handler);
 
         if(!ep.AddSocket(handler->socket_.Get(), ev, ep_data)) {
-            return false;
+            return GetGenericError();
         }
 
         ++this->fd_count_;
 
-        return true;
+        return eNetWorkError::OK;
     }
-    bool ModifySocket(IOHandle *handler) override {
+    Error ModifySocket(IOHandle *handler) override {
         epoll_data_t ep_data{};
 
         ep_data.ptr = handler;
-        auto ev     = parseToEpollEvent(handler->GetEvents());
+        auto ev     = parseToEpollEvent(handler);
 
-        return ep.ModifySocket(handler->socket_.Get(), ev, ep_data);
+        bool ok = ep.ModifySocket(handler->socket_.Get(), ev, ep_data);
+        if(ok) {
+            return eNetWorkError::OK;
+        } else {
+            return GetGenericError();
+        }
     }
     void DelSocket(IOHandle *handler) override {
         this->ep.RemoveSocket(handler->socket_.Get());
@@ -85,12 +89,12 @@ public:
     void Wake(WakeUpEvent ev) { this->control_fd_.Write(ev); };
 
 private:
-    static uint32_t parseToEpollEvent(uint8_t events) {
+    static uint32_t parseToEpollEvent(IOHandle *handle) {
         uint32_t ev = 0;
-        if(events & EventType::EV_IN) {
+        if(handle->EnableIn()) {
             ev |= EPOLLIN;
         }
-        if(events & EventType::EV_OUT) {
+        if(handle->EnableOut()) {
             ev |= EPOLLOUT;
         }
         return ev;
@@ -148,10 +152,7 @@ private:
 
                 assert(pHandle->socket_.Get() > 0);
 
-                // get event
-                uint8_t eev = pHandle->GetEvents();
-
-                if(ev & EPOLLOUT && eev & EventType::EV_OUT) {
+                if(ev & EPOLLOUT && pHandle->EnableOut()) {
                     pHandle->listener_->IOOut();
                 }
 
@@ -159,7 +160,7 @@ private:
                     break;
                 }
 
-                if(ev & EPOLLIN && eev & EventType::EV_IN) {
+                if(ev & EPOLLIN && pHandle->EnableIn()) {
                     pHandle->listener_->IOIn();
                 }
             }

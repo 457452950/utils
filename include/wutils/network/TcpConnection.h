@@ -1,5 +1,4 @@
 #pragma once
-#include <cstdint>
 #ifndef UTIL_TCPCONNECTION_H
 #define UTIL_TCPCONNECTION_H
 
@@ -39,12 +38,8 @@ public:
 
         socket_ = handle_->socket_;
         assert(socket_);
+    }
 
-        handle_->SetEvents(event::EventType::EV_IN);
-        handle_->Enable();
-
-        this->send_buffer_.Init(0);
-    };
     ~Connection() override {
         handle_->DisEnable();
         handle_.reset();
@@ -53,12 +48,18 @@ public:
 
     class Listener {
     public:
-        virtual void OnDisconnect()             = 0;
-        virtual void OnReceive(Data data)       = 0;
-        virtual void OnError(SystemError error) = 0;
+        virtual void OnDisconnect()       = 0;
+        virtual void OnReceive(Data data) = 0;
+        virtual void OnError(Error error) = 0;
 
         virtual ~Listener() = default;
     } *listener_{nullptr};
+
+    Error Init() {
+        this->send_buffer_.Init(0);
+
+        return handle_->EnableIn(true);
+    }
 
     using SHUT_DOWN = tcp::SHUT_DOWN;
     void ShutDown(SHUT_DOWN how = SHUT_DOWN::RDWR) { this->socket_.ShutDown(how); }
@@ -75,8 +76,8 @@ public:
         }
 
         if(len == -1) {
-            auto err = SystemError::GetSysErrCode();
-            if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+            auto err = GetGenericError();
+            if(err.value() != EAGAIN && err.value() != EWOULDBLOCK && err.value() != EINTR) {
                 handleError(err);
                 return;
             }
@@ -89,8 +90,10 @@ public:
         bytes -= len;
         if(bytes) { // has left
             this->send_buffer_.Write(data + len, bytes - len);
-            this->handle_->SetEvents(event::EventType::EV_OUT);
-            this->handle_->Enable();
+            auto err = this->handle_->EnableOut(true);
+            if(err) {
+                handleError(err);
+            }
         }
     }
     void Send(Data data) { this->Send(data.data, data.bytes); }
@@ -99,7 +102,7 @@ public:
     const NetAddress &GetRemoteAddress() { return remote_; }
 
 private:
-    void handleError(const SystemError &error) {
+    void handleError(const Error &error) {
         if(listener_) {
             listener_->OnError(error);
         }
@@ -122,8 +125,8 @@ private:
         auto len    = this->socket_.Recv(buffer.get(), buffer_size);
 
         if(len == -1) {
-            auto err = SystemError::GetSysErrCode();
-            if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+            auto err = GetGenericError();
+            if(err.value() != EAGAIN && err.value() != EWOULDBLOCK && err.value() != EINTR) {
                 handleError(err);
             }
             return;
@@ -141,8 +144,10 @@ private:
         }
 
         if(this->send_buffer_.IsEmpty()) {
-            auto flag = this->handle_->GetEvents();
-            this->handle_->SetEvents(flag & (~event::EventType::EV_OUT));
+            auto err = this->handle_->EnableOut(false);
+            if(err) {
+                handleError(err);
+            }
             return;
         }
     }
@@ -183,7 +188,7 @@ public:
     public:
         virtual void OnReceived(uint64_t bytes_recved) = 0;
         virtual void OnSent(uint64_t bytes_sent)       = 0;
-        virtual void OnError(SystemError error)        = 0;
+        virtual void OnError(Error error)              = 0;
         virtual void OnDisconnect()                    = 0;
 
         virtual ~Listener() = default;
@@ -199,13 +204,12 @@ public:
             this->send_buffer_.Write(data.data, data.bytes);
 
         } else { // try to send
-
             len = this->socket_.SendSome(data.data, data.bytes);
 
             // send error
             if(len < 0) {
-                auto err = SystemError::GetSysErrCode();
-                if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+                auto err = GetGenericError();
+                if(err.value() != EAGAIN && err.value() != EWOULDBLOCK && err.value() != EINTR) {
                     handleError(err);
                     return;
                 }
@@ -226,8 +230,11 @@ public:
             this->send_buffer_.Write(data.data + len, data.bytes - len);
         }
 
-        this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_OUT);
-        this->handle_->Enable();
+        auto err = this->handle_->EnableOut(true);
+        if(err) {
+            handleError(err);
+            return;
+        }
 
         handleSent(len);
     }
@@ -241,11 +248,15 @@ public:
         this->recv_buffer_ = buffer;
         this->arecv_flag_  = flag;
 
+        Error err;
         if(arecv_flag_ != NoRecv) {
-            this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_IN);
-            this->handle_->Enable();
+            err = this->handle_->EnableIn(true);
         } else {
-            this->handle_->SetEvents(handle_->GetEvents() & (~event::EventType::EV_IN));
+            err = this->handle_->EnableIn(false);
+        }
+        if(err) {
+            handleError(err);
+            return;
         }
     }
 
@@ -253,7 +264,7 @@ public:
     const NetAddress &GetRemoteAddress() { return remote_; }
 
 private:
-    void handleError(const SystemError &error) {
+    void handleError(const Error &error) {
         if(listener_) {
             listener_->OnError(error);
         }
@@ -278,8 +289,8 @@ private:
         auto len = this->socket_.Recv(recv_buffer_.buffer, recv_buffer_.buffer_len);
 
         if(len == -1) {
-            auto err = SystemError::GetSysErrCode();
-            if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+            auto err = GetGenericError();
+            if(err.value() != EAGAIN && err.value() != EWOULDBLOCK && err.value() != EINTR) {
                 handleError(err);
             }
             return;
@@ -290,9 +301,12 @@ private:
 
         assert(arecv_flag_ != NoRecv);
         if(arecv_flag_ == Once) {
-            auto e = this->handle_->GetEvents();
-            this->handle_->SetEvents(e & (~event::EventType::EV_IN));
             arecv_flag_ = NoRecv;
+            auto err    = this->handle_->EnableIn(false);
+            if(err) {
+                handleError(err);
+                return;
+            }
         }
 
         handleRecv(len);
@@ -305,8 +319,8 @@ private:
 
             // send error
             if(len == -1) {
-                auto err = SystemError::GetSysErrCode();
-                if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+                auto err = GetGenericError();
+                if(err.value() != EAGAIN && err.value() != EWOULDBLOCK && err.value() != EINTR) {
                     handleError(err);
                     return;
                 }
@@ -322,9 +336,11 @@ private:
         }
 
         if(this->send_buffer_.IsEmpty()) {
-            auto flag = this->handle_->GetEvents();
-            this->handle_->SetEvents(flag & (~event::EventType::EV_OUT));
-            return;
+            auto err = this->handle_->EnableOut(false);
+            if(err) {
+                handleError(err);
+                return;
+            }
         }
 
         handleSent(len);

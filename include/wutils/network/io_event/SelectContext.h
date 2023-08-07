@@ -29,31 +29,31 @@ public:
     static shared_ptr<SelectContext> Create() { return shared_ptr<SelectContext>(new SelectContext()); }
 
     // control
-    bool AddSocket(IOHandle *handler) override {
+    Error AddSocket(IOHandle *handler) override {
         // select fd 上限 1024
         if(this->fd_count_ >= 1024) {
-            return false;
+            return eNetWorkError::CONTEXT_TOO_MUCH_HANDLE;
         }
 
         if(this->handler_set_.count(handler)) {
-            return true;
+            return eNetWorkError::OK;
         }
 
         bool ok(true);
         std::tie(std::ignore, ok) = this->handler_set_.insert(handler);
         if(ok) {
-            parseAndSetEvents(handler->socket_.Get(), handler->GetEvents());
+            parseAndSetEvents(handler->socket_.Get(), handler);
             ++this->fd_count_;
         }
-        return true;
+        return eNetWorkError::OK;
     }
-    bool ModifySocket(IOHandle *handler) override {
+    Error ModifySocket(IOHandle *handler) override {
         auto it = handler_set_.find(handler);
         if(it != handler_set_.end()) { // found
-            parseAndSetEvents(handler->socket_.Get(), handler->GetEvents());
-            return true;
+            parseAndSetEvents(handler->socket_.Get(), handler);
+            return eNetWorkError::CONTEXT_CANT_FOUND_HANDLE;
         }
-        return false;
+        return eNetWorkError::OK;
     }
     void DelSocket(IOHandle *handler) override {
         auto it = this->handler_set_.find(handler);
@@ -97,7 +97,7 @@ private:
             res = SelectWait(int32_t(max_fd_), read_set_, write_set_, nullptr, -1);
 
             if(res == -1) {
-                std::cerr << "error : " << SystemError::GetSysErrCode() << std::endl;
+                std::cerr << "error : " << GetGenericError().message() << std::endl;
                 break;
             } else if(res == 0) {
                 // time out
@@ -161,7 +161,7 @@ private:
                 max_fd_ = it->socket_.Get();
             }
 
-            this->parseAndSetEvents(it->socket_.Get(), it->GetEvents());
+            this->parseAndSetEvents(it->socket_.Get(), it);
             assert(SetCheckFd(it->socket_.Get(), read_set_));
         }
 
@@ -171,16 +171,13 @@ private:
         ++max_fd_;
     }
 
-    bool hasEventIn(uint8_t events) const { return events & EventType::EV_IN; }
-    bool hasEventOut(uint8_t events) const { return events & EventType::EV_OUT; }
-
-    void parseAndSetEvents(socket_t socket, uint8_t events) {
-        if(hasEventIn(events)) {
+    void parseAndSetEvents(socket_t socket, IOHandle *handle) {
+        if(handle->EnableIn()) {
             SetAddFd(socket, read_set_);
         } else {
             // SetDelFd(socket, &read_set_);
         }
-        if(hasEventOut(events)) {
+        if(handle->EnableOut()) {
             SetAddFd(socket, write_set_);
         } else {
             // SetDelFd(socket, &write_set_);

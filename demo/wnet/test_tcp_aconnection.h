@@ -83,8 +83,8 @@ public:
         ch->ASend({this->buffer_.buffer, len});
     }
     void OnSent(uint64_t len) override {}
-    void OnError(wutils::SystemError error) override {
-        LOG(LERROR, "session") << error;
+    void OnError(wutils::Error error) override {
+        LOG(LERROR, "session") << error.message();
         ch->listener_ = nullptr;
         this->ch.reset();
     }
@@ -105,7 +105,7 @@ inline auto ac_cb = [](const NetAddress &local, NetAddress *remote, unique_ptr<e
     auto ch = std::make_shared<AConnection>(local, *remote, std::move(handler));
     se      = std::make_shared<TestSession>(ch);
 };
-inline auto err_cb = [](wutils::SystemError error) { std::cout << error << std::endl; };
+inline auto err_cb = [](wutils::Error error) { std::cout << error.message() << std::endl; };
 
 
 void server_thread() {
@@ -129,12 +129,12 @@ void server_thread() {
     });
 
     if(!accp_channel->Open(local_ed.GetFamily())) {
-        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "server") << wutils::GetGenericError().message();
         abort();
     }
 
-    if(!accp_channel->Start(local_ed, remote, AAcceptor::Keep)) {
-        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
+    if(accp_channel->Start(local_ed, remote, AAcceptor::Keep)) {
+        LOG(LERROR, "server") << wutils::GetGenericError().message();
         abort();
     }
 
@@ -145,7 +145,7 @@ void server_thread() {
     LOG(LINFO, "server") << std::get<0>(info) << " " << std::get<1>(info);
 
     ep->Loop();
-    cout << wutils::SystemError::GetSysErrCode() << endl;
+    cout << wutils::GetGenericError().message() << endl;
 
     if(se)
         se.reset();
@@ -168,7 +168,7 @@ void client_thread() {
     DEFER([&cli]() { cli.Close(); });
 
     if(!res) {
-        LOG(LERROR, "client") << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "client") << wutils::GetGenericError().message();
         return;
     } else {
         LOG(LINFO, "client") << "connect ok";

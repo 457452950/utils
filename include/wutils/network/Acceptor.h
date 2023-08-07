@@ -16,8 +16,6 @@ public:
     explicit Acceptor(weak_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
         handle_->listener_ = this;
         handle_->context_  = std::move(context);
-
-        handle_->SetEvents(event::EventType::EV_IN);
     }
     ~Acceptor() override {
         handle_.reset();
@@ -26,36 +24,35 @@ public:
 
     bool Open(AF_FAMILY family) { return this->acceptor_.Open(family); }
 
-    bool Start(const NetAddress &info) {
+    Error Start(const NetAddress &info) {
         bool ok = false;
 
         ok = this->acceptor_.SetNonBlock(true);
         if(!ok) {
-            return false;
+            return GetGenericError();
         }
 
         ok = this->acceptor_.SetAddrReuse(true);
         if(!ok) {
-            return false;
+            return GetGenericError();
         }
 
         ok = this->acceptor_.Bind(info);
         if(!ok) {
-            return false;
+            return GetGenericError();
         }
 
         ok = this->acceptor_.Listen();
         if(!ok) {
-            return false;
+            return GetGenericError();
         }
 
         if(handle_->IsEnable()) {
             handle_->DisEnable();
         }
         handle_->socket_ = acceptor_.Get();
-        handle_->Enable();
 
-        return true;
+        return this->handle_->EnableIn(true);
     }
 
     void Stop() {
@@ -72,7 +69,7 @@ public:
     bool SetPortReuse(bool is_set) { return this->acceptor_.SetPortReuse(is_set); }
 
     using Accept_cb = std::function<void(const NetAddress &remote, unique_ptr<event::IOHandle> handle)>;
-    using Error_cb  = std::function<void(SystemError)>;
+    using Error_cb  = std::function<void(Error)>;
 
     Accept_cb OnAccept;
     Error_cb  OnError;
@@ -102,7 +99,7 @@ private:
 
     void dealError() {
         if(OnError) {
-            OnError(SystemError::GetSysErrCode());
+            OnError(GetGenericError());
         }
     }
 
@@ -116,8 +113,6 @@ public:
     explicit AAcceptor(weak_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
         handle_->listener_ = this;
         handle_->context_  = std::move(context);
-
-        handle_->SetEvents(event::EventType::EV_IN);
     }
     ~AAcceptor() override {
         handle_.reset();
@@ -131,27 +126,27 @@ public:
         Once     = 0,
         Keep     = 1,
     };
-    bool Start(const NetAddress &local, NetAddress *remote, AAcceptFlag flag) {
+    Error Start(const NetAddress &local, NetAddress *remote, AAcceptFlag flag) {
         bool ok = false;
 
         ok = this->acceptor_.SetNonBlock(true);
         if(!ok) {
-            return false;
+            return GetGenericError();
         }
 
         ok = this->acceptor_.SetAddrReuse(true);
         if(!ok) {
-            return false;
+            return GetGenericError();
         }
 
         ok = this->acceptor_.Bind(local);
         if(!ok) {
-            return false;
+            return GetGenericError();
         }
 
         ok = this->acceptor_.Listen();
         if(!ok) {
-            return false;
+            return GetGenericError();
         }
 
         if(handle_->IsEnable()) {
@@ -165,12 +160,12 @@ public:
 
 
         if(accept_flag_ != NoAccept) {
-            this->handle_->Enable();
+            return handle_->EnableIn(true);
         } else {
             handle_->DisEnable();
         }
 
-        return true;
+        return eNetWorkError::OK;
     }
 
     const NetAddress &GetLocal() { return acceptor_.GetLocal(); }
@@ -178,7 +173,7 @@ public:
     bool SetPortReuse(bool is_set) { return this->acceptor_.SetPortReuse(is_set); }
 
     using Accept_cb = std::function<void(unique_ptr<event::IOHandle> handle)>;
-    using Error_cb  = std::function<void(SystemError)>;
+    using Error_cb  = std::function<void(Error)>;
 
     Accept_cb OnAccept;
     Error_cb  OnError;
@@ -207,7 +202,7 @@ private:
 
     void dealError() {
         if(OnError) {
-            OnError(SystemError::GetSysErrCode());
+            OnError(GetGenericError());
         }
     }
 
