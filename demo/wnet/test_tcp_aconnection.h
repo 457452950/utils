@@ -72,7 +72,8 @@ public:
     ~TestSession() override { delete[] buffer_.buffer; }
 
     void OnDisconnect() override {
-        std::cout << "disconnect" << std::endl;
+        LOG(LERROR, "session") << "disconnected";
+        ch->listener_ = nullptr;
         this->ch.reset();
     }
     void OnReceived(uint64_t len) override {
@@ -83,7 +84,8 @@ public:
     }
     void OnSent(uint64_t len) override {}
     void OnError(wutils::SystemError error) override {
-        std::cout << error << endl;
+        LOG(LERROR, "session") << error;
+        ch->listener_ = nullptr;
         this->ch.reset();
     }
 
@@ -220,7 +222,6 @@ void handle_pipe(int signal) {
     cout << "signal" << endl;
     se.reset();
     ep_->Stop();
-    se.reset();
 }
 
 

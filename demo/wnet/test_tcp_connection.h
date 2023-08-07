@@ -48,7 +48,8 @@ public:
     TestSession(std::shared_ptr<Connection> ch_) : ch(std::move(ch_)) { ch->listener_ = this; }
 
     void OnDisconnect() override {
-        std::cout << "disconnect" << std::endl;
+        LOG(LERROR, "session") << "disconnected";
+        ch->listener_ = nullptr;
         this->ch.reset();
     }
     void OnReceive(Data data) override {
@@ -56,7 +57,8 @@ public:
         ch->Send(data.data, data.bytes);
     }
     void OnError(wutils::SystemError error) override {
-        std::cout << error << endl;
+        LOG(LERROR, "session") << error;
+        ch->listener_ = nullptr;
         this->ch.reset();
     }
 

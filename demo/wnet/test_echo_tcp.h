@@ -13,8 +13,8 @@
 using namespace std;
 using namespace wutils::network;
 
-#define CONTEXT event::EpollContext
-// #define CONTEXT event::SelectContext
+// #define CONTEXT event::EpollContext
+#define CONTEXT event::SelectContext
 
 /**
  * test_tcp_echo
