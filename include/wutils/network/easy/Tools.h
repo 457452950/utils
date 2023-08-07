@@ -2,8 +2,8 @@
 #ifndef UTILS_NETWORK_UTILS_H
 #define UTILS_NETWORK_UTILS_H
 
-#include <fcntl.h>       // fcntl
-#include <unistd.h>      // close
+#include <fcntl.h>  // fcntl
+#include <unistd.h> // close
 
 #include <sys/timerfd.h> // timerfd_settime
 
@@ -47,43 +47,6 @@ HEAD_ONLY bool Bind(socket_t socket, const NetAddress &serverInfo) {
 
     return false;
 }
-
-HEAD_ONLY socket_t MakeBindedSocket(const NetAddress &info) {
-    socket_t bind_sock = INVALID_SOCKET;
-    auto     fami      = info.GetFamily();
-
-    bind_sock = MakeSocket(fami, AF_PROTOL::UDP);
-    if(bind_sock == INVALID_SOCKET) {
-        return INVALID_SOCKET;
-    }
-
-    if(Bind(bind_sock, info)) {
-        return bind_sock;
-    }
-
-    ::close(bind_sock);
-    return INVALID_SOCKET;
-}
-
-HEAD_ONLY socket_t MakeListenedSocket(const NetAddress &info) {
-    socket_t listen_sock(INVALID_SOCKET);
-    auto     fami = info.GetFamily();
-
-    listen_sock = MakeSocket(fami, AF_PROTOL::TCP);
-    if(listen_sock == INVALID_SOCKET) {
-        return INVALID_SOCKET;
-    }
-
-    if(Bind(listen_sock, info)) {
-        if(::listen(listen_sock, 1024) == 0) {
-            return listen_sock;
-        }
-    }
-
-    ::close(listen_sock);
-    return INVALID_SOCKET;
-}
-
 
 /***************************************************
  * TCP Utils

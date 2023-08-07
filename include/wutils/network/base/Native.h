@@ -18,11 +18,16 @@ namespace v4 {
 constexpr int FAMILY       = AF_FAMILY::INET;
 using SockAddr             = ::sockaddr_in;
 constexpr int SOCKADDR_LEN = sizeof(sockaddr_in);
+
+constexpr char const *LOOPBACK = "127.0.0.1";
+constexpr char const *ANY      = "0.0.0.0";
 } // namespace v4
 namespace v6 {
 constexpr int FAMILY       = AF_FAMILY::INET6;
 using SockAddr             = ::sockaddr_in6;
 constexpr int SOCKADDR_LEN = sizeof(sockaddr_in6);
+
+constexpr char const *ANY = "0:0:0:0:0:0:0:0";
 } // namespace v6
 
 using socket_t = int32_t;

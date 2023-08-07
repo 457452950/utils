@@ -90,9 +90,9 @@ struct NetAddress {
     bool Assign(const sockaddr *sock, socklen_t socklen) {
         switch(socklen) {
         case v4::SOCKADDR_LEN:
-            return this->Assign(sock, v4::FAMILY);
+            return this->Assign(sock, AF_FAMILY::INET);
         case v6::SOCKADDR_LEN:
-            return this->Assign(sock, v6::FAMILY);
+            return this->Assign(sock, AF_FAMILY::INET6);
         default:
             abort();
         }

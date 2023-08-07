@@ -44,16 +44,15 @@ public:
     bool Open(AF_FAMILY family) { return this->socket_.Open(family); }
 
     bool Bind(const NetAddress &local) {
-        auto ok = this->socket_.Bind(local);
-        if(ok) {
+        if(this->socket_.Bind(local)) {
             local_   = local;
             is_bind_ = true;
 
             this->handle_->socket_ = this->socket_;
             this->handle_->SetEvents(event::EventType::EV_IN);
-            this->handle_->Enable();
+            return this->handle_->Enable();
         }
-        return ok;
+        return false;
     }
     bool Connect(const NetAddress &remote) {
         auto ok = this->socket_.Connect(remote);
