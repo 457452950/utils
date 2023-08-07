@@ -1,23 +1,23 @@
-#include "RedisClientInterface.h"
+#include "wutils/redis/RedisClientInterface.h"
 #include <mutex>
 
-namespace wlb
-{
+namespace wutils {
 
 /*
 REDIS_REPLY_STRING      1       reply->str
 REDIS_REPLY_ARRAY       2       redis->elements
-REDIS_REPLY_INTERGER    3       reply->interger
+REDIS_REPLY_INTERGER    3       reply->integer
 REDIS_REPLY_NIL         4
 REDIS_REPLY_STATUS      5       reply->str
 REDIS_REPLY_ERROR       6       reply->str
 */
 
-class CRedisClient:public IRedisClient
-{
+/**
+ * base on hiredis
+ */
+class RedisClient final : public IRedisClient {
 public:
-
-// Async
+    // Async
     // String
 
     // List
@@ -27,75 +27,55 @@ public:
     //
 
 
-// Sync
+    // Sync
     // String
-    void Set(const char* key, const char* value, int time_out_s = -1) override;
-    void Get(const std::string& key, std::string& value) override;
+    void Set(const Key &key, const Field &value, int time_out_sec) override;
+    void Get(const Key &key, Field &value) override;
 
     // Hash
-    bool HSetNX(const Key& key, const Field& field, const Value& value) override;
-    bool HSetNX(const Key& key, int field, const Value& value) override;
+    bool HSetNX(const Key &key, const Field &field, const Value &value) override;
+    bool HSetNX(const Key &key, int field, const Value &value) override;
 
-    void HDEL(const Key& key, int field) override;
-    
-    void HGetAll(const Key& key, std::vector<std::tuple<Value, Value>>& values) override;
+    void HDEL(const Key &key, int field) override;
+
+    void HGetAll(const Key &key, std::vector<std::tuple<Value, Value>> &values) override;
 
     // List
 
     // Set
-    void SAdd(const Key& key, const Value& value) override;
-    bool SAdd(const Key& key, int32_t value) override;
-    bool SIsMember(const Key& key, const Value& value) override;
+    void SAdd(const Key &key, const Value &value) override;
+    bool SAdd(const Key &key, int32_t value) override;
+    bool SIsMember(const Key &key, const Value &value) override;
 
-    // 
+    //
 
 
     // other
-    void Del(const Key& key) override;
-    void INCR(const Key& key) override; // 自增
-    void DECR(const Key& key) override; // 自减
-    void INCRBY(const Key& key, int32_t value) override;
-    void DECRBY(const Key& key, int32_t value) override;
+    void Del(const Key &key) override;
+    void INCR(const Key &key) override; // 自增
+    void DECR(const Key &key) override; // 自减
+    void INCRBY(const Key &key, int32_t value) override;
+    void DECRBY(const Key &key, int32_t value) override;
 
 
+    static RedisClient *CreateClient(const std::string &ip, uint8_t port);
+    static RedisClient *getInstance();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    static CRedisClient*    CreateClient(const char* ip, uint port);
-    static CRedisClient*    getInstance();
-
-    void SetActive(bool active) {this->_isActive = active; };
-    bool IsActive(){ return this->_isActive; };
+    void SetActive(bool active) { this->is_active_ = active; };
+    bool IsActive() const { return this->is_active_; };
 
 private:
-    CRedisClient() {}
-    ~CRedisClient() ;
-    
-    redisReply*                   Command(const char* format, ...);
+    RedisClient() {}
+    ~RedisClient();
+
+    redisReply *Command(const char *format, ...);
 
 private:
-    static std::mutex           _mutex;
-    static CRedisClient*        s_Instance;
+    static RedisClient *instance_;
 
-    static redisContext*        s_pRedisContext;
-
-    bool _isActive{false};
+    redisContext *hiredis_context_{nullptr};
+    bool          is_active_{false};
 };
 
 
-
-}
-
-
+} // namespace wutils

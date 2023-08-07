@@ -10,6 +10,7 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 cmake-build-debug
+tags
 .idea/
 
 lib/liblogger.a
@@ -21,9 +22,19 @@ lib/libwnetwork.a
 lib/libwtimer.a
 lib/libwdebug.a
 lib/libwlb.a    
+lib/libwutils.a
 
-.vscode/settings.json
+.vscode/
 build/*
 .cmake/
 build.ninja
-lib/libwutils.a
+*.exe
+*.pdb
+/out/build/x64-Debug
+/.vs/utils
+/.vs
+*.pem
+demo/bin/
+*.log
+*.cbp
+.VSCodeCounter
