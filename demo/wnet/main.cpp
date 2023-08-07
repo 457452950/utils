@@ -7,6 +7,7 @@
 #include "test_tcp_aconnection.h"
 
 #include "test_udp_point.h"
+#include "test_async_udp_point.h"
 
 #include "test_echo_tcp.h"
 
@@ -20,6 +21,7 @@ int main() {
     test_tcp_connection();
     test_aconnection();
     test_udp();
+    test_async_udp();
 
     test_tcp_echo();
 

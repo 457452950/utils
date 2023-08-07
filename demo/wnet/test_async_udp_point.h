@@ -1,5 +1,5 @@
-#ifndef UTILS_DEMO_WNET_TEST_UDP_H
-#define UTILS_DEMO_WNET_TEST_UDP_H
+#ifndef UTILS_DEMO_WNET_TEST_ASYNC_UDP_H
+#define UTILS_DEMO_WNET_TEST_ASYNC_UDP_H
 
 #include <iostream>
 #include <string>
@@ -14,9 +14,9 @@ using namespace wutils::network;
 #define CONTEXT event::SelectContext
 
 /**
- * test_udp
+ * test_async_udp
  */
-namespace test_udp_config {
+namespace test_async_udp_config {
 
 namespace srv {
 namespace bind {
@@ -41,26 +41,41 @@ std::shared_ptr<CONTEXT> ep_;
 NetAddress server_na;
 NetAddress client_na;
 
-class UdpServer : public UdpPoint::Listener {
+class UdpServer : public AUdpPoint::Listener {
 public:
-    explicit UdpServer(shared_ptr<UdpPoint> point) : point_(std::move(point)) { point_->listener_ = this; }
-    ~UdpServer() override { LOG(LINFO, "server") << "recv total :" << recv_total_.load(); }
+    explicit UdpServer(shared_ptr<AUdpPoint> point) : point_(std::move(point)) {
+        point_->listener_ = this;
+
+        package_.buffer = new uint8_t[1500];
+        package_.len    = 1500;
+
+        point_->AReceive(package_, AUdpPoint::Keep, &client_);
+    }
+    ~UdpServer() override {
+        delete[] package_.buffer;
+        LOG(LINFO, "server") << "recv total :" << recv_total_.load() << " send total :" << send_total_.load();
+    }
 
     void OnError(wutils::SystemError error) override {
         LOG(LERROR, "server") << error;
         point_->listener_ = nullptr;
         point_.reset();
     }
-    void OnReceiveFrom(wutils::network::Package package, wutils::network::NetAddress remote) override {
-        //        LOG(LINFO, "server") << "recv pack : " << std::string((char *)package.data, package.bytes).c_str() <<
-        //        " len " << package.bytes;
+    void OnReceiveFrom(uint64_t len) override {
+        auto [port, ip] = client_.Dump();
+        //        LOG(LINFO, "server") << "recv from : " << ip << " " << port << " recv len " << len;
 
-        recv_total_.fetch_add(package.bytes);
-        point_->SendTo(package, remote);
+        recv_total_.fetch_add(len);
+        point_->ASendTo({package_.buffer, uint16_t(len)}, client_);
     }
+    void OnSentTo(uint64_t len, const wutils::network::NetAddress &remote) override { send_total_.fetch_add(len); }
 
-    shared_ptr<UdpPoint> point_;
-    std::atomic_uint64_t recv_total_{0};
+    NetAddress client_;
+    UdpBuffer  package_;
+
+    shared_ptr<AUdpPoint> point_;
+    std::atomic_uint64_t  recv_total_{0};
+    std::atomic_uint64_t  send_total_{0};
 };
 
 void server_thread() {
@@ -71,8 +86,7 @@ void server_thread() {
     ep_     = ep;
     ep->Init();
 
-
-    auto udp_srv    = std::make_shared<UdpPoint>(ep);
+    auto udp_srv    = std::make_shared<AUdpPoint>(ep);
     auto udp_server = make_shared<UdpServer>(udp_srv);
 
     if(!udp_srv->Open(server_na.GetFamily())) {
@@ -142,11 +156,11 @@ void handle_pipe(int signal) {
     ep_->Stop();
 }
 
-} // namespace test_udp_config
+} // namespace test_async_udp_config
 
-inline void test_udp() {
-    using namespace test_udp_config;
-    cout << "-------------------- test udp point --------------------" << endl;
+inline void test_async_udp() {
+    using namespace test_async_udp_config;
+    cout << "-------------------- test async udp point --------------------" << endl;
 
     signal(SIGPIPE, handle_pipe); // 自定义处理函数
     signal(SIGINT, handle_pipe);  // 自定义处理函数
@@ -169,7 +183,7 @@ inline void test_udp() {
     if(ep_) {
         ep_.reset();
     }
-    cout << "-------------------- test udp point end --------------------" << endl;
+    cout << "-------------------- test async udp point end --------------------" << endl;
 }
 
 
