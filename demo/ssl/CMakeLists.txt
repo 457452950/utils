@@ -16,5 +16,5 @@ add_executable(
         main.cpp
 )
 
-target_link_libraries(ssl_demo crypto ssl)
+target_link_libraries(ssl_demo crypto ssl fmt)
 

@@ -9,17 +9,18 @@
 
 namespace wutils::network::ssl {
 
+#define SSL_ERR_MSG_LEN (1024)
 
 class SslErrorCategory : public error_category {
 public:
     SslErrorCategory() = default;
     const char *name() const noexcept override { return "ssl"; }
     std::string message(int value) const override {
-        char msg[1024];
+        char msg[SSL_ERR_MSG_LEN]{0};
 
-        ERR_error_string_n(static_cast<unsigned long>(value), msg, 1024);
+        ERR_error_string_n(static_cast<unsigned long>(value), msg, SSL_ERR_MSG_LEN);
 
-        return {msg, 1024};
+        return msg;
     }
 };
 
