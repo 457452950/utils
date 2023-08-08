@@ -34,11 +34,6 @@ if (UNIX)
         add_library(tinymysql src/mysql/MySQLClient.cpp)
         target_link_libraries(tinymysql mysqlclient)
 
-
-        add_library(jsonreader src/json/JsonFileReader.cpp include/wutils/network/base/ISocket.h)
-        target_link_libraries(jsonreader hiredis)
-
-
         add_library(
                 wutils
 
