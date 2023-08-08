@@ -10,4 +10,5 @@ add_subdirectory(libevent)
 add_subdirectory(buffer)
 add_subdirectory(json)
 add_subdirectory(objectpool)
+add_subdirectory(ssl)
 

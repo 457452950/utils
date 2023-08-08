@@ -1,5 +1,4 @@
 #include <iostream>
-#include <signal.h>
 
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
@@ -10,25 +9,18 @@ using namespace std;
 
 
 int main(int argc, char **argv) {
-    rapidjson::Document          obj;
-    const char                  *wanted;
-    decltype(obj.FindMember("")) it;
-    std::string                  e;
+    rapidjson::Document obj;
+    std::string         e;
 
-    std::cout << std::string(msg, 184) << std::endl;
+    std::cout << std::string(msg, std::size(msg)) << std::endl;
 
-    //    JSONCHECKPARSE(data.data(), obj, false, e);
-    do {
-        //        obj.Parse((char *)data.data());
-        if(obj.Parse(msg).HasParseError()) {
-            e = std::string(rapidjson::GetParseError_En(obj.GetParseError()));
-            return false;
-        }
+    if(obj.Parse(msg, std::size(msg)).HasParseError()) {
+        e = std::string(rapidjson::GetParseError_En(obj.GetParseError()));
+    } else {
         if(!obj.IsObject()) {
             e = "parse error: is not a object.";
-            return false;
         }
-    } while(0);
+    }
 
     std::cout << "err : " << e << std::endl;
 

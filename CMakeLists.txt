@@ -73,7 +73,9 @@ if (UNIX)
                 include/wutils/network/Acceptor.h
                 include/wutils/network/TcpConnection.h
                 include/wutils/network/UdpPoint.h
-                include/wutils/network/Error.h)
+                include/wutils/network/Error.h
+                include/wutils/network/ssl/ssl.h
+                include/wutils/network/ssl/Error.h)
 
         add_subdirectory(demo)
 
