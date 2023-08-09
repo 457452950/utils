@@ -90,7 +90,7 @@ public:
 
     bool Listen() { return ::listen(this->socket_, MAX_LISTEN_BACK_LOG) == 0; }
 
-    ISocket Accept(NetAddress &info, bool set_nonblock = false) {
+    ISocket Accept(NetAddress *info, bool set_nonblock = false) {
         if(set_nonblock) {
             return network::Accept4(this->socket_, info, SOCK_NONBLOCK);
         }

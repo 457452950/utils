@@ -29,7 +29,7 @@ public:
 
     socket_t Get() const { return socket_; }
 
-    void Close() {
+    virtual void Close() {
         if(socket_ != INVALID_SOCKET) {
             ::close(this->socket_);
             this->socket_ = INVALID_SOCKET;

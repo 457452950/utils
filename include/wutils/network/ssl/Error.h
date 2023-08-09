@@ -18,6 +18,10 @@ public:
     std::string message(int value) const override {
         char msg[SSL_ERR_MSG_LEN]{0};
 
+        //        auto reason = ERR_GET_REASON(value);
+        //        ERR_reason_error_string(value);
+        //        ERR_lib_error_string(value);
+
         ERR_error_string_n(static_cast<unsigned long>(value), msg, SSL_ERR_MSG_LEN);
 
         return msg;

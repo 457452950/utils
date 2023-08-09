@@ -52,34 +52,34 @@ HEAD_ONLY bool Bind(socket_t socket, const NetAddress &serverInfo) {
  * TCP Utils
  ****************************************************/
 // return -1 if fail
-HEAD_ONLY socket_t Accept(socket_t socket, NetAddress &info) {
+HEAD_ONLY socket_t Accept(socket_t socket, NetAddress *info) {
     sockaddr_in6 temp{};
     socklen_t    len{sizeof(temp)};
-    socket_t     _client_sock = ::accept(socket, (sockaddr *)&temp, &len);
+
+    socket_t _client_sock = ::accept(socket, (sockaddr *)&temp, &len);
     if(_client_sock < 0) {
         return INVALID_SOCKET;
     }
-    // clang-format off
-    info.Assign((sockaddr*)&temp,
-        len == sizeof(sockaddr_in) ?
-        AF_FAMILY::INET : AF_FAMILY::INET6);
-    // clang-format on
+
+    if(info) {
+        info->Assign((sockaddr *)&temp, len);
+    }
 
     return _client_sock;
 }
 // return -1 if fail
-HEAD_ONLY socket_t Accept4(socket_t socket, NetAddress &info, int flags) {
+HEAD_ONLY socket_t Accept4(socket_t socket, NetAddress *info, int flags) {
     sockaddr_in6 temp{};
     socklen_t    len{sizeof(temp)};
-    socket_t     _client_sock = ::accept4(socket, (sockaddr *)&temp, &len, flags);
+
+    socket_t _client_sock = ::accept4(socket, (sockaddr *)&temp, &len, flags);
     if(_client_sock < 0) {
         return INVALID_SOCKET;
     }
-    // clang-format off
-    info.Assign((sockaddr*)&temp,
-        len == sizeof(sockaddr_in) ?
-        AF_FAMILY::INET : AF_FAMILY::INET6);
-    // clang-format on
+    
+    if(info) {
+        info->Assign((sockaddr *)&temp, len);
+    }
 
     return _client_sock;
 }
