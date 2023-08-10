@@ -77,7 +77,7 @@ public:
 private:
     void IOIn() override {
         NetAddress remote;
-        ISocket    cli_socket = acceptor_.Accept(remote, true);
+        ISocket    cli_socket = acceptor_.Accept(&remote, true);
 
         if(!cli_socket) {
             dealError();
@@ -180,7 +180,7 @@ public:
 
 private:
     void IOIn() override {
-        ISocket cli_socket = acceptor_.Accept(*remote_, true);
+        ISocket cli_socket = acceptor_.Accept(remote_, true);
 
         if(!cli_socket) {
             dealError();

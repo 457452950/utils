@@ -6,6 +6,8 @@
 #include "test_tcp_connection.h"
 #include "test_tcp_aconnection.h"
 
+#include "test_tls_connection.h"
+
 #include "test_udp_point.h"
 #include "test_async_udp_point.h"
 
@@ -20,6 +22,9 @@ int main() {
 
     test_tcp_connection();
     test_aconnection();
+
+    test_tls_connection();
+
     test_udp();
     test_async_udp();
 

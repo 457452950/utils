@@ -55,6 +55,10 @@ public:
         return make_ssl_error_code(ERR_get_error());
     }
 
+    /**
+     * @note 无法通过返回值判断 handshake 是否通过, 需要额外进行一次 SslRead() 的调用失败判断.
+     * issues: https://github.com/openssl/openssl/issues/11118
+     */
     Error SslConnect() {
         ERR_clear_error();
 
@@ -63,6 +67,17 @@ public:
             return make_ssl_error_code(ERR_get_error());
         }
         return {};
+    }
+
+    void  SetServerState() { SSL_set_accept_state(this->ssl_); }
+    void  SetClientState() { SSL_set_connect_state(this->ssl_); }
+    bool  IsServerState() { return SSL_is_server(this->ssl_); }
+    Error SslDoHandShake() {
+        auto res = SSL_do_handshake(this->ssl_);
+        if(res == 1) {
+            return {};
+        }
+        return make_ssl_error_code(ERR_get_error());
     }
 
     OSSL_HANDSHAKE_STATE SslGetState() { return SSL_get_state(this->ssl_); }
@@ -80,15 +95,22 @@ public:
         return {};
     }
 
-    Error SslRead(void *buf, int num) {
+    /**
+     *
+     * @param buf
+     * @param num
+     * @return 旧文档指示 0 和 -1 之间存在差异，并且 -1 是可重试的。相反，您应该调用 SSL_get_error（）
+     * 来确定它是否可以重试。
+     */
+    std::tuple<int, Error> SslRead(void *buf, int num) {
         ERR_clear_error();
 
         assert(num);
         auto len = SSL_read(this->ssl_, buf, num);
         if(len <= 0) {
-            return make_ssl_error_code(ERR_get_error());
+            return {len, make_ssl_error_code(ERR_get_error())};
         }
-        return {};
+        return {len, {}};
     }
 
     Error SslShutDown() {
@@ -211,7 +233,15 @@ public:
         SSL_CTX_set_verify(this->context_, static_cast<int>(type), cb);
     }
 
-    Socket NewSocket(ISocket &sock) { return Socket(SSL_new(this->context_), sock); }
+    Socket NewSocket(ISocket &sock) const {
+        auto s = SSL_new(this->context_);
+        if(type_ == SERVER) {
+            SSL_set_accept_state(s);
+        } else {
+            SSL_set_connect_state(s);
+        }
+        return Socket(s, sock);
+    }
 
 private:
     SslContext() = default;

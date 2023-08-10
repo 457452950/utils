@@ -18,19 +18,35 @@ using namespace wutils::network;
 
 NetAddress server_na;
 
+int sssl_verify_cb(int preverify_ok, X509_STORE_CTX *x509_ctx) {
+    LOG(LINFO, "server") << "is verify ok ? " << preverify_ok << " "
+                         << X509_verify_cert_error_string(X509_STORE_CTX_get_error(x509_ctx));
+
+    switch(X509_STORE_CTX_get_error(x509_ctx)) {
+    case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
+        // return 1 when pass
+        preverify_ok = 1;
+    default:
+        break;
+    }
+    return preverify_ok;
+}
+
 void server_thread() {
-    assert(std::filesystem::exists("/tmp/server.pem"));
+    assert(std::filesystem::exists("/tmp/cacert.pem"));
 
     auto ctx = ssl::SslContext::Create(ssl::SslContext::TLS, ssl::SslContext::SERVER);
 
-    auto err = ctx->LoadCertificateFile("/tmp/server.pem", ssl::SslContext::PEM);
+    //    ctx->SetVerify(ssl::SslContext::VerifyType::FAIL_IF_NO_PEER_CERT, sssl_verify_cb);
+
+    auto err = ctx->LoadCertificateFile("/tmp/cacert.pem", ssl::SslContext::PEM);
     if(err) {
         LOG(LERROR, "server") << "load file error : " << err.message();
         return;
     } else
         LOG(LINFO, "server") << "load file success : " << err.message();
 
-    err = ctx->LoadPrivateKey("/tmp/server.key", ssl::SslContext::PEM);
+    err = ctx->LoadPrivateKey("/tmp/privkey.pem", ssl::SslContext::PEM);
     if(err) {
         LOG(LERROR, "server") << "load file error : " << err.message();
         return;
@@ -91,7 +107,14 @@ void server_thread() {
         LOG(LINFO, "server") << "ssl socket open success : " << err.message();
     }
 
-    err = ssl_ser_cli.SslAccept();
+    //    err = ssl_ser_cli.SslAccept();
+    //    if(err) {
+    //        LOG(LERROR, "server") << "ssl socket ssl accept error : " << err.message();
+    //        return;
+    //    } else {
+    //        LOG(LINFO, "server") << "ssl socket ssl accept success : " << err.message();
+    //    }
+    err = ssl_ser_cli.SslDoHandShake();
     if(err) {
         LOG(LERROR, "server") << "ssl socket ssl accept error : " << err.message();
         return;
@@ -118,7 +141,7 @@ void server_thread() {
         LOG(LINFO, "server") << "ssl socket ssl send success : " << err.message();
     }
 
-    err = ssl_ser_cli.SslRead(recv_buf, size(recv_buf));
+    std::tie(std::ignore, err) = ssl_ser_cli.SslRead(recv_buf, size(recv_buf));
     if(err) {
         LOG(LERROR, "server") << "ssl socket ssl read error : " << err.message();
         return;
@@ -148,7 +171,7 @@ int ssl_verify_cb(int preverify_ok, X509_STORE_CTX *x509_ctx) {
 void client_thread() {
     auto ctx = ssl::SslContext::Create(ssl::SslContext::TLS, ssl::SslContext::CLIENT);
 
-    ctx->SetVerify(ssl::SslContext::VerifyType::Peer, ssl_verify_cb);
+    //    ctx->SetVerify(ssl::SslContext::VerifyType::Peer, ssl_verify_cb);
 
     std::this_thread::sleep_for(50ms);
 
@@ -174,7 +197,14 @@ void client_thread() {
         LOG(LINFO, "client") << "ssl socket open success : " << err.message();
     }
 
-    err = ssl_cli.SslConnect();
+    //    err = ssl_cli.SslConnect();
+    //    if(err) {
+    //        LOG(LERROR, "client") << "ssl socket ssl connect error : " << err.message();
+    //        return;
+    //    } else {
+    //        LOG(LINFO, "client") << "ssl socket ssl connect success : " << err.message();
+    //    }
+    err = ssl_cli.SslDoHandShake();
     if(err) {
         LOG(LERROR, "client") << "ssl socket ssl connect error : " << err.message();
         return;
@@ -182,8 +212,8 @@ void client_thread() {
         LOG(LINFO, "client") << "ssl socket ssl connect success : " << err.message();
     }
 
-    //    auto res = ssl_cli.SslVerifyResult();
-    auto res = verify_ok;
+    auto res = ssl_cli.SslVerifyResult();
+    //    auto res = verify_ok;
     if(!res) {
         LOG(LERROR, "client") << "verify res. error : " << X509_verify_cert_error_string(res);
         return;
@@ -193,7 +223,7 @@ void client_thread() {
 
     char recv_buf[1024];
 
-    err = ssl_cli.SslRead(recv_buf, size(recv_buf));
+    std::tie(std::ignore, err) = ssl_cli.SslRead(recv_buf, size(recv_buf));
     if(err) {
         LOG(LERROR, "client") << "ssl socket ssl read error : " << err.message();
         return;
@@ -212,22 +242,18 @@ void client_thread() {
 }
 
 int main(int argc, char **argv) {
-    try {
-        wutils::log::Logger::GetInstance()->LogCout()->LogFile("/tmp/ssl.log")->SetLogLevel(LDEBUG)->Start();
+    wutils::log::Logger::GetInstance()->LogCout()->LogFile("/tmp/ssl.log")->SetLogLevel(LDEBUG)->Start();
 
-        ssl::InitSsl();
+    ssl::InitSsl();
 
-        std::thread srv(server_thread);
-        std::thread cli(client_thread);
+    std::thread srv(server_thread);
+    std::thread cli(client_thread);
 
-        srv.join();
-        cli.join();
+    srv.join();
+    cli.join();
 
-        ssl::ReleaseSsl();
+    ssl::ReleaseSsl();
 
-        wutils::log::Logger::GetInstance()->StopAndWait();
-    } catch(std::runtime_error err) {
-        std::cout << "runtime error " << err.what() << std::endl;
-    }
+    wutils::log::Logger::GetInstance()->StopAndWait();
     return 0;
 }

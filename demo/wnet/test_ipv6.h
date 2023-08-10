@@ -72,7 +72,7 @@ void server_thread() {
     // accept
 
     NetAddress en;
-    res = Accept(sock, en);
+    res = Accept(sock, &en);
 
     if(res == -1) {
         LOG(LERROR, "server") << "Accept error : " << strerror(errno);

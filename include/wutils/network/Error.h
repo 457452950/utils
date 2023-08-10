@@ -2,13 +2,21 @@
 #ifndef WUTILS_NETWORK_ERROR_H
 #define WUTILS_NETWORK_ERROR_H
 
-#include "wutils/Error.h"
 
 #include <unordered_map>
 
+#include "wutils/Error.h"
+#include "wutils/network/base/Definition.h"
+
 namespace wutils::network {
 
-enum class eNetWorkError : int { OK = 0, CONTEXT_TOO_MUCH_HANDLE, CONTEXT_CANT_FOUND_HANDLE, UNKNOWN = INT32_MAX };
+enum class eNetWorkError : int {
+    OK = 0,
+    CONTEXT_TOO_MUCH_HANDLE,
+    CONTEXT_CANT_FOUND_HANDLE,
+    SEND_DATA_TOO_LONG,
+    UNKNOWN = INT32_MAX
+};
 
 #define ERRMAPITEM(i, v)                                                                                               \
     { static_cast<int>(eNetWorkError::i), (char *)v }
@@ -17,6 +25,7 @@ const inline std::unordered_map<int, char *> ErrorMessageMap = {
         ERRMAPITEM(OK, "ok"),
         ERRMAPITEM(CONTEXT_TOO_MUCH_HANDLE, "context has too much handle"),
         ERRMAPITEM(CONTEXT_CANT_FOUND_HANDLE, "context cant found handle"),
+        ERRMAPITEM(SEND_DATA_TOO_LONG, "send data too long."),
         ERRMAPITEM(UNKNOWN, "unknown error")};
 
 

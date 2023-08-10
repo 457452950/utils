@@ -26,5 +26,5 @@ add_executable(
 
         test_echo_tcp.h)
 
-target_link_libraries(wnet_demo wutils fmt)
+target_link_libraries(wnet_demo wutils fmt crypto ssl)
 
