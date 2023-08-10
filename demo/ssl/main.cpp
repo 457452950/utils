@@ -246,6 +246,8 @@ int main(int argc, char **argv) {
 
     ssl::InitSsl();
 
+    LOG(LINFO, "main") << "version " << ssl::SSLVersion() << " m version" << ssl::SSLMajorVersion();
+
     std::thread srv(server_thread);
     std::thread cli(client_thread);
 

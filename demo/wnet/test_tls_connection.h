@@ -203,7 +203,7 @@ void client_thread() {
                 << " total : " << total
                 << endl;
             // clang-format on
-            if(total == 720000) {
+            if(total == 2890000) {
                 LOG(LINFO, "client") << "stop.";
                 ep_->Stop();
                 return;
@@ -214,9 +214,12 @@ void client_thread() {
     while(true) {
         static int i = 0;
 
-        char send_buf[] = "hello123hello123hello123hello123hello123hello123hello123hello123hello123";
+        char send_buf[] = "hello123hello123hello123hello123hello123hello123hello123hello123hello123"
+                          "hello123hello123hello123hello123hello123hello123hello123hello123hello123"
+                          "hello123hello123hello123hello123hello123hello123hello123hello123hello123"
+                          "hello123hello123hello123hello123hello123hello123hello123hello123hello123";
 
-        err = ssl_cli.SslWrite(send_buf, std::strlen(send_buf));
+        err = ssl_cli.SslWrite(send_buf, std::size(send_buf));
         if(err) {
             LOG(LERROR, "client") << "ssl socket ssl send error : " << err.message();
             return;
@@ -294,7 +297,7 @@ inline void test_tls_connection() {
         se.reset();
 
     ssl::ReleaseSsl();
-    
+
     cout << "-------------------- test tls channel end --------------------" << endl;
 }
 

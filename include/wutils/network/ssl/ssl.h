@@ -18,7 +18,11 @@
 namespace wutils::network::ssl {
 
 
-HEAD_ONLY unsigned long SSLVersion() { return OpenSSL_version_num(); }
+HEAD_ONLY constexpr char *SSLVersion() { return OPENSSL_VERSION_STR; }
+HEAD_ONLY int             SSLMajorVersion() {
+    static_assert(OPENSSL_VERSION_MAJOR == 3);
+    return OPENSSL_version_major();
+}
 
 HEAD_ONLY void InitSsl() {
     SSL_library_init();
