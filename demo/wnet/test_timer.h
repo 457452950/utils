@@ -33,7 +33,7 @@ inline void test_timer() {
 
     assert(context->Init());
 
-    auto                 timer = std::make_shared<Timer>(context);
+    auto                 timer = Timer::Create(context);
     std::weak_ptr<Timer> t     = timer; // !!!
 
     timer->OnTime = [t]() {

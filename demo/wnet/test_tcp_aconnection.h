@@ -102,7 +102,7 @@ inline auto ac_cb = [](const NetAddress &local, NetAddress *remote, unique_ptr<e
     auto lo   = local.Dump();
     LOG(LINFO, "accept") << "local " << std::get<0>(lo) << " " << std::get<1>(lo) << " accept : info "
                          << std::get<0>(info) << " " << std::get<1>(info);
-    auto ch = std::make_shared<AConnection>(local, *remote, std::move(handler));
+    auto ch = AConnection::Create(local, *remote, std::move(handler));
     se      = std::make_shared<TestSession>(ch);
 };
 inline auto err_cb = [](wutils::Error error) { std::cout << error.message() << std::endl; };
@@ -120,13 +120,10 @@ void server_thread() {
         return;
     }
 
-    auto accp_channel = new AAcceptor(ep);
+    auto accp_channel = AAcceptor::Create(ep);
     auto remote       = new NetAddress;
 
-    DEFER([=]() {
-        delete accp_channel;
-        delete remote;
-    });
+    DEFER([=]() { delete remote; });
 
     if(!accp_channel->Open(local_ed.GetFamily())) {
         LOG(LERROR, "server") << wutils::GetGenericError().message();
@@ -149,7 +146,7 @@ void server_thread() {
 
     if(se)
         se.reset();
-    LOG(LERROR, "server") << "server thread end";
+    LOG(LINFO, "server") << "server thread end";
     // 激活客户端的 阻塞recv
 }
 

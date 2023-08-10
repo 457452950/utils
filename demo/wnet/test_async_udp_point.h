@@ -86,7 +86,7 @@ void server_thread() {
     ep_     = ep;
     ep->Init();
 
-    auto udp_srv    = std::make_shared<AUdpPoint>(ep);
+    auto udp_srv    = AUdpPoint::Create(ep);
     auto udp_server = make_shared<UdpServer>(udp_srv);
 
     if(!udp_srv->Open(server_na.GetFamily())) {

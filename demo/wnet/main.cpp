@@ -15,7 +15,7 @@
 
 
 int main() {
-    Logger::GetInstance()->LogCout()->SetLogLevel(LDEBUG)->Start();
+    Logger::GetInstance()->LogCout()->LogFile("/tmp/wnet.log")->SetLogLevel(LDEBUG)->Start();
 
     test_timer();
     test_ipv6();

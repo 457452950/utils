@@ -20,13 +20,18 @@ struct UdpBuffer {
 
 
 class UdpPoint : public event::IOEvent {
-public:
+private:
     explicit UdpPoint(weak_ptr<event::IOContext> context) {
         handle_ = make_unique<event::IOHandle>();
 
         handle_->listener_ = this;
         handle_->context_  = std::move(context);
     };
+
+public:
+    static shared_ptr<UdpPoint> Create(weak_ptr<event::IOContext> context) {
+        return shared_ptr<UdpPoint>(new UdpPoint(context));
+    }
     ~UdpPoint() override {
         handle_->DisEnable();
         handle_.reset();
@@ -144,13 +149,18 @@ private:
 };
 
 class AUdpPoint : public event::IOEvent {
-public:
+private:
     explicit AUdpPoint(weak_ptr<event::IOContext> context) {
         handle_ = make_unique<event::IOHandle>();
 
         handle_->listener_ = this;
         handle_->context_  = std::move(context);
     };
+
+public:
+    static shared_ptr<AUdpPoint> Create(weak_ptr<event::IOContext> context) {
+        return shared_ptr<AUdpPoint>(new AUdpPoint(context));
+    }
     ~AUdpPoint() override {
         handle_->DisEnable();
         handle_.reset();

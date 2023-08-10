@@ -31,7 +31,7 @@ HEAD_ONLY Data CopyData(const Data &data) {
 }
 
 class Connection : public event::IOEvent {
-public:
+private:
     Connection(NetAddress local, NetAddress remote, unique_ptr<event::IOHandle> handle) :
         local_(std::move(local)), remote_(std::move(remote)), handle_(std::move(handle)) {
         handle_->listener_ = this;
@@ -40,6 +40,11 @@ public:
         assert(socket_);
     }
 
+public:
+    static shared_ptr<Connection>
+    Create(const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handle) {
+        return shared_ptr<Connection>(new Connection(local, remote, std::move(handle)));
+    }
     ~Connection() override {
         handle_->DisEnable();
         handle_.reset();
@@ -166,7 +171,7 @@ private:
  * async connection
  */
 class AConnection : public event::IOEvent {
-public:
+private:
     AConnection(NetAddress local, NetAddress remote, unique_ptr<event::IOHandle> handle) :
         local_(std::move(local)), remote_(std::move(remote)), handle_(std::move(handle)) {
         handle_->listener_ = this;
@@ -176,6 +181,12 @@ public:
 
         this->send_buffer_.Init(0);
     };
+
+public:
+    static shared_ptr<AConnection>
+    Create(const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handle) {
+        return shared_ptr<AConnection>(new AConnection(local, remote, std::move(handle)));
+    }
     ~AConnection() override {
         handle_->DisEnable();
         handle_.reset();

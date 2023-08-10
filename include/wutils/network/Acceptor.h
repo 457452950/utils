@@ -3,6 +3,7 @@
 #define UTIL_ACCEPTOR_H
 
 #include <functional>
+#include <utility>
 
 #include "wutils/Error.h"
 #include "io_event/IOEvent.h"
@@ -12,10 +13,15 @@
 namespace wutils::network {
 
 class Acceptor : public event::IOReadEvent {
-public:
+private:
     explicit Acceptor(weak_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
         handle_->listener_ = this;
         handle_->context_  = std::move(context);
+    }
+
+public:
+    static shared_ptr<Acceptor> Create(weak_ptr<event::IOContext> context) {
+        return shared_ptr<Acceptor>(new Acceptor(std::move(context)));
     }
     ~Acceptor() override {
         handle_.reset();
@@ -109,10 +115,15 @@ private:
 };
 
 class AAcceptor : public event::IOReadEvent {
-public:
+private:
     explicit AAcceptor(weak_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
         handle_->listener_ = this;
         handle_->context_  = std::move(context);
+    }
+
+public:
+    static shared_ptr<AAcceptor> Create(weak_ptr<event::IOContext> context) {
+        return shared_ptr<AAcceptor>(new AAcceptor(std::move(context)));
     }
     ~AAcceptor() override {
         handle_.reset();

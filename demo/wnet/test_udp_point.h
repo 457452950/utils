@@ -72,16 +72,16 @@ void server_thread() {
     ep->Init();
 
 
-    auto udp_srv    = std::make_shared<UdpPoint>(ep);
+    auto udp_srv    = UdpPoint::Create(ep);
     auto udp_server = make_shared<UdpServer>(udp_srv);
 
     if(!udp_srv->Open(server_na.GetFamily())) {
         LOG(LERROR, "server") << "open fail." << wutils::GetGenericError().message();
         return;
     }
-
-    if(!udp_srv->Bind(server_na)) {
-        LOG(LERROR, "server") << "bind fail." << wutils::GetGenericError().message();
+    auto err = udp_srv->Bind(server_na);
+    if(err) {
+        LOG(LERROR, "server") << "bind fail." << err.message();
         return;
     }
     auto [ip, port] = udp_srv->GetLocalAddress().Dump();

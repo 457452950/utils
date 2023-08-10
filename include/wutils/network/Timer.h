@@ -12,13 +12,18 @@
 namespace wutils::network {
 
 class Timer : public event::IOReadEvent {
-public:
+private:
     explicit Timer(weak_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
         handle_->listener_ = this;
         handle_->context_  = std::move(context);
         handle_->socket_   = this->socket_;
 
         std::cout << "timer socket " << this->socket_.Get() << std::endl;
+    }
+
+public:
+    static shared_ptr<Timer> Create(weak_ptr<event::IOContext> context) {
+        return shared_ptr<Timer>(new Timer(context));
     }
     ~Timer() override {
         this->Stop();

@@ -9,7 +9,7 @@ namespace wutils::network {
 
 // TODO:
 class TlsConnection : public event::IOEvent {
-public:
+private:
     TlsConnection(NetAddress                  local,
                   NetAddress                  remote,
                   unique_ptr<event::IOHandle> handle,
@@ -20,6 +20,14 @@ public:
 
         handle_->listener_ = this;
         assert(n_socket_);
+    }
+
+public:
+    static shared_ptr<TlsConnection> Create(NetAddress                  local,
+                                            NetAddress                  remote,
+                                            unique_ptr<event::IOHandle> handle,
+                                            shared_ptr<ssl::SslContext> ssl_context) {
+        return shared_ptr<TlsConnection>(new TlsConnection(local, remote, std::move(handle), ssl_context));
     }
 
     ~TlsConnection() override {
