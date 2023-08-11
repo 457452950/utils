@@ -38,6 +38,7 @@ void server_thread() {
     auto ctx = ssl::SslContext::Create(ssl::SslContext::TLS, ssl::SslContext::SERVER);
 
     //    ctx->SetVerify(ssl::SslContext::VerifyType::FAIL_IF_NO_PEER_CERT, sssl_verify_cb);
+    ctx->SetCertificatePassword("wang");
 
     auto err = ctx->LoadCertificateFile("/tmp/cacert.pem", ssl::SslContext::PEM);
     if(err) {
@@ -152,14 +153,14 @@ void server_thread() {
 
 bool verify_ok{false};
 
-int ssl_verify_cb(int preverify_ok, X509_STORE_CTX *x509_ctx) {
-    LOG(LINFO, "client") << "is verify ok ? " << preverify_ok << " "
-                         << X509_verify_cert_error_string(X509_STORE_CTX_get_error(x509_ctx));
+int ssl_verify_cb(int preverify_ok, int error) {
+    LOG(LINFO, "client") << "is verify ok ? " << preverify_ok << " " << X509_verify_cert_error_string(error);
 
-    switch(X509_STORE_CTX_get_error(x509_ctx)) {
+    switch(error) {
     case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
         // return 1 when pass
         preverify_ok = 1;
+        break;
     default:
         break;
     }
@@ -171,7 +172,7 @@ int ssl_verify_cb(int preverify_ok, X509_STORE_CTX *x509_ctx) {
 void client_thread() {
     auto ctx = ssl::SslContext::Create(ssl::SslContext::TLS, ssl::SslContext::CLIENT);
 
-    //    ctx->SetVerify(ssl::SslContext::VerifyType::Peer, ssl_verify_cb);
+    ctx->SetVerify(ssl::SslContext::VerifyType::Peer, ssl_verify_cb);
 
     std::this_thread::sleep_for(50ms);
 

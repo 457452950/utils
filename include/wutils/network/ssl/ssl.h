@@ -2,9 +2,11 @@
 #ifndef UTIL_NETWORK_SSL_H
 #define UTIL_NETWORK_SSL_H
 
+#include <utility>
 #include <vector>
 #include <string>
 #include <cassert>
+#include <functional>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -155,12 +157,29 @@ public:
     }
 
     ~SslContext() {
+        if(this->extra_data_) {
+            SSL_CTX_set_app_data(this->context_, nullptr);
+            delete this->extra_data_;
+            this->extra_data_ = nullptr;
+        }
+
         SSL_CTX_free(this->context_);
         this->context_ = nullptr;
     }
 
     protocol Protocol() const noexcept { return protocol_; }
     type     Type() const noexcept { return type_; }
+
+    void SetCertificatePassword(const std::string &password) {
+        this->password_ = password;
+
+        if(this->password_.empty()) {
+            SSL_CTX_set_default_passwd_cb(this->context_, nullptr);
+            return;
+        }
+        SSL_CTX_set_default_passwd_cb(this->context_, &SslContext::pem_password_cb);
+        SSL_CTX_set_default_passwd_cb_userdata(this->context_, (void *)password_.c_str());
+    }
 
     enum file_type { DER = SSL_FILETYPE_ASN1, PEM = SSL_FILETYPE_PEM };
     Error LoadCertificateFile(const char *file_name, file_type type) {
@@ -203,6 +222,7 @@ public:
         return {};
     }
 
+    using VerifyCB = std::function<bool(bool, int)>;
     enum class VerifyType {
         /**
          * @服务器模式 服务器不会向客户端发送客户端证书请求，因此客户端不会发送证书。
@@ -233,8 +253,15 @@ public:
          */
         CLIENT_ONCE = SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE,
     };
-    void SetVerify(VerifyType type, SSL_verify_cb cb) {
-        SSL_CTX_set_verify(this->context_, static_cast<int>(type), cb);
+    void SetVerify(VerifyType type, VerifyCB cb) {
+        if(extra_data_ == nullptr) {
+            this->extra_data_       = new AppData;
+            extra_data_->verify_cb_ = std::move(cb);
+            SSL_CTX_set_app_data(this->context_, extra_data_);
+        } else {
+            extra_data_->verify_cb_ = cb;
+        }
+        SSL_CTX_set_verify(this->context_, static_cast<int>(type), &SslContext::verify_call_back_);
     }
 
     Socket NewSocket(ISocket &sock) const {
@@ -249,6 +276,36 @@ public:
 
 private:
     SslContext() = default;
+
+    static int pem_password_cb(char *buf, int size, int rwflag, void *userdata) {
+        strncpy(buf, (char *)userdata, size);
+        return std::strlen(buf);
+    };
+    std::string password_;
+
+    static int verify_call_back_(int preverified, X509_STORE_CTX *ctx) {
+        if(ctx) {
+            // get ssl form x509_store_ctx, with use SSL_get_ex_data_X509_STORE_CTX_idx;
+            // doc: https://www.openssl.org/docs/man1.0.2/man3/SSL_get_ex_data_X509_STORE_CTX_idx.html
+            if(SSL *ssl =
+                       static_cast<SSL *>(::X509_STORE_CTX_get_ex_data(ctx, ::SSL_get_ex_data_X509_STORE_CTX_idx()))) {
+
+                if(SSL_CTX *context = ::SSL_get_SSL_CTX(ssl)) {
+
+                    auto ptr = static_cast<AppData *>(SSL_CTX_get_app_data(context));
+                    assert(ptr);
+                    if(ptr->verify_cb_) {
+                        return ptr->verify_cb_(preverified != 0, X509_STORE_CTX_get_error(ctx)) ? 1 : 0;
+                    }
+                    return preverified;
+                }
+            }
+        }
+        return 0;
+    };
+    struct AppData {
+        VerifyCB verify_cb_;
+    } *extra_data_{nullptr};
 
 private:
     ssl_ctx_st *context_{nullptr};

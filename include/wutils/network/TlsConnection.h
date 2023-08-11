@@ -7,7 +7,7 @@
 
 namespace wutils::network {
 
-// TODO:
+
 class TlsConnection : public event::IOEvent {
 private:
     TlsConnection(NetAddress                  local,
