@@ -75,9 +75,21 @@ if (UNIX)
                 include/wutils/network/UdpPoint.h
                 include/wutils/network/Error.h
                 include/wutils/network/ssl/ssl.h
-                include/wutils/network/ssl/Error.h)
+                include/wutils/network/ssl/Error.h
+
+                include/wutils/net/http/Method.h
+                include/wutils/net/http/Request.h
+                include/wutils/net/dns/config/Definition.h
+                include/wutils/net/dns/HostsFile.h
+                include/wutils/net/dns/Host.h
+                include/wutils/net/dns/Error.h
+        )
 
         add_subdirectory(demo)
+
+        add_subdirectory(test)
+
+        add_subdirectory(tools/googletest-1.13.0)
 
     elseif (CMAKE_HOST_SYSTEM_NAME MATCHES "Unix")
         message("not support Unix!!!")
