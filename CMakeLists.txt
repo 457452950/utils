@@ -79,9 +79,8 @@ if (UNIX)
 
                 include/wutils/net/http/Method.h
                 include/wutils/net/http/Request.h
-                include/wutils/net/dns/config/Definition.h
-                include/wutils/net/dns/HostsFile.h
-                include/wutils/net/dns/Host.h
+
+                include/wutils/net/dns/DNS.h
                 include/wutils/net/dns/Error.h
         )
 
