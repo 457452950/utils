@@ -24,4 +24,4 @@ Error make_error_code(int error) {
 } // namespace wutils::net::dns
 
 
-#endif // INCLUDE_WUTILS_NET_DNS_ERROR_H
+#endif // WUTILS_NET_DNS_ERROR_H

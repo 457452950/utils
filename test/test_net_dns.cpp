@@ -2,6 +2,7 @@
 
 #include "wutils/net/dns/DNS.h"
 
+
 TEST(dns, dns) {
     using namespace wutils::net;
     auto future = dns::DNS::Request("www.baidu.com");

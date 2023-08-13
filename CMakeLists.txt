@@ -82,6 +82,12 @@ if (UNIX)
 
                 include/wutils/net/dns/DNS.h
                 include/wutils/net/dns/Error.h
+                include/wutils/net/http/Header.h
+                include/wutils/net/http/base/Tools.h
+                include/wutils/net/http/Server.h
+                include/wutils/net/http/Worker.h
+                include/wutils/net/http/Url.h
+                include/wutils/net/http/base/RCode.h
         )
 
         add_subdirectory(demo)
