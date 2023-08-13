@@ -5,6 +5,8 @@
 #include <string>
 #include <map>
 
+
+#include "wutils/SharedPtr.h"
 #include "Method.h"
 #include "Header.h"
 #include "Url.h"
@@ -18,7 +20,7 @@ public:
     Request()  = default;
     ~Request() = default;
 
-    Url Url() const {}
+    const Url &GetUrl() const { return url_; }
 
     std::string_view GetHeader(const std::string &key) {
         auto it = headers_.find(key);
@@ -31,8 +33,11 @@ public:
     const Headers &GetHeaders() { return headers_; }
 
 private:
-    Method  method_;
-    Headers headers_;
+    Method              method_;
+    Url                 url_;
+    Headers             headers_;
+    unique_ptr<uint8_t> data_{nullptr};
+    uint32_t            data_len_{0};
 };
 
 } // namespace wutils::net::http

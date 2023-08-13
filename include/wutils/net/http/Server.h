@@ -16,7 +16,7 @@ public:
 
     void SetWorkingThread(int count);
 
-    using MethodHandle = std::function<void(const Request &request, Response &response)>;
+    using MethodHandle = std::function<void(const shared_ptr<Request> request, shared_ptr<Response> response)>;
 
     void Get(std::string path, MethodHandle handle);
     void POST(std::string path, MethodHandle handle);
@@ -28,8 +28,8 @@ public:
     void Start(std::string ip, uint8_t port);
 
 private:
-    void OnRequest(Method method, const Request &request, Response &response) override {
-        auto path = request.Url().GetPath();
+    void OnRequest(Method method, const shared_ptr<Request> request, shared_ptr<Response> response) override {
+        auto path = request->GetUrl().GetPath();
         auto it   = methods_handle_map_.find(method);
         if(it == methods_handle_map_.end()) {
             // 405 Method_Not_Allowed

@@ -74,4 +74,16 @@ TEST(net, http_parse_url) {
             GTEST_LOG_(INFO) << it.first << " = " << it.second;
         }
     }
+    {
+        http::Url url1("htttp://www.baidu.com");
+        ASSERT_FALSE(url1.IsValid());
+    }
+    {
+        http::Url url1("http://www.baidu.com::79");
+        ASSERT_FALSE(url1.IsValid());
+    }
+    {
+        http::Url url1("http://www.baidu.com:65536");
+        ASSERT_FALSE(url1.IsValid());
+    }
 }

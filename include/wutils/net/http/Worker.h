@@ -17,7 +17,7 @@ class Worker {
 public:
     class Listener {
     public:
-        virtual void OnRequest(Method method, const Request &request, Response &response) = 0;
+        virtual void OnRequest(Method method, const shared_ptr<Request> request, shared_ptr<Response> response) = 0;
 
         virtual ~Listener() = default;
     } *listener_{nullptr};

@@ -7,6 +7,7 @@
 #include <utility>
 #include <map>
 #include <vector>
+#include <unordered_set>
 
 
 namespace wutils::net::http {
@@ -16,6 +17,14 @@ const std::string_view URL_SCHEME_HTTPS_HEAD = "https";
 const std::string_view URL_SCHEME_WS_HEAD    = "ws";
 const std::string_view URL_SCHEME_WSS_HEAD   = "wss";
 const std::string_view URL_SCHEME_FTP_HEAD   = "ftp";
+
+std::unordered_set<std::string_view> SchemeMap = {
+        URL_SCHEME_HTTP_HEAD,
+        URL_SCHEME_HTTPS_HEAD,
+        URL_SCHEME_WS_HEAD,
+        URL_SCHEME_WSS_HEAD,
+        URL_SCHEME_FTP_HEAD,
+};
 
 const std::string_view URL_SCHEME_P = "//:";
 
@@ -50,8 +59,12 @@ private:
                 // found //:
                 this->scheme_ = url.substr(0, sch_pos);
                 url           = url.substr(sch_pos + 3);
-            }
 
+                // scheme not found.
+                if(SchemeMap.find(this->scheme_) == SchemeMap.end()) {
+                    return false;
+                }
+            }
 
             auto path_pos = url.find_first_of('/');
             auto port_pos = url.find_first_of(':');
