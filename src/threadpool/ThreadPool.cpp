@@ -1,11 +1,12 @@
 #include "wutils/ThreadPool.h"
 
+#include <cassert>
+
 namespace wutils {
 
-bool ThreadPool::Start(uint16_t threads_count) {
+void ThreadPool::Start(uint16_t threads_count) {
     // 检查,不可重复启动
-    if(this->is_active_)
-        return false;
+    assert(this->is_active_);
 
     this->threads_count_ = threads_count;
 
@@ -13,8 +14,6 @@ bool ThreadPool::Start(uint16_t threads_count) {
     for(size_t index = 0; index < threads_count; ++index) {
         this->threads_.push_back(new std::thread(&ThreadPool::ConsumerThread, this));
     }
-
-    return true;
 }
 
 void ThreadPool::WaitToStop() {

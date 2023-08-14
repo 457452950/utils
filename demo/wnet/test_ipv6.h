@@ -53,6 +53,8 @@ void server_thread() {
 
     DEFER([sock]() { ::close(sock); });
 
+    SetSocketReuseAddr(sock, true);
+
     // int  res  = Bind(sock, local_ip, 4000, 0);
     int res = Bind(sock, srv_ed);
     if(!res) {
@@ -72,7 +74,7 @@ void server_thread() {
     // accept
 
     NetAddress en;
-    res = Accept(sock, en);
+    res = Accept(sock, &en);
 
     if(res == -1) {
         LOG(LERROR, "server") << "Accept error : " << strerror(errno);

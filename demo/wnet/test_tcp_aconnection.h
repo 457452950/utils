@@ -83,8 +83,8 @@ public:
         ch->ASend({this->buffer_.buffer, len});
     }
     void OnSent(uint64_t len) override {}
-    void OnError(wutils::SystemError error) override {
-        LOG(LERROR, "session") << error;
+    void OnError(wutils::Error error) override {
+        LOG(LERROR, "session") << error.message();
         ch->listener_ = nullptr;
         this->ch.reset();
     }
@@ -94,18 +94,18 @@ public:
     shared_ptr<AConnection> ch;
 };
 
-std::shared_ptr<TestSession> se;
-std::shared_ptr<CONTEXT>     ep_;
+std::shared_ptr<TestSession>      se;
+std::shared_ptr<event::IOContext> ep_;
 
 inline auto ac_cb = [](const NetAddress &local, NetAddress *remote, unique_ptr<event::IOHandle> handler) {
     auto info = remote->Dump();
     auto lo   = local.Dump();
     LOG(LINFO, "accept") << "local " << std::get<0>(lo) << " " << std::get<1>(lo) << " accept : info "
                          << std::get<0>(info) << " " << std::get<1>(info);
-    auto ch = std::make_shared<AConnection>(local, *remote, std::move(handler));
+    auto ch = AConnection::Create(local, *remote, std::move(handler));
     se      = std::make_shared<TestSession>(ch);
 };
-inline auto err_cb = [](wutils::SystemError error) { std::cout << error << std::endl; };
+inline auto err_cb = [](wutils::Error error) { std::cout << error.message() << std::endl; };
 
 
 void server_thread() {
@@ -120,21 +120,18 @@ void server_thread() {
         return;
     }
 
-    auto accp_channel = new AAcceptor(ep);
+    auto accp_channel = AAcceptor::Create(ep);
     auto remote       = new NetAddress;
 
-    DEFER([=]() {
-        delete accp_channel;
-        delete remote;
-    });
+    DEFER([=]() { delete remote; });
 
     if(!accp_channel->Open(local_ed.GetFamily())) {
-        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "server") << wutils::GetGenericError().message();
         abort();
     }
 
-    if(!accp_channel->Start(local_ed, remote, AAcceptor::Keep)) {
-        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
+    if(accp_channel->Start(local_ed, remote, AAcceptor::Keep)) {
+        LOG(LERROR, "server") << wutils::GetGenericError().message();
         abort();
     }
 
@@ -144,12 +141,12 @@ void server_thread() {
     auto info = accp_channel->GetLocal().Dump();
     LOG(LINFO, "server") << std::get<0>(info) << " " << std::get<1>(info);
 
-    ep->Loop();
-    cout << wutils::SystemError::GetSysErrCode() << endl;
+    ep_->Loop();
+    cout << wutils::GetGenericError().message() << endl;
 
     if(se)
         se.reset();
-    LOG(LERROR, "server") << "server thread end";
+    LOG(LINFO, "server") << "server thread end";
     // 激活客户端的 阻塞recv
 }
 
@@ -168,7 +165,7 @@ void client_thread() {
     DEFER([&cli]() { cli.Close(); });
 
     if(!res) {
-        LOG(LERROR, "client") << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "client") << wutils::GetGenericError().message();
         return;
     } else {
         LOG(LINFO, "client") << "connect ok";

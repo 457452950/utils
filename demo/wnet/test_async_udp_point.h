@@ -21,7 +21,7 @@ namespace test_async_udp_config {
 namespace srv {
 namespace bind {
 constexpr char const *ip     = v4::ANY;
-constexpr int         port   = 4000;
+constexpr int         port   = 12000;
 constexpr AF_FAMILY   family = AF_FAMILY::INET;
 constexpr AF_PROTOL   protol = AF_PROTOL::UDP;
 } // namespace bind
@@ -30,13 +30,13 @@ constexpr AF_PROTOL   protol = AF_PROTOL::UDP;
 namespace cli {
 namespace bind {
 constexpr char const *ip     = v4::LOOPBACK;
-constexpr int         port   = 4001;
+constexpr int         port   = 12001;
 constexpr AF_FAMILY   family = AF_FAMILY::INET;
 constexpr AF_PROTOL   protol = AF_PROTOL::UDP;
 } // namespace bind
 } // namespace cli
 
-std::shared_ptr<CONTEXT> ep_;
+std::shared_ptr<event::IOContext> ep_;
 
 NetAddress server_na;
 NetAddress client_na;
@@ -56,7 +56,7 @@ public:
         LOG(LINFO, "server") << "recv total :" << recv_total_.load() << " send total :" << send_total_.load();
     }
 
-    void OnError(wutils::SystemError error) override {
+    void OnError(wutils::Error error) override {
         LOG(LERROR, "server") << error;
         point_->listener_ = nullptr;
         point_.reset();
@@ -86,23 +86,23 @@ void server_thread() {
     ep_     = ep;
     ep->Init();
 
-    auto udp_srv    = std::make_shared<AUdpPoint>(ep);
-    auto udp_server = make_shared<UdpServer>(udp_srv);
+    auto udp_srv = AUdpPoint::Create(ep);
 
     if(!udp_srv->Open(server_na.GetFamily())) {
-        LOG(LERROR, "server") << "open fail." << SystemError::GetSysErrCode();
+        LOG(LERROR, "server") << "open fail." << wutils::GetGenericError().message();
         return;
     }
 
     if(!udp_srv->Bind(server_na)) {
-        LOG(LERROR, "server") << "bind fail." << SystemError::GetSysErrCode();
+        LOG(LERROR, "server") << "bind fail." << wutils::GetGenericError().message();
         return;
     }
     auto [ip, port] = udp_srv->GetLocalAddress().Dump();
     LOG(LINFO, "server") << "bind ok "
                          << "[" << ip << ":" << port << "]";
 
-    ep->Loop();
+    auto udp_server = make_shared<UdpServer>(udp_srv);
+    ep_->Loop();
     LOG(LINFO, "server") << "server thread end";
 }
 
@@ -114,7 +114,11 @@ void client_thread() {
 
     udp::Socket cli;
     assert(cli.Open(client_na.GetFamily()));
-    assert(cli.Bind(client_na));
+    if(!cli.Bind(client_na)) {
+        LOG(LERROR, "client") << "bind error " << GetGenericError().message();
+        ep_->Stop();
+        return;
+    }
     assert(cli.Connect(server_na));
 
     char send_msg[] = "afsafsfsfagrtgtbgfbstrbsrbrtbrbstrgbtrbsfdsvbfsdsvbsrtbv";
@@ -166,11 +170,11 @@ inline void test_async_udp() {
     signal(SIGINT, handle_pipe);  // 自定义处理函数
 
     if(!server_na.Assign(srv::bind::ip, srv::bind::port, srv::bind::family)) {
-        LOG(LERROR, "test") << "assign server net address fail." << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "test") << "assign server net address fail." << wutils::GetGenericError().message();
         return;
     }
     if(!client_na.Assign(cli::bind::ip, cli::bind::port, cli::bind::family)) {
-        LOG(LERROR, "test") << "assign client net address fail." << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "test") << "assign client net address fail." << wutils::GetGenericError().message();
         return;
     }
 

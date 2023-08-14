@@ -1,18 +1,21 @@
 #pragma once
-#ifndef UTILS_EVENT_H
-#define UTILS_EVENT_H
+#ifndef UTILS_IOCONTEXT_H
+#define UTILS_IOCONTEXT_H
 
 #include <cassert>
+#include <queue>
 
 #include "wutils/SharedPtr.h"
 #include "wutils/network/base/ISocket.h"
 #include "IOEvent.h"
+#include "wutils/network/Error.h"
 
 namespace wutils::network::event {
 
 namespace EventType {
-constexpr inline uint8_t EV_IN  = 1 << 0;
-constexpr inline uint8_t EV_OUT = 1 << 1;
+constexpr inline uint8_t EV_IN    = 1 << 0;
+constexpr inline uint8_t EV_OUT   = 1 << 1;
+constexpr inline uint8_t EV_INOUT = EV_IN | EV_OUT;
 }; // namespace EventType
 
 class IOHandle;
@@ -26,10 +29,13 @@ public:
     IOContext(const IOContext &)            = delete;
     IOContext &operator=(const IOContext &) = delete;
 
-    // control
-    virtual bool AddSocket(IOHandle *handler)    = 0;
-    virtual bool ModifySocket(IOHandle *handler) = 0;
-    virtual void DelSocket(IOHandle *handler)    = 0;
+
+    // TODO:
+    using Task = std::function<void()>;
+
+    virtual void Post(Task &&task) = 0;
+
+    std::function<void(Error)> OnError;
 
     // life control
     virtual bool Init() = 0;
@@ -38,33 +44,178 @@ public:
 };
 
 
+class IOContextImpl : public IOContext {
+public:
+    IOContextImpl()           = default;
+    ~IOContextImpl() override = default;
+
+    // control
+    virtual Error RegisterHandle(IOHandle *handler)   = 0;
+    virtual Error ModifyHandle(IOHandle *handler)     = 0;
+    virtual void  UnregisterHandle(IOHandle *handler) = 0;
+
+
+protected:
+    enum WakeUpEvent : eventfd_t {
+        FALSE   = 0,
+        QUIT    = 1,
+        TIMEOUT = 2,
+        LOOP    = 3,
+    };
+
+    void Loop() final {
+        using namespace std::chrono_literals;
+
+        active_.store(true);
+
+        thread_id_ = std::this_thread::get_id();
+
+        while(active_) {
+            auto event = this->Once(-1ms);
+
+            switch(event) {
+            case FALSE: {
+                if(OnError) {
+                    OnError(GetGenericError());
+                }
+                return;
+            }
+            case QUIT: {
+                return;
+            }
+            case LOOP: {
+            }
+            case TIMEOUT: {
+                // check timer
+                break;
+            }
+            }
+
+            this->doTasks();
+        }
+    }
+    void Stop() final {
+        this->active_.store(false);
+        this->Wake(QUIT);
+    }
+
+    virtual WakeUpEvent Once(std::chrono::milliseconds time_out) = 0;
+    virtual void        Wake(WakeUpEvent ev)                     = 0;
+
+    void OnReady() { assert(isCurrentThread()); }
+
+    void Post(Task &&task) final {
+        if(isCurrentThread()) {
+            task();
+        } else {
+            std::unique_lock<std::mutex> _t(this->mutex_);
+            this->tasks_.push(std::move(task));
+            this->Wake(LOOP);
+        }
+    }
+    bool isCurrentThread() { return this->thread_id_ == std::this_thread::get_id(); }
+    void doTasks() {
+        assert(isCurrentThread());
+        while(!tasks_.empty()) {
+            std::unique_lock<std::mutex> _t(this->mutex_);
+            tasks_.front()();
+            tasks_.pop();
+        }
+    }
+
+    std::thread::id  thread_id_;
+    std::atomic_bool active_{false};
+
+private:
+    std::mutex       mutex_; // 保护 tasks
+    std::queue<Task> tasks_;
+};
+
 class IOHandle {
 public:
     using Listener = IOEvent *;
 
-    ISocket             socket_{INVALID_SOCKET};
-    Listener            listener_{nullptr};
-    weak_ptr<IOContext> context_;
+    ISocket                 socket_{INVALID_SOCKET};
+    Listener                listener_{nullptr};
+    weak_ptr<IOContextImpl> context_;
 
 private:
     uint8_t events_{0}; // EventType
     bool    enable_{false};
 
 public:
-    [[nodiscard]] bool Enable() {
+    ~IOHandle() {
+        if(this->IsEnable()) {
+            this->DisEnable();
+        }
+    }
+
+    bool IsEnable() const { return this->enable_; }
+    bool EnableIn() const { return this->events_ & EventType::EV_IN; }
+    bool EnableOut() const { return this->events_ & EventType::EV_OUT; }
+
+    // 6 kind of input, All None in_only out_only dis_in dis_out
+
+    [[nodiscard]] Error EnableAll() {
         // events cant be 0
-        assert(this->events_ != 0);
+        assert(this->events_);
+
+        return this->SetEvent(EventType::EV_INOUT);
+    }
+
+    [[nodiscard]] Error EnableIn(bool enable) {
+        uint8_t event = this->events_;
+        if(enable) {
+            event |= EventType::EV_IN;
+        } else {
+            event &= (~EventType::EV_IN);
+        }
+        return this->SetEvent(event);
+    }
+
+    [[nodiscard]] Error EnableOut(bool enable) {
+        uint8_t event = this->events_;
+        if(enable) {
+            event |= EventType::EV_OUT;
+        } else {
+            event &= (~EventType::EV_OUT);
+        }
+        return this->SetEvent(event);
+    }
+
+    [[nodiscard]] Error SetEvent(uint8_t event) {
         assert(!this->context_.expired());
 
-        if(enable_) {
-            return true;
+        if(this->events_ == event) {
+            return eNetWorkError::OK;
         }
-        if(this->context_.lock()->AddSocket(this)) {
-            this->enable_ = true;
-            return true;
+
+        if(event == 0) {
+            this->DisEnable();
+            return eNetWorkError::OK;
         }
-        return false;
+
+        this->events_ = event;
+
+        Error err;
+        if(this->enable_) {
+            err = this->context_.lock()->ModifyHandle(this);
+            assert(err != eNetWorkError::CONTEXT_CANT_FOUND_HANDLE);
+            this->events_ = 0;
+            this->enable_ = false;
+        }
+        // !enable
+        else {
+            err = this->context_.lock()->RegisterHandle(this);
+            if(err) {
+                this->events_ = 0;
+            } else {
+                this->enable_ = true;
+            }
+        }
+        return err;
     }
+
     void DisEnable() {
         if(this->context_.expired()) {
             return;
@@ -74,42 +225,13 @@ public:
             return;
         }
 
-        this->context_.lock()->DelSocket(this);
+        this->context_.lock()->UnregisterHandle(this);
+        this->events_ = 0;
         this->enable_ = false;
     };
-    bool IsEnable() const { return this->enable_; }
-
-    /**
-     * set events , will disenable when events is none , will update when events changed
-     * @param events the new events
-     */
-    void SetEvents(uint8_t events) {
-        assert(!this->context_.expired());
-
-        if(this->events_ != events) {
-            this->events_ = events;
-
-            if(this->enable_) {
-                if(this->events_ != 0)
-                    this->context_.lock()->ModifySocket(this);
-                else {
-                    this->enable_ = false;
-                    this->context_.lock()->DelSocket(this);
-                }
-            }
-        }
-    }
-    uint8_t GetEvents() const { return this->events_; }
-
-    ~IOHandle() {
-        if(this->IsEnable()) {
-            this->DisEnable();
-        }
-    }
 };
-
 
 } // namespace wutils::network::event
 
 
-#endif // UTILS_EVENT_H
+#endif // UTILS_IOCONTEXT_H

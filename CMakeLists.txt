@@ -34,11 +34,6 @@ if (UNIX)
         add_library(tinymysql src/mysql/MySQLClient.cpp)
         target_link_libraries(tinymysql mysqlclient)
 
-
-        add_library(jsonreader src/json/JsonFileReader.cpp include/wutils/network/base/ISocket.h)
-        target_link_libraries(jsonreader hiredis)
-
-
         add_library(
                 wutils
 
@@ -77,9 +72,29 @@ if (UNIX)
                 include/wutils/network/Timer.h
                 include/wutils/network/Acceptor.h
                 include/wutils/network/TcpConnection.h
-                include/wutils/network/UdpPoint.h)
+                include/wutils/network/UdpPoint.h
+                include/wutils/network/Error.h
+                include/wutils/network/ssl/ssl.h
+                include/wutils/network/ssl/Error.h
+
+                include/wutils/net/http/Method.h
+                include/wutils/net/http/Request.h
+
+                include/wutils/net/dns/DNS.h
+                include/wutils/net/dns/Error.h
+                include/wutils/net/http/Header.h
+                include/wutils/net/http/base/Tools.h
+                include/wutils/net/http/Server.h
+                include/wutils/net/http/Worker.h
+                include/wutils/net/http/Url.h
+                include/wutils/net/http/base/RCode.h
+        )
 
         add_subdirectory(demo)
+
+        add_subdirectory(test)
+
+        add_subdirectory(tools/googletest-1.13.0)
 
     elseif (CMAKE_HOST_SYSTEM_NAME MATCHES "Unix")
         message("not support Unix!!!")

@@ -1,7 +1,7 @@
 #ifndef UTILS_DEMO_WNET_TEST_TCPCHANNEL_H
 #define UTILS_DEMO_WNET_TEST_TCPCHANNEL_H
 
-#include <signal.h>
+#include <csignal>
 #include <iostream>
 #include <utility>
 
@@ -11,8 +11,8 @@ using namespace std;
 using namespace wutils::network;
 
 
-// #define CONTEXT event::EpollContext
-#define CONTEXT event::SelectContext
+#define CONTEXT event::EpollContext
+// #define CONTEXT event::SelectContext
 
 /**
  * test_tcp_echo
@@ -45,7 +45,10 @@ constexpr AF_FAMILY family = AF_FAMILY::INET;
 
 class TestSession : public Connection::Listener {
 public:
-    TestSession(std::shared_ptr<Connection> ch_) : ch(std::move(ch_)) { ch->listener_ = this; }
+    explicit TestSession(std::shared_ptr<Connection> ch_) : ch(std::move(ch_)) {
+        ch->listener_ = this;
+        assert(!ch->Init());
+    }
 
     void OnDisconnect() override {
         LOG(LERROR, "session") << "disconnected";
@@ -56,7 +59,7 @@ public:
         //        cout << "recv " << std::string((char *)message, (int)message_len) << " size " << message_len << endl;
         ch->Send(data.data, data.bytes);
     }
-    void OnError(wutils::SystemError error) override {
+    void OnError(wutils::Error error) override {
         LOG(LERROR, "session") << error;
         ch->listener_ = nullptr;
         this->ch.reset();
@@ -66,17 +69,18 @@ public:
     std::shared_ptr<Connection> ch;
 };
 
-std::shared_ptr<TestSession> se;
-std::shared_ptr<CONTEXT>     ep_;
+std::shared_ptr<TestSession>      se;
+std::shared_ptr<event::IOContext> ep_;
 
 inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
     auto info = remote.Dump();
 
     LOG(LINFO, "accept") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info);
-    auto ch = std::make_shared<Connection>(local, remote, std::move(handler));
-    se      = std::make_shared<TestSession>(ch);
+    auto ch = Connection::Create(local, remote, std::move(handler));
+    se      = make_shared<TestSession>(ch);
+    assert(!ch->Init());
 };
-inline auto err_cb = [](wutils::SystemError error) { std::cout << error << std::endl; };
+inline auto err_cb = [](wutils::Error error) { std::cout << error << std::endl; };
 
 
 void server_thread() {
@@ -91,29 +95,28 @@ void server_thread() {
         return;
     }
 
-    auto accp_channel = new Acceptor(ep);
-    DEFER([accp_channel]() { delete accp_channel; });
+    auto accp_channel = Acceptor::Create(ep);
 
     if(!accp_channel->Open(local_ed.GetFamily())) {
-        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "server") << wutils::GetGenericError();
         abort();
     }
 
     accp_channel->OnAccept = std::bind(ac_cb, local_ed, std::placeholders::_1, std::placeholders::_2);
     accp_channel->OnError  = err_cb;
 
-    if(!accp_channel->Start(local_ed)) {
-        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
+    if(accp_channel->Start(local_ed)) {
+        LOG(LERROR, "server") << wutils::GetGenericError().message();
         abort();
     }
 
     auto info = accp_channel->GetLocal().Dump();
     LOG(LINFO, "server") << "start ok." << std::get<0>(info) << " " << std::get<1>(info);
 
-    ep->Loop();
-    cout << wutils::SystemError::GetSysErrCode() << endl;
+    ep_->Loop();
+    cout << wutils::GetGenericError().message() << endl;
 
-    LOG(LERROR, "server") << "server thread end";
+    LOG(LINFO, "server") << "server thread end";
     // 激活客户端的 阻塞recv
 }
 
@@ -132,18 +135,24 @@ void client_thread() {
     DEFER([&cli]() { cli.Close(); });
 
     if(!res) {
-        LOG(LERROR, "client") << "connect fail, err : " << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "client") << "connect fail, err : " << wutils::GetGenericError().message();
         return;
     } else {
         LOG(LINFO, "client") << "connect ok";
         cli.Send((uint8_t *)"123123", 6);
     }
 
-    std::thread thr1([&cli]() {
+    std::atomic_int count{0};
+
+    std::thread thr1([&cli, &count]() {
         // ::send(cli, "hello", 5, 0);
         int  total = 0;
         char buf[1500];
         while(true) {
+            ep_->Post([&]() {
+                count.fetch_add(1);
+                //                LOG(LINFO, "post") << "hello word.";
+            });
             auto l = cli.Recv((uint8_t *)buf, 1500);
             if(l == 0) {
                 LOG(LINFO, "client") << "dis connected.";
@@ -179,7 +188,7 @@ void client_thread() {
     }
 
     thr1.join();
-    LOG(LINFO, "client") << "client thread end";
+    LOG(LINFO, "client") << "client thread end " << count.load();
 }
 
 

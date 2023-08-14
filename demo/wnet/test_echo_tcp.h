@@ -48,7 +48,7 @@ public:
         //        cout << "recv " << std::string((char *)message, (int)message_len) << " size " << message_len << endl;
         ch->Send(data.data, data.bytes);
     }
-    void OnError(wutils::SystemError error) override {
+    void OnError(wutils::Error error) override {
         std::cout << error << endl;
         this->ch.reset();
     }
@@ -79,8 +79,8 @@ public:
         ch->ASend({buffer_.buffer, len});
     }
     void OnSent(uint64_t len) override {}
-    void OnError(wutils::SystemError error) override {
-        std::cout << error << endl;
+    void OnError(wutils::Error error) override {
+        std::cout << error.message() << endl;
         this->ch.reset();
     }
 
@@ -90,26 +90,26 @@ public:
 };
 
 
-std::shared_ptr<CONTEXT>      ep_;
-std::shared_ptr<TestSession>  se;
-std::shared_ptr<TestASession> se2;
+std::shared_ptr<event::IOContext> ep_;
+std::shared_ptr<TestSession>      se;
+std::shared_ptr<TestASession>     se2;
 
 
 inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
     auto info = remote.Dump();
 
     LOG(LINFO, "accept2") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info);
-    auto ch = std::make_shared<Connection>(local, remote, std::move(handler));
+    auto ch = Connection::Create(local, remote, std::move(handler));
     se      = std::make_shared<TestSession>(ch);
 };
 inline auto ac2_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
     auto info = remote.Dump();
 
     LOG(LINFO, "accept2") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info);
-    auto ch = std::make_shared<AConnection>(local, remote, std::move(handler));
+    auto ch = AConnection::Create(local, remote, std::move(handler));
     se2     = std::make_shared<TestASession>(ch);
 };
-inline auto err_cb = [](wutils::SystemError error) { std::cout << error << std::endl; };
+inline auto err_cb = [](wutils::Error error) { std::cout << error << std::endl; };
 
 
 void server_thread() {
@@ -128,21 +128,17 @@ void server_thread() {
         return;
     }
 
-    auto accp_channel  = new Acceptor(ep);
-    auto accp_channel2 = new Acceptor(ep);
-    DEFER([=]() {
-        delete accp_channel;
-        delete accp_channel2;
-    });
+    auto accp_channel  = Acceptor::Create(ep);
+    auto accp_channel2 = Acceptor::Create(ep);
 
     if(!accp_channel->Open(local_ed.GetFamily())) {
-        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "server") << wutils::GetGenericError().message();
         abort();
     }
 
 
-    if(!accp_channel->Start(local_ed)) {
-        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
+    if(accp_channel->Start(local_ed)) {
+        LOG(LERROR, "server") << wutils::GetGenericError().message();
         abort();
     }
     accp_channel->OnAccept = std::bind(ac_cb, local_ed, std::placeholders::_1, std::placeholders::_2);
@@ -152,12 +148,12 @@ void server_thread() {
     LOG(LINFO, "server") << std::get<0>(info) << " " << std::get<1>(info);
 
     if(!accp_channel2->Open(local2_ed.GetFamily())) {
-        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
+        LOG(LERROR, "server") << wutils::GetGenericError().message();
         abort();
     }
 
-    if(!accp_channel2->Start(local2_ed)) {
-        LOG(LERROR, "server") << wutils::SystemError::GetSysErrCode();
+    if(accp_channel2->Start(local2_ed)) {
+        LOG(LERROR, "server") << wutils::GetGenericError().message();
         abort();
     }
     accp_channel2->OnAccept = std::bind(ac2_cb, local2_ed, std::placeholders::_1, std::placeholders::_2);
@@ -166,10 +162,10 @@ void server_thread() {
     info = accp_channel2->GetLocal().Dump();
     LOG(LINFO, "server") << std::get<0>(info) << " " << std::get<1>(info);
 
-    ep->Loop();
-    cout << wutils::SystemError::GetSysErrCode() << endl;
+    ep_->Loop();
+    cout << wutils::GetGenericError().message() << endl;
 
-    LOG(LERROR, "server") << "server thread end";
+    LOG(LINFO, "server") << "server thread end";
 }
 
 void handle_pipe(int signal) {

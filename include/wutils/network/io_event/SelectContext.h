@@ -15,189 +15,143 @@
 namespace wutils::network::event {
 
 
-class SelectContext final : public IOContext {
-    static inline constexpr eventfd_t WAKE_UP = 1;
-
+class SelectContext final : public IOContextImpl {
     SelectContext() = default;
 
 public:
-    ~SelectContext() override {
-        delete this->write_set_;
-        delete this->read_set_;
-    };
+    ~SelectContext() override{};
 
     static shared_ptr<SelectContext> Create() { return shared_ptr<SelectContext>(new SelectContext()); }
 
     // control
-    bool AddSocket(IOHandle *handler) override {
+    Error RegisterHandle(IOHandle *handler) override {
         // select fd 上限 1024
-        if(this->fd_count_ >= 1024) {
-            return false;
+        if((this->handles_.size() + 1) >= FD_SETSIZE) {
+            return eNetWorkError::CONTEXT_TOO_MUCH_HANDLE;
         }
 
-        if(this->handler_set_.count(handler)) {
-            return true;
-        }
+        assert(std::find(this->handles_.begin(), this->handles_.end(), handler) == this->handles_.end());
 
-        bool ok(true);
-        std::tie(std::ignore, ok) = this->handler_set_.insert(handler);
-        if(ok) {
-            parseAndSetEvents(handler->socket_.Get(), handler->GetEvents());
-            ++this->fd_count_;
-        }
-        return true;
+        this->handles_.push_back(handler);
+
+        parseAndSetEvents(handler->socket_.Get(), handler);
+        addUpdateMaxSocket(handler->socket_.Get());
+
+        return eNetWorkError::OK;
     }
-    bool ModifySocket(IOHandle *handler) override {
-        auto it = handler_set_.find(handler);
-        if(it != handler_set_.end()) { // found
-            parseAndSetEvents(handler->socket_.Get(), handler->GetEvents());
-            return true;
-        }
-        return false;
+    Error ModifyHandle(IOHandle *handler) override {
+        assert(std::find(this->handles_.begin(), this->handles_.end(), handler) != this->handles_.end());
+
+        parseAndSetEvents(handler->socket_.Get(), handler);
+
+        return eNetWorkError::OK;
     }
-    void DelSocket(IOHandle *handler) override {
-        auto it = this->handler_set_.find(handler);
-        if(it == this->handler_set_.end()) {
+    void UnregisterHandle(IOHandle *handler) override {
+        auto it = std::find(this->handles_.begin(), this->handles_.end(), handler);
+        if(it == this->handles_.end()) {
             return;
         }
 
-        this->del_set_.insert(handler);
+        iterator_ = this->handles_.erase(it);
 
-        SetDelFd(handler->socket_.Get(), read_set_);
-        SetDelFd(handler->socket_.Get(), write_set_);
+        rmUpdateMaxSocket(handler->socket_.Get());
+
+        SetDelFd(handler->socket_.Get(), &read_set_);
+        SetDelFd(handler->socket_.Get(), &write_set_);
     }
 
     // thread control
     bool Init() override {
-        this->wakeup_fd_ = eventfd(0, 0);
-        if(this->wakeup_fd_ == -1) {
+        if(!control_fd_) {
             return false;
         }
-
-        ++this->fd_count_;
+        SetAddFd(control_fd_.Get(), &read_set_);
         return true;
     }
-    void Loop() override {
-        this->active_ = true;
-        this->eventLoop();
+    void        Wake(WakeUpEvent ev) override { this->control_fd_.Write(ev); };
+    WakeUpEvent Once(std::chrono::milliseconds time_out) override {
+        auto r_set = read_set_;
+        auto w_set = write_set_;
+
+        auto res = SelectWait(max_fd_ + 1, &r_set, &w_set, nullptr, time_out.count());
+
+        if(res == -1) {
+            std::cerr << "error : " << GetGenericError().message() << std::endl;
+            return FALSE;
+        } else if(res == 0) {
+            // time out
+            return TIMEOUT;
+        }
+
+        if(SetCheckFd(control_fd_.Get(), &r_set)) {
+            auto val = control_fd_.Read();
+            switch(static_cast<WakeUpEvent>(val)) {
+            case QUIT:
+                return QUIT;
+            default:
+                break;
+            }
+        }
+
+        this->OnReady();
+
+        iterator_ = this->handles_.begin();
+        while(iterator_ != this->handles_.end()) {
+
+            IOHandle *i = iterator_.operator*();
+            ++iterator_;
+
+            if(SetCheckFd(i->socket_.Get(), &write_set_) && SetCheckFd(i->socket_.Get(), &w_set)) {
+                i->listener_->IOOut();
+            }
+
+            if(SetCheckFd(i->socket_.Get(), &read_set_) && SetCheckFd(i->socket_.Get(), &r_set)) {
+                i->listener_->IOIn();
+            }
+        }
+
+        return LOOP;
     }
-    void Stop() override {
-        this->active_ = false;
-        this->Wake();
-    }
-    void Wake() { eventfd_write(this->wakeup_fd_, WAKE_UP); }
 
 private:
-    void eventLoop() {
-        int res = 0;
-
-        while(this->active_) {
-            initAllToSet();
-
-            res = SelectWait(int32_t(max_fd_), read_set_, write_set_, nullptr, -1);
-
-            if(res == -1) {
-                std::cerr << "error : " << SystemError::GetSysErrCode() << std::endl;
-                break;
-            } else if(res == 0) {
-                // time out
-                continue;
-            }
-
-            if(!this->active_) {
-                std::cout << "close !!!" << std::endl;
-                uint64_t cnt;
-                eventfd_read(this->wakeup_fd_, &cnt);
-                assert(cnt == 1);
-                break;
-            }
-
-            auto temp_end = this->handler_set_.end();
-            // 迭代器失效
-
-            for(auto it = this->handler_set_.begin(); it != temp_end; ++it) {
-                IOHandle *i = it.operator*();
-
-                if(!this->handler_set_.count(i)) {
-                    break;
-                }
-
-                if(SetCheckFd(i->socket_.Get(), write_set_)) {
-                    i->listener_->IOOut();
-                }
-
-                if(!this->handler_set_.count(i)) {
-                    break;
-                }
-
-                if(SetCheckFd(i->socket_.Get(), read_set_)) {
-                    i->listener_->IOIn();
-                }
-            }
-
-            this->real_del();
-        }
-    }
-
-    void real_del() {
-        for(auto it : this->del_set_) {
-            this->handler_set_.erase(it);
-            --this->fd_count_;
-        }
-        this->del_set_.clear();
-    }
-
-    // 清理所有socket
-    void clearAllSet() {
-        SetClearFd(read_set_);
-        SetClearFd(write_set_);
-    }
-    void initAllToSet() {
-        clearAllSet();
-
-        max_fd_ = wakeup_fd_;
-        for(auto &it : handler_set_) {
-            if(max_fd_ < it->socket_.Get()) {
-                max_fd_ = it->socket_.Get();
-            }
-
-            this->parseAndSetEvents(it->socket_.Get(), it->GetEvents());
-            assert(SetCheckFd(it->socket_.Get(), read_set_));
-        }
-
-        SetAddFd(wakeup_fd_, read_set_);
-
-        // need !!!
-        ++max_fd_;
-    }
-
-    bool hasEventIn(uint8_t events) const { return events & EventType::EV_IN; }
-    bool hasEventOut(uint8_t events) const { return events & EventType::EV_OUT; }
-
-    void parseAndSetEvents(socket_t socket, uint8_t events) {
-        if(hasEventIn(events)) {
-            SetAddFd(socket, read_set_);
+    void parseAndSetEvents(socket_t socket, IOHandle *handle) {
+        if(handle->EnableIn()) {
+            SetAddFd(socket, &read_set_);
         } else {
-            // SetDelFd(socket, &read_set_);
+            SetDelFd(socket, &read_set_);
         }
-        if(hasEventOut(events)) {
-            SetAddFd(socket, write_set_);
+        if(handle->EnableOut()) {
+            SetAddFd(socket, &write_set_);
         } else {
-            // SetDelFd(socket, &write_set_);
+            SetDelFd(socket, &write_set_);
+        }
+    }
+    void rmUpdateMaxSocket(socket_t the_new) {
+        if(the_new <= this->max_fd_) {
+            return;
+        }
+        this->max_fd_ = INVALID_SOCKET;
+
+        static auto f = [this](IOHandle *handle) { this->max_fd_ = std::max(this->max_fd_, handle->socket_.Get()); };
+        std::for_each(this->handles_.begin(), this->handles_.end(), f);
+    }
+    void addUpdateMaxSocket(socket_t the_new) {
+        if(the_new > this->max_fd_) {
+            this->max_fd_ = the_new;
         }
     }
 
 private:
-    fd_set_p read_set_{new fd_set_t};
-    fd_set_p write_set_{new fd_set_t};
+    fd_set_t read_set_;
+    fd_set_t write_set_;
 
-    std::unordered_set<IOHandle *> handler_set_;
-    std::unordered_set<IOHandle *> del_set_;
-    uint32_t                       fd_count_{0};
-    socket_t                       max_fd_{INVALID_SOCKET};
+    std::list<IOHandle *>           handles_;
+    std::list<IOHandle *>::iterator iterator_;
 
-    int  wakeup_fd_{INVALID_SOCKET};
-    bool active_{false};
+    socket_t max_fd_{INVALID_SOCKET};
+
+    Socket           control_fd_; // event_fd
+    std::atomic_bool active_{false};
 };
 
 } // namespace wutils::network::event

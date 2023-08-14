@@ -20,13 +20,18 @@ struct UdpBuffer {
 
 
 class UdpPoint : public event::IOEvent {
-public:
-    explicit UdpPoint(weak_ptr<event::IOContext> context) {
+private:
+    explicit UdpPoint(shared_ptr<event::IOContext> context) {
         handle_ = make_unique<event::IOHandle>();
 
         handle_->listener_ = this;
-        handle_->context_  = std::move(context);
+        handle_->context_  = static_pointer_cast<event::IOContextImpl>(context);
     };
+
+public:
+    static shared_ptr<UdpPoint> Create(shared_ptr<event::IOContext> context) {
+        return shared_ptr<UdpPoint>(new UdpPoint(context));
+    }
     ~UdpPoint() override {
         handle_->DisEnable();
         handle_.reset();
@@ -36,23 +41,22 @@ public:
     class Listener {
     public:
         virtual void OnReceiveFrom(Package package, NetAddress remote) = 0;
-        virtual void OnError(SystemError error)                        = 0;
+        virtual void OnError(Error error)                              = 0;
 
         virtual ~Listener() = default;
     } *listener_{nullptr};
 
     bool Open(AF_FAMILY family) { return this->socket_.Open(family); }
 
-    bool Bind(const NetAddress &local) {
+    Error Bind(const NetAddress &local) {
         if(this->socket_.Bind(local)) {
             local_   = local;
             is_bind_ = true;
 
             this->handle_->socket_ = this->socket_;
-            this->handle_->SetEvents(event::EventType::EV_IN);
-            return this->handle_->Enable();
+            return this->handle_->EnableIn(true);
         }
-        return false;
+        return GetGenericError();
     }
     bool Connect(const NetAddress &remote) {
         auto ok = this->socket_.Connect(remote);
@@ -71,8 +75,8 @@ public:
         len = this->socket_.Send(data, bytes);
 
         if(len != bytes) {
-            auto err = SystemError::GetSysErrCode();
-            if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+            auto err = GetGenericError();
+            if(err.value() != EAGAIN && err.value() != EWOULDBLOCK && err.value() != EINTR) {
                 handleError(err);
             }
             return;
@@ -86,8 +90,8 @@ public:
         len = this->socket_.SendTo(data, bytes, remote);
 
         if(len != bytes) {
-            auto err = SystemError::GetSysErrCode();
-            if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+            auto err = GetGenericError();
+            if(err.value() != EAGAIN && err.value() != EWOULDBLOCK && err.value() != EINTR) {
                 handleError(err);
             }
             return;
@@ -101,7 +105,7 @@ public:
     const NetAddress &GetRemoteAddress() { return remote_; }
 
 private:
-    void handleError(const SystemError &error) {
+    void handleError(const Error &error) {
         if(listener_) {
             listener_->OnError(error);
         }
@@ -122,8 +126,8 @@ private:
         auto len = this->socket_.RecvFrom(buffer.get(), buffer_size, &remote);
 
         if(len == -1) {
-            auto err = SystemError::GetSysErrCode();
-            if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+            auto err = GetGenericError();
+            if(err.value() != EAGAIN && err.value() != EWOULDBLOCK && err.value() != EINTR) {
                 handleError(err);
             }
             return;
@@ -145,13 +149,18 @@ private:
 };
 
 class AUdpPoint : public event::IOEvent {
-public:
-    explicit AUdpPoint(weak_ptr<event::IOContext> context) {
+private:
+    explicit AUdpPoint(shared_ptr<event::IOContext> context) {
         handle_ = make_unique<event::IOHandle>();
 
         handle_->listener_ = this;
-        handle_->context_  = std::move(context);
+        handle_->context_  = static_pointer_cast<event::IOContextImpl>(context);
     };
+
+public:
+    static shared_ptr<AUdpPoint> Create(shared_ptr<event::IOContext> context) {
+        return shared_ptr<AUdpPoint>(new AUdpPoint(context));
+    }
     ~AUdpPoint() override {
         handle_->DisEnable();
         handle_.reset();
@@ -162,7 +171,7 @@ public:
     public:
         virtual void OnReceiveFrom(uint64_t len)                      = 0;
         virtual void OnSentTo(uint64_t len, const NetAddress &remote) = 0;
-        virtual void OnError(SystemError error)                       = 0;
+        virtual void OnError(Error error)                             = 0;
 
         virtual ~Listener() = default;
     } *listener_{nullptr};
@@ -201,8 +210,8 @@ public:
         len = this->socket_.Send(package.data, package.bytes);
 
         if(len != package.bytes) {
-            auto err = SystemError::GetSysErrCode();
-            if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+            auto err = GetGenericError();
+            if(err.value() != EAGAIN && err.value() != EWOULDBLOCK && err.value() != EINTR) {
                 handleError(err);
             }
             return;
@@ -219,8 +228,8 @@ public:
         len = this->socket_.SendTo(package.data, package.bytes, remote);
 
         if(len != package.bytes) {
-            auto err = SystemError::GetSysErrCode();
-            if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+            auto err = GetGenericError();
+            if(err.value() != EAGAIN && err.value() != EWOULDBLOCK && err.value() != EINTR) {
                 handleError(err);
             }
             return;
@@ -239,11 +248,14 @@ public:
 
         this->arecv_flag_ = flag;
 
+        Error err;
         if(arecv_flag_ != NoRecv) {
-            this->handle_->SetEvents(handle_->GetEvents() | event::EventType::EV_IN);
-            this->handle_->Enable();
+            err = this->handle_->EnableIn(true);
         } else {
-            this->handle_->SetEvents(handle_->GetEvents() & (~event::EventType::EV_IN));
+            err = this->handle_->EnableIn(false);
+        }
+        if(err) {
+            handleError(err);
         }
     }
 
@@ -253,7 +265,7 @@ public:
     const NetAddress &GetRemoteAddress() { return remote_; }
 
 private:
-    void handleError(const SystemError &error) {
+    void handleError(const Error &error) {
         if(listener_) {
             listener_->OnError(error);
         }
@@ -273,8 +285,8 @@ private:
         auto len = this->socket_.RecvFrom(recv_buffer_.buffer, recv_buffer_.len, this->recv_remote_);
 
         if(len == -1) {
-            auto err = SystemError::GetSysErrCode();
-            if(err != EAGAIN && err != EWOULDBLOCK && err != EINTR) {
+            auto err = GetGenericError();
+            if(err.value() != EAGAIN && err.value() != EWOULDBLOCK && err.value() != EINTR) {
                 handleError(err);
             }
             return;
@@ -284,9 +296,12 @@ private:
 
         assert(arecv_flag_ != NoRecv);
         if(arecv_flag_ == Once) {
-            auto e = this->handle_->GetEvents();
-            this->handle_->SetEvents(e & (~event::EventType::EV_IN));
             arecv_flag_ = NoRecv;
+            auto err    = this->handle_->EnableIn(false);
+            if(err) {
+                handleError(err);
+                return;
+            }
         }
 
         handleRecv(len);

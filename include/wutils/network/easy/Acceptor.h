@@ -26,7 +26,7 @@ public:
 
     bool Listen() { return this->accept_socket_.Listen(); }
 
-    ISocket Accept(NetAddress &info, bool set_nonblock = false) {
+    ISocket Accept(NetAddress *info, bool set_nonblock = false) {
         return this->accept_socket_.Accept(info, set_nonblock);
     }
 
