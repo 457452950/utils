@@ -28,7 +28,7 @@ public:
     // noncopyable
     IOContext(const IOContext &)            = delete;
     IOContext &operator=(const IOContext &) = delete;
-    
+
     using Task = std::function<void()>;
 
     virtual void Post(Task &&task) = 0;
@@ -151,9 +151,11 @@ protected:
     void doTasks() {
         assert(isCurrentThread());
         while(!tasks_.empty()) {
-            std::unique_lock<std::mutex> _t(this->mutex_);
-            tasks_.front()();
+            this->mutex_.lock();
+            auto f = tasks_.front();
             tasks_.pop();
+            this->mutex_.unlock();
+            f();
         }
     }
 

@@ -13,6 +13,8 @@
 
 #include "test_echo_tcp.h"
 
+#include "test_echo_mulserver.h"
+
 
 int main() {
     Logger::GetInstance()->LogCout()->LogFile("/tmp/wnet.log")->SetLogLevel(LDEBUG)->Start();
@@ -29,6 +31,7 @@ int main() {
     test_async_udp();
 
     test_tcp_echo();
+    test_echo_server();
 
     Logger::GetInstance()->StopAndWait();
     return 0;
