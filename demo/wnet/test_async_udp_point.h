@@ -36,7 +36,7 @@ constexpr AF_PROTOL   protol = AF_PROTOL::UDP;
 } // namespace bind
 } // namespace cli
 
-std::shared_ptr<CONTEXT> ep_;
+std::shared_ptr<event::IOContext> ep_;
 
 NetAddress server_na;
 NetAddress client_na;
@@ -86,8 +86,7 @@ void server_thread() {
     ep_     = ep;
     ep->Init();
 
-    auto udp_srv    = AUdpPoint::Create(ep);
-    auto udp_server = make_shared<UdpServer>(udp_srv);
+    auto udp_srv = AUdpPoint::Create(ep);
 
     if(!udp_srv->Open(server_na.GetFamily())) {
         LOG(LERROR, "server") << "open fail." << wutils::GetGenericError().message();
@@ -102,7 +101,8 @@ void server_thread() {
     LOG(LINFO, "server") << "bind ok "
                          << "[" << ip << ":" << port << "]";
 
-    ep->Loop();
+    auto udp_server = make_shared<UdpServer>(udp_srv);
+    ep_->Loop();
     LOG(LINFO, "server") << "server thread end";
 }
 

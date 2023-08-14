@@ -94,8 +94,8 @@ public:
     shared_ptr<AConnection> ch;
 };
 
-std::shared_ptr<TestSession> se;
-std::shared_ptr<CONTEXT>     ep_;
+std::shared_ptr<TestSession>      se;
+std::shared_ptr<event::IOContext> ep_;
 
 inline auto ac_cb = [](const NetAddress &local, NetAddress *remote, unique_ptr<event::IOHandle> handler) {
     auto info = remote->Dump();
@@ -141,7 +141,7 @@ void server_thread() {
     auto info = accp_channel->GetLocal().Dump();
     LOG(LINFO, "server") << std::get<0>(info) << " " << std::get<1>(info);
 
-    ep->Loop();
+    ep_->Loop();
     cout << wutils::GetGenericError().message() << endl;
 
     if(se)

@@ -26,7 +26,7 @@ HEAD_ONLY bool SetCheckFd(socket_t fd, fd_set_p set) { return FD_ISSET(fd, set);
 // #endif
 // };
 HEAD_ONLY int32_t
-SelectWait(int max_sock, fd_set_p read_set, fd_set_p wirte_set, fd_set_p err_set, int32_t timeout_ms = 0) {
+SelectWait(int max_sock, fd_set_p read_set, fd_set_p wirte_set, fd_set_p err_set, int64_t timeout_ms = 0) {
 
     if(timeout_ms == -1) {
         return ::select(max_sock, read_set, wirte_set, err_set, nullptr);
@@ -34,7 +34,7 @@ SelectWait(int max_sock, fd_set_p read_set, fd_set_p wirte_set, fd_set_p err_set
 
     timeval time_out{};
     time_out.tv_sec  = timeout_ms / 1000;
-    time_out.tv_usec = timeout_ms % 1000;
+    time_out.tv_usec = (timeout_ms % 1000) * 1000;
 
     return ::select(max_sock, read_set, wirte_set, err_set, &time_out);
 }

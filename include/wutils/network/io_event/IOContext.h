@@ -3,6 +3,7 @@
 #define UTILS_IOCONTEXT_H
 
 #include <cassert>
+#include <queue>
 
 #include "wutils/SharedPtr.h"
 #include "wutils/network/base/ISocket.h"
@@ -28,10 +29,13 @@ public:
     IOContext(const IOContext &)            = delete;
     IOContext &operator=(const IOContext &) = delete;
 
-    // control
-    virtual Error AddSocket(IOHandle *handler)    = 0;
-    virtual Error ModifySocket(IOHandle *handler) = 0;
-    virtual void  DelSocket(IOHandle *handler)    = 0;
+
+    // TODO:
+    using Task = std::function<void()>;
+
+    virtual void Post(Task &&task) = 0;
+
+    std::function<void(Error)> OnError;
 
     // life control
     virtual bool Init() = 0;
@@ -40,13 +44,100 @@ public:
 };
 
 
+class IOContextImpl : public IOContext {
+public:
+    IOContextImpl()           = default;
+    ~IOContextImpl() override = default;
+
+    // control
+    virtual Error RegisterHandle(IOHandle *handler)   = 0;
+    virtual Error ModifyHandle(IOHandle *handler)     = 0;
+    virtual void  UnregisterHandle(IOHandle *handler) = 0;
+
+
+protected:
+    enum WakeUpEvent : eventfd_t {
+        FALSE   = 0,
+        QUIT    = 1,
+        TIMEOUT = 2,
+        LOOP    = 3,
+    };
+
+    void Loop() final {
+        using namespace std::chrono_literals;
+
+        active_.store(true);
+
+        thread_id_ = std::this_thread::get_id();
+
+        while(active_) {
+            auto event = this->Once(-1ms);
+
+            switch(event) {
+            case FALSE: {
+                if(OnError) {
+                    OnError(GetGenericError());
+                }
+                return;
+            }
+            case QUIT: {
+                return;
+            }
+            case LOOP: {
+            }
+            case TIMEOUT: {
+                // check timer
+                break;
+            }
+            }
+
+            this->doTasks();
+        }
+    }
+    void Stop() final {
+        this->active_.store(false);
+        this->Wake(QUIT);
+    }
+
+    virtual WakeUpEvent Once(std::chrono::milliseconds time_out) = 0;
+    virtual void        Wake(WakeUpEvent ev)                     = 0;
+
+    void OnReady() { assert(isCurrentThread()); }
+
+    void Post(Task &&task) final {
+        if(isCurrentThread()) {
+            task();
+        } else {
+            std::unique_lock<std::mutex> _t(this->mutex_);
+            this->tasks_.push(std::move(task));
+            this->Wake(LOOP);
+        }
+    }
+    bool isCurrentThread() { return this->thread_id_ == std::this_thread::get_id(); }
+    void doTasks() {
+        assert(isCurrentThread());
+        while(!tasks_.empty()) {
+            std::unique_lock<std::mutex> _t(this->mutex_);
+            tasks_.front()();
+            tasks_.pop();
+        }
+    }
+
+    std::thread::id  thread_id_;
+    std::atomic_bool active_{false};
+
+private:
+    std::mutex       mutex_; // 保护 tasks
+    std::queue<Task> tasks_;
+};
+
 class IOHandle {
 public:
     using Listener = IOEvent *;
 
-    ISocket             socket_{INVALID_SOCKET};
-    Listener            listener_{nullptr};
-    weak_ptr<IOContext> context_;
+    ISocket                 socket_{INVALID_SOCKET};
+    Listener                listener_{nullptr};
+    weak_ptr<IOContextImpl> context_;
 
 private:
     uint8_t events_{0}; // EventType
@@ -108,14 +199,14 @@ public:
 
         Error err;
         if(this->enable_) {
-            err = this->context_.lock()->ModifySocket(this);
+            err = this->context_.lock()->ModifyHandle(this);
             assert(err != eNetWorkError::CONTEXT_CANT_FOUND_HANDLE);
             this->events_ = 0;
             this->enable_ = false;
         }
         // !enable
         else {
-            err = this->context_.lock()->AddSocket(this);
+            err = this->context_.lock()->RegisterHandle(this);
             if(err) {
                 this->events_ = 0;
             } else {
@@ -134,12 +225,11 @@ public:
             return;
         }
 
-        this->context_.lock()->DelSocket(this);
+        this->context_.lock()->UnregisterHandle(this);
         this->events_ = 0;
         this->enable_ = false;
     };
 };
-
 
 } // namespace wutils::network::event
 

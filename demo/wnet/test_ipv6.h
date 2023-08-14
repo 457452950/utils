@@ -53,6 +53,8 @@ void server_thread() {
 
     DEFER([sock]() { ::close(sock); });
 
+    SetSocketReuseAddr(sock, true);
+
     // int  res  = Bind(sock, local_ip, 4000, 0);
     int res = Bind(sock, srv_ed);
     if(!res) {

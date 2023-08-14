@@ -11,8 +11,8 @@ using namespace std;
 using namespace wutils::network;
 
 
-// #define CONTEXT event::EpollContext
-#define CONTEXT event::SelectContext
+#define CONTEXT event::EpollContext
+// #define CONTEXT event::SelectContext
 
 /**
  * test_tcp_echo
@@ -69,8 +69,8 @@ public:
     std::shared_ptr<Connection> ch;
 };
 
-std::shared_ptr<TestSession> se;
-std::shared_ptr<CONTEXT>     ep_;
+std::shared_ptr<TestSession>      se;
+std::shared_ptr<event::IOContext> ep_;
 
 inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
     auto info = remote.Dump();
@@ -113,7 +113,7 @@ void server_thread() {
     auto info = accp_channel->GetLocal().Dump();
     LOG(LINFO, "server") << "start ok." << std::get<0>(info) << " " << std::get<1>(info);
 
-    ep->Loop();
+    ep_->Loop();
     cout << wutils::GetGenericError().message() << endl;
 
     LOG(LINFO, "server") << "server thread end";
@@ -142,11 +142,17 @@ void client_thread() {
         cli.Send((uint8_t *)"123123", 6);
     }
 
-    std::thread thr1([&cli]() {
+    std::atomic_int count{0};
+
+    std::thread thr1([&cli, &count]() {
         // ::send(cli, "hello", 5, 0);
         int  total = 0;
         char buf[1500];
         while(true) {
+            ep_->Post([&]() {
+                count.fetch_add(1);
+                //                LOG(LINFO, "post") << "hello word.";
+            });
             auto l = cli.Recv((uint8_t *)buf, 1500);
             if(l == 0) {
                 LOG(LINFO, "client") << "dis connected.";
@@ -182,7 +188,7 @@ void client_thread() {
     }
 
     thr1.join();
-    LOG(LINFO, "client") << "client thread end";
+    LOG(LINFO, "client") << "client thread end " << count.load();
 }
 
 

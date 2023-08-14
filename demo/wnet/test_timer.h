@@ -11,7 +11,7 @@ using namespace wutils::network;
 
 namespace test_timer_config {
 
-std::shared_ptr<event::EpollContext> context;
+std::shared_ptr<event::IOContext> context;
 
 void handle_pipe(int signal) {
     LOG(LINFO, "timer") << "signal";

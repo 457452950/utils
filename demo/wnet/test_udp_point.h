@@ -36,7 +36,7 @@ constexpr AF_PROTOL   protol = AF_PROTOL::UDP;
 } // namespace bind
 } // namespace cli
 
-std::shared_ptr<CONTEXT> ep_;
+std::shared_ptr<event::IOContext> ep_;
 
 NetAddress server_na;
 NetAddress client_na;
@@ -88,7 +88,7 @@ void server_thread() {
     LOG(LINFO, "server") << "bind ok "
                          << "[" << ip << ":" << port << "]";
 
-    ep->Loop();
+    ep_->Loop();
     LOG(LINFO, "server") << "server thread end";
 }
 

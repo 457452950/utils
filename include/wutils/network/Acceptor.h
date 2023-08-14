@@ -14,13 +14,13 @@ namespace wutils::network {
 
 class Acceptor : public event::IOReadEvent {
 private:
-    explicit Acceptor(weak_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
+    explicit Acceptor(shared_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
         handle_->listener_ = this;
-        handle_->context_  = std::move(context);
+        handle_->context_  = static_pointer_cast<event::IOContextImpl>(context);
     }
 
 public:
-    static shared_ptr<Acceptor> Create(weak_ptr<event::IOContext> context) {
+    static shared_ptr<Acceptor> Create(shared_ptr<event::IOContext> context) {
         return shared_ptr<Acceptor>(new Acceptor(std::move(context)));
     }
     ~Acceptor() override {
@@ -116,13 +116,13 @@ private:
 
 class AAcceptor : public event::IOReadEvent {
 private:
-    explicit AAcceptor(weak_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
+    explicit AAcceptor(shared_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
         handle_->listener_ = this;
-        handle_->context_  = std::move(context);
+        handle_->context_  = static_pointer_cast<event::IOContextImpl>(context);
     }
 
 public:
-    static shared_ptr<AAcceptor> Create(weak_ptr<event::IOContext> context) {
+    static shared_ptr<AAcceptor> Create(shared_ptr<event::IOContext> context) {
         return shared_ptr<AAcceptor>(new AAcceptor(std::move(context)));
     }
     ~AAcceptor() override {

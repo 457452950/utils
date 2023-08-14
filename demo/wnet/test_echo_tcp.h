@@ -90,9 +90,9 @@ public:
 };
 
 
-std::shared_ptr<CONTEXT>      ep_;
-std::shared_ptr<TestSession>  se;
-std::shared_ptr<TestASession> se2;
+std::shared_ptr<event::IOContext> ep_;
+std::shared_ptr<TestSession>      se;
+std::shared_ptr<TestASession>     se2;
 
 
 inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
@@ -162,7 +162,7 @@ void server_thread() {
     info = accp_channel2->GetLocal().Dump();
     LOG(LINFO, "server") << std::get<0>(info) << " " << std::get<1>(info);
 
-    ep->Loop();
+    ep_->Loop();
     cout << wutils::GetGenericError().message() << endl;
 
     LOG(LINFO, "server") << "server thread end";
