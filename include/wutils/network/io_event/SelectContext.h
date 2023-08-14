@@ -24,35 +24,35 @@ public:
     static shared_ptr<SelectContext> Create() { return shared_ptr<SelectContext>(new SelectContext()); }
 
     // control
-    Error RegisterHandle(IOHandle *handler) override {
+    Error RegisterHandle(shared_ptr<IOHandle> handler) override {
         // select fd 上限 1024
         if((this->handles_.size() + 1) >= FD_SETSIZE) {
             return eNetWorkError::CONTEXT_TOO_MUCH_HANDLE;
         }
 
-        assert(std::find(this->handles_.begin(), this->handles_.end(), handler) == this->handles_.end());
+        assert(this->handles_.find(handler) == this->handles_.end());
 
-        this->handles_.push_back(handler);
+        this->handles_.insert(handler);
 
         parseAndSetEvents(handler->socket_.Get(), handler);
         addUpdateMaxSocket(handler->socket_.Get());
 
         return eNetWorkError::OK;
     }
-    Error ModifyHandle(IOHandle *handler) override {
+    Error ModifyHandle(shared_ptr<IOHandle> handler) override {
         assert(std::find(this->handles_.begin(), this->handles_.end(), handler) != this->handles_.end());
 
         parseAndSetEvents(handler->socket_.Get(), handler);
 
         return eNetWorkError::OK;
     }
-    void UnregisterHandle(IOHandle *handler) override {
+    void UnregisterHandle(shared_ptr<IOHandle> handler) override {
         auto it = std::find(this->handles_.begin(), this->handles_.end(), handler);
         if(it == this->handles_.end()) {
             return;
         }
 
-        iterator_ = this->handles_.erase(it);
+        del_handles_.push_back(handler);
 
         rmUpdateMaxSocket(handler->socket_.Get());
 
@@ -66,6 +66,7 @@ public:
             return false;
         }
         SetAddFd(control_fd_.Get(), &read_set_);
+        this->max_fd_ = control_fd_.Get();
         return true;
     }
     void        Wake(WakeUpEvent ev) override { this->control_fd_.Write(ev); };
@@ -95,26 +96,27 @@ public:
 
         this->OnReady();
 
-        iterator_ = this->handles_.begin();
-        while(iterator_ != this->handles_.end()) {
+        auto iterator = this->handles_.begin();
+        while(iterator != this->handles_.end()) {
 
-            IOHandle *i = iterator_.operator*();
-            ++iterator_;
+            shared_ptr<IOHandle> i = iterator.operator*();
+            ++iterator;
 
             if(SetCheckFd(i->socket_.Get(), &write_set_) && SetCheckFd(i->socket_.Get(), &w_set)) {
-                i->listener_->IOOut();
+                i->IOOut();
             }
 
             if(SetCheckFd(i->socket_.Get(), &read_set_) && SetCheckFd(i->socket_.Get(), &r_set)) {
-                i->listener_->IOIn();
+                i->IOIn();
             }
         }
 
+        this->real_del();
         return LOOP;
     }
 
 private:
-    void parseAndSetEvents(socket_t socket, IOHandle *handle) {
+    void parseAndSetEvents(socket_t socket, shared_ptr<IOHandle> handle) {
         if(handle->EnableIn()) {
             SetAddFd(socket, &read_set_);
         } else {
@@ -132,7 +134,9 @@ private:
         }
         this->max_fd_ = INVALID_SOCKET;
 
-        static auto f = [this](IOHandle *handle) { this->max_fd_ = std::max(this->max_fd_, handle->socket_.Get()); };
+        static auto f = [this](shared_ptr<IOHandle> handle) {
+            this->max_fd_ = std::max(this->max_fd_, handle->socket_.Get());
+        };
         std::for_each(this->handles_.begin(), this->handles_.end(), f);
     }
     void addUpdateMaxSocket(socket_t the_new) {
@@ -140,13 +144,19 @@ private:
             this->max_fd_ = the_new;
         }
     }
+    void real_del() {
+        for(auto it : del_handles_) {
+            this->handles_.erase(it);
+        }
+        this->del_handles_.clear();
+    }
 
 private:
     fd_set_t read_set_;
     fd_set_t write_set_;
 
-    std::list<IOHandle *>           handles_;
-    std::list<IOHandle *>::iterator iterator_;
+    std::unordered_set<shared_ptr<IOHandle>> handles_;
+    std::list<shared_ptr<IOHandle>>          del_handles_; // 确保指针生命
 
     socket_t max_fd_{INVALID_SOCKET};
 

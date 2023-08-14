@@ -78,7 +78,7 @@ shared_ptr<ssl::SslContext>       ssl_context_client;
 std::shared_ptr<TestSession>      se;
 std::shared_ptr<event::IOContext> ep_;
 
-inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
+inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, shared_ptr<event::IOHandle> handler) {
     auto info = remote.Dump();
 
     LOG(LINFO, "accept") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info);

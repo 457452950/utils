@@ -97,7 +97,7 @@ public:
 std::shared_ptr<TestSession>      se;
 std::shared_ptr<event::IOContext> ep_;
 
-inline auto ac_cb = [](const NetAddress &local, NetAddress *remote, unique_ptr<event::IOHandle> handler) {
+inline auto ac_cb = [](const NetAddress &local, NetAddress *remote, shared_ptr<event::IOHandle> handler) {
     auto info = remote->Dump();
     auto lo   = local.Dump();
     LOG(LINFO, "accept") << "local " << std::get<0>(lo) << " " << std::get<1>(lo) << " accept : info "

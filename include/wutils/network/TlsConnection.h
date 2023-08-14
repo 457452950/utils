@@ -12,7 +12,7 @@ class TlsConnection : public event::IOEvent {
 private:
     TlsConnection(NetAddress                  local,
                   NetAddress                  remote,
-                  unique_ptr<event::IOHandle> handle,
+                  shared_ptr<event::IOHandle> handle,
                   shared_ptr<ssl::SslContext> ssl_context) :
         local_(std::move(local)),
         remote_(std::move(remote)), handle_(std::move(handle)), n_socket_(handle_->socket_),
@@ -25,12 +25,13 @@ private:
 public:
     static shared_ptr<TlsConnection> Create(NetAddress                  local,
                                             NetAddress                  remote,
-                                            unique_ptr<event::IOHandle> handle,
+                                            shared_ptr<event::IOHandle> handle,
                                             shared_ptr<ssl::SslContext> ssl_context) {
         return shared_ptr<TlsConnection>(new TlsConnection(local, remote, std::move(handle), ssl_context));
     }
 
     ~TlsConnection() override {
+        handle_->listener_ = nullptr;
         handle_->DisEnable();
         handle_.reset();
         ssl_socket_.Close();
@@ -134,7 +135,7 @@ private:
 private:
     NetAddress                  local_;
     NetAddress                  remote_;
-    unique_ptr<event::IOHandle> handle_;
+    shared_ptr<event::IOHandle> handle_;
     ISocket                     n_socket_;
     ssl::Socket                 ssl_socket_;
 };

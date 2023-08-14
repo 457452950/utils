@@ -22,7 +22,7 @@ struct UdpBuffer {
 class UdpPoint : public event::IOEvent {
 private:
     explicit UdpPoint(shared_ptr<event::IOContext> context) {
-        handle_ = make_unique<event::IOHandle>();
+        handle_ = event::IOHandle::Create();
 
         handle_->listener_ = this;
         handle_->context_  = static_pointer_cast<event::IOContextImpl>(context);
@@ -33,6 +33,7 @@ public:
         return shared_ptr<UdpPoint>(new UdpPoint(context));
     }
     ~UdpPoint() override {
+        handle_->listener_ = nullptr;
         handle_->DisEnable();
         handle_.reset();
         socket_.Close();
@@ -145,13 +146,13 @@ private:
     bool                        is_bind_{false};
     bool                        is_connect_{false};
     udp::Socket                 socket_;
-    unique_ptr<event::IOHandle> handle_;
+    shared_ptr<event::IOHandle> handle_;
 };
 
 class AUdpPoint : public event::IOEvent {
 private:
     explicit AUdpPoint(shared_ptr<event::IOContext> context) {
-        handle_ = make_unique<event::IOHandle>();
+        handle_ = event::IOHandle::Create();
 
         handle_->listener_ = this;
         handle_->context_  = static_pointer_cast<event::IOContextImpl>(context);
@@ -162,6 +163,7 @@ public:
         return shared_ptr<AUdpPoint>(new AUdpPoint(context));
     }
     ~AUdpPoint() override {
+        handle_->listener_ = nullptr;
         handle_->DisEnable();
         handle_.reset();
         socket_.Close();
@@ -317,7 +319,7 @@ private:
     bool                        is_bind_{false};
     bool                        is_connect_{false};
     udp::Socket                 socket_;
-    unique_ptr<event::IOHandle> handle_;
+    shared_ptr<event::IOHandle> handle_;
 };
 
 } // namespace wutils::network

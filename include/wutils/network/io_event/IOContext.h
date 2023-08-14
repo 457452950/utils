@@ -28,9 +28,7 @@ public:
     // noncopyable
     IOContext(const IOContext &)            = delete;
     IOContext &operator=(const IOContext &) = delete;
-
-
-    // TODO:
+    
     using Task = std::function<void()>;
 
     virtual void Post(Task &&task) = 0;
@@ -50,9 +48,39 @@ public:
     ~IOContextImpl() override = default;
 
     // control
-    virtual Error RegisterHandle(IOHandle *handler)   = 0;
-    virtual Error ModifyHandle(IOHandle *handler)     = 0;
-    virtual void  UnregisterHandle(IOHandle *handler) = 0;
+    Error Register(shared_ptr<IOHandle> handle) {
+        if(isCurrentThread()) {
+            return this->RegisterHandle(handle);
+        } else {
+            this->Post([this, handle]() {
+                auto err = this->RegisterHandle(handle);
+                if(err) {
+                    this->handleError(err);
+                }
+            });
+        }
+        return {};
+    };
+    Error Modify(shared_ptr<IOHandle> handle) {
+        if(isCurrentThread()) {
+            return this->ModifyHandle(handle);
+        } else {
+            this->Post([this, handle]() {
+                auto err = this->ModifyHandle(handle);
+                if(err) {
+                    this->handleError(err);
+                }
+            });
+        }
+        return {};
+    }
+    void Unregister(shared_ptr<IOHandle> handle) {
+        if(isCurrentThread()) {
+            this->UnregisterHandle(handle);
+        } else {
+            this->Post([this, handle]() { this->UnregisterHandle(handle); });
+        }
+    }
 
 
 protected:
@@ -62,6 +90,11 @@ protected:
         TIMEOUT = 2,
         LOOP    = 3,
     };
+
+    // control
+    virtual Error RegisterHandle(shared_ptr<IOHandle> handle)   = 0;
+    virtual Error ModifyHandle(shared_ptr<IOHandle> handle)     = 0;
+    virtual void  UnregisterHandle(shared_ptr<IOHandle> handle) = 0;
 
     void Loop() final {
         using namespace std::chrono_literals;
@@ -104,6 +137,7 @@ protected:
 
     void OnReady() { assert(isCurrentThread()); }
 
+
     void Post(Task &&task) final {
         if(isCurrentThread()) {
             task();
@@ -123,6 +157,12 @@ protected:
         }
     }
 
+    void handleError(Error error) {
+        if(OnError) {
+            OnError(error);
+        }
+    }
+
     std::thread::id  thread_id_;
     std::atomic_bool active_{false};
 
@@ -131,7 +171,7 @@ private:
     std::queue<Task> tasks_;
 };
 
-class IOHandle {
+class IOHandle : public enable_shared_from_this<IOHandle> {
 public:
     using Listener = IOEvent *;
 
@@ -139,14 +179,25 @@ public:
     Listener                listener_{nullptr};
     weak_ptr<IOContextImpl> context_;
 
+    static shared_ptr<IOHandle> Create() { return shared_ptr<IOHandle>(new IOHandle); }
+
 private:
+    IOHandle() = default;
     uint8_t events_{0}; // EventType
     bool    enable_{false};
 
 public:
-    ~IOHandle() {
-        if(this->IsEnable()) {
-            this->DisEnable();
+    // you must disable before delete it
+    ~IOHandle() { assert(!this->IsEnable()); }
+
+    void IOIn() {
+        if(enable_ && this->listener_) {
+            this->listener_->IOIn();
+        }
+    }
+    void IOOut() {
+        if(enable_ && this->listener_) {
+            this->listener_->IOOut();
         }
     }
 
@@ -154,7 +205,7 @@ public:
     bool EnableIn() const { return this->events_ & EventType::EV_IN; }
     bool EnableOut() const { return this->events_ & EventType::EV_OUT; }
 
-    // 6 kind of input, All None in_only out_only dis_in dis_out
+    // 6 kind of input: All, None, in_only, out_only, dis_in, dis_out.
 
     [[nodiscard]] Error EnableAll() {
         // events cant be 0
@@ -199,14 +250,14 @@ public:
 
         Error err;
         if(this->enable_) {
-            err = this->context_.lock()->ModifyHandle(this);
+            err = this->context_.lock()->Modify(shared_from_this());
             assert(err != eNetWorkError::CONTEXT_CANT_FOUND_HANDLE);
             this->events_ = 0;
             this->enable_ = false;
         }
         // !enable
         else {
-            err = this->context_.lock()->RegisterHandle(this);
+            err = this->context_.lock()->Register(shared_from_this());
             if(err) {
                 this->events_ = 0;
             } else {
@@ -217,17 +268,17 @@ public:
     }
 
     void DisEnable() {
-        if(this->context_.expired()) {
-            return;
-        }
-
         if(!enable_) {
             return;
         }
 
-        this->context_.lock()->UnregisterHandle(this);
         this->events_ = 0;
         this->enable_ = false;
+
+        if(this->context_.expired()) {
+            return;
+        }
+        this->context_.lock()->Unregister(shared_from_this());
     };
 };
 

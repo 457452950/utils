@@ -14,7 +14,7 @@ namespace wutils::network {
 
 class Acceptor : public event::IOReadEvent {
 private:
-    explicit Acceptor(shared_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
+    explicit Acceptor(shared_ptr<event::IOContext> context) : handle_(event::IOHandle::Create()) {
         handle_->listener_ = this;
         handle_->context_  = static_pointer_cast<event::IOContextImpl>(context);
     }
@@ -24,6 +24,8 @@ public:
         return shared_ptr<Acceptor>(new Acceptor(std::move(context)));
     }
     ~Acceptor() override {
+        handle_->listener_ = nullptr;
+        handle_->DisEnable();
         handle_.reset();
         acceptor_.Close();
     }
@@ -74,7 +76,7 @@ public:
 
     bool SetPortReuse(bool is_set) { return this->acceptor_.SetPortReuse(is_set); }
 
-    using Accept_cb = std::function<void(const NetAddress &remote, unique_ptr<event::IOHandle> handle)>;
+    using Accept_cb = std::function<void(const NetAddress &remote, shared_ptr<event::IOHandle> handle)>;
     using Error_cb  = std::function<void(Error)>;
 
     Accept_cb OnAccept;
@@ -90,7 +92,7 @@ private:
             return;
         }
 
-        auto handle      = make_unique<event::IOHandle>();
+        auto handle      = event::IOHandle::Create();
         handle->socket_  = cli_socket;
         handle->context_ = this->handle_->context_;
 
@@ -110,13 +112,13 @@ private:
     }
 
 private:
-    unique_ptr<event::IOHandle> handle_;
+    shared_ptr<event::IOHandle> handle_;
     tcp::Acceptor               acceptor_;
 };
 
 class AAcceptor : public event::IOReadEvent {
 private:
-    explicit AAcceptor(shared_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
+    explicit AAcceptor(shared_ptr<event::IOContext> context) : handle_(event::IOHandle::Create()) {
         handle_->listener_ = this;
         handle_->context_  = static_pointer_cast<event::IOContextImpl>(context);
     }
@@ -126,6 +128,8 @@ public:
         return shared_ptr<AAcceptor>(new AAcceptor(std::move(context)));
     }
     ~AAcceptor() override {
+        handle_->listener_ = nullptr;
+        handle_->DisEnable();
         handle_.reset();
         acceptor_.Close();
     }
@@ -183,7 +187,7 @@ public:
 
     bool SetPortReuse(bool is_set) { return this->acceptor_.SetPortReuse(is_set); }
 
-    using Accept_cb = std::function<void(unique_ptr<event::IOHandle> handle)>;
+    using Accept_cb = std::function<void(shared_ptr<event::IOHandle> handle)>;
     using Error_cb  = std::function<void(Error)>;
 
     Accept_cb OnAccept;
@@ -198,7 +202,7 @@ private:
             return;
         }
 
-        auto handle      = make_unique<event::IOHandle>();
+        auto handle      = event::IOHandle::Create();
         handle->socket_  = cli_socket;
         handle->context_ = this->handle_->context_;
 
@@ -218,7 +222,7 @@ private:
     }
 
 private:
-    unique_ptr<event::IOHandle> handle_;
+    shared_ptr<event::IOHandle> handle_;
     tcp::Acceptor               acceptor_;
     AAcceptFlag                 accept_flag_{NoAccept};
     NetAddress                 *remote_{nullptr};

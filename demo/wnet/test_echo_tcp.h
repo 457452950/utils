@@ -38,14 +38,17 @@ constexpr AF_FAMILY family2 = AF_FAMILY::INET;
 
 class TestSession : public Connection::Listener {
 public:
-    explicit TestSession(std::shared_ptr<Connection> ch_) : ch(std::move(ch_)) { ch->listener_ = this; }
+    explicit TestSession(std::shared_ptr<Connection> ch_) : ch(std::move(ch_)) {
+        ch->listener_ = this;
+        ch->Init();
+    }
 
     void OnDisconnect() override {
         std::cout << "disconnect" << std::endl;
         this->ch.reset();
     }
     void OnReceive(Data data) override {
-        //        cout << "recv " << std::string((char *)message, (int)message_len) << " size " << message_len << endl;
+        //        cout << "recv " << std::string((char *)data.data, (int)data.bytes) << " size " << data.bytes << endl;
         ch->Send(data.data, data.bytes);
     }
     void OnError(wutils::Error error) override {
@@ -95,14 +98,14 @@ std::shared_ptr<TestSession>      se;
 std::shared_ptr<TestASession>     se2;
 
 
-inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
+inline auto ac_cb = [](const NetAddress &local, const NetAddress &remote, shared_ptr<event::IOHandle> handler) {
     auto info = remote.Dump();
 
     LOG(LINFO, "accept2") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info);
     auto ch = Connection::Create(local, remote, std::move(handler));
     se      = std::make_shared<TestSession>(ch);
 };
-inline auto ac2_cb = [](const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handler) {
+inline auto ac2_cb = [](const NetAddress &local, const NetAddress &remote, shared_ptr<event::IOHandle> handler) {
     auto info = remote.Dump();
 
     LOG(LINFO, "accept2") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info);
@@ -135,7 +138,6 @@ void server_thread() {
         LOG(LERROR, "server") << wutils::GetGenericError().message();
         abort();
     }
-
 
     if(accp_channel->Start(local_ed)) {
         LOG(LERROR, "server") << wutils::GetGenericError().message();
@@ -170,8 +172,9 @@ void server_thread() {
 
 void handle_pipe(int signal) {
     LOG(LINFO, "signal") << "signal " << signal;
-    ep_->Stop();
     se.reset();
+    se2.reset();
+    ep_->Stop();
 }
 
 

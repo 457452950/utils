@@ -28,10 +28,10 @@ public:
     static shared_ptr<EpollContext> Create() { return shared_ptr<EpollContext>(new EpollContext()); }
 
     // control
-    Error RegisterHandle(IOHandle *handler) override {
+    Error RegisterHandle(shared_ptr<IOHandle> handler) override {
         epoll_data_t ep_data{};
 
-        ep_data.ptr = handler;
+        ep_data.ptr = handler.get();
         auto ev     = parseToEpollEvent(handler);
 
         if(!ep.AddSocket(handler->socket_.Get(), ev, ep_data)) {
@@ -42,10 +42,10 @@ public:
 
         return eNetWorkError::OK;
     }
-    Error ModifyHandle(IOHandle *handler) override {
+    Error ModifyHandle(shared_ptr<IOHandle> handler) override {
         epoll_data_t ep_data{};
 
-        ep_data.ptr = handler;
+        ep_data.ptr = handler.get();
         auto ev     = parseToEpollEvent(handler);
 
         bool ok = ep.ModifySocket(handler->socket_.Get(), ev, ep_data);
@@ -55,11 +55,11 @@ public:
             return GetGenericError();
         }
     }
-    void UnregisterHandle(IOHandle *handler) override {
+    void UnregisterHandle(shared_ptr<IOHandle> handler) override {
         this->ep.RemoveSocket(handler->socket_.Get());
         --this->fd_count_;
 
-        this->ready_to_del_.insert(handler);
+        this->ready_to_del_.push_back(handler);
     }
 
     bool Init() override {
@@ -76,9 +76,7 @@ public:
     }
     void        Wake(WakeUpEvent ev) override { this->control_fd_.Write(ev); };
     WakeUpEvent Once(std::chrono::milliseconds time_out) override {
-        if(epoll_events_.size() != this->fd_count_) {
-            epoll_events_.resize(this->fd_count_);
-        }
+        resetEpollEventSize();
 
         auto events_size = ep.GetEvents(epoll_events_.data(), epoll_events_.size(), time_out.count());
 
@@ -116,22 +114,14 @@ public:
             // check
             assert(pHandle);
 
-            if(this->ready_to_del_.count(pHandle)) {
-                continue;
-            }
-
             assert(pHandle->socket_.Get() > 0);
 
             if(ev & EPOLLOUT && pHandle->EnableOut()) {
-                pHandle->listener_->IOOut();
-            }
-
-            if(this->ready_to_del_.count(pHandle)) {
-                continue;
+                pHandle->IOOut();
             }
 
             if(ev & EPOLLIN && pHandle->EnableIn()) {
-                pHandle->listener_->IOIn();
+                pHandle->IOIn();
             }
         }
 
@@ -140,7 +130,7 @@ public:
     }
 
 private:
-    static uint32_t parseToEpollEvent(IOHandle *handle) {
+    static uint32_t parseToEpollEvent(shared_ptr<IOHandle> handle) {
         uint32_t ev = 0;
         if(handle->EnableIn()) {
             ev |= EPOLLIN;
@@ -151,6 +141,12 @@ private:
         return ev;
     }
     void realDel() { this->ready_to_del_.clear(); }
+    void resetEpollEventSize() {
+        assert(fd_count_);
+        if(std::abs(this->fd_count_ - (uint16_t)this->epoll_events_.size()) > this->fd_count_ / 10) {
+            this->epoll_events_.resize(fd_count_);
+        }
+    }
 
 private:
     Epoll    ep;
@@ -159,7 +155,7 @@ private:
 
     std::vector<epoll_event> epoll_events_;
 
-    std::unordered_set<IOHandle *> ready_to_del_;
+    std::list<shared_ptr<IOHandle>> ready_to_del_;
 };
 
 

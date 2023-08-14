@@ -32,7 +32,7 @@ HEAD_ONLY Data CopyData(const Data &data) {
 
 class Connection : public event::IOEvent {
 private:
-    Connection(NetAddress local, NetAddress remote, unique_ptr<event::IOHandle> handle) :
+    Connection(NetAddress local, NetAddress remote, shared_ptr<event::IOHandle> handle) :
         local_(std::move(local)), remote_(std::move(remote)), handle_(std::move(handle)) {
         handle_->listener_ = this;
 
@@ -42,10 +42,11 @@ private:
 
 public:
     static shared_ptr<Connection>
-    Create(const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handle) {
+    Create(const NetAddress &local, const NetAddress &remote, shared_ptr<event::IOHandle> handle) {
         return shared_ptr<Connection>(new Connection(local, remote, std::move(handle)));
     }
     ~Connection() override {
+        handle_->listener_ = nullptr;
         handle_->DisEnable();
         handle_.reset();
         socket_.Close();
@@ -161,7 +162,7 @@ private:
     NetAddress                  local_;
     NetAddress                  remote_;
     tcp::Socket                 socket_;
-    unique_ptr<event::IOHandle> handle_;
+    shared_ptr<event::IOHandle> handle_;
 
     // buffer
     wutils::ChainBuffer send_buffer_;
@@ -172,7 +173,7 @@ private:
  */
 class AConnection : public event::IOEvent {
 private:
-    AConnection(NetAddress local, NetAddress remote, unique_ptr<event::IOHandle> handle) :
+    AConnection(NetAddress local, NetAddress remote, shared_ptr<event::IOHandle> handle) :
         local_(std::move(local)), remote_(std::move(remote)), handle_(std::move(handle)) {
         handle_->listener_ = this;
 
@@ -184,10 +185,11 @@ private:
 
 public:
     static shared_ptr<AConnection>
-    Create(const NetAddress &local, const NetAddress &remote, unique_ptr<event::IOHandle> handle) {
+    Create(const NetAddress &local, const NetAddress &remote, shared_ptr<event::IOHandle> handle) {
         return shared_ptr<AConnection>(new AConnection(local, remote, std::move(handle)));
     }
     ~AConnection() override {
+        handle_->listener_ = nullptr;
         handle_->DisEnable();
         handle_.reset();
         socket_.Close();
@@ -362,7 +364,7 @@ private:
     NetAddress remote_;
 
     tcp::Socket                 socket_;
-    unique_ptr<event::IOHandle> handle_;
+    shared_ptr<event::IOHandle> handle_;
 
     // buffer
     Buffer              recv_buffer_;

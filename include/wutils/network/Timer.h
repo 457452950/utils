@@ -13,7 +13,7 @@ namespace wutils::network {
 
 class Timer : public event::IOReadEvent {
 private:
-    explicit Timer(shared_ptr<event::IOContext> context) : handle_(make_unique<event::IOHandle>()) {
+    explicit Timer(shared_ptr<event::IOContext> context) : handle_(event::IOHandle::Create()) {
         handle_->listener_ = this;
         handle_->context_  = static_pointer_cast<event::IOContextImpl>(context);
         handle_->socket_   = this->socket_;
@@ -29,6 +29,8 @@ public:
         this->Stop();
 
         // release
+        handle_->listener_ = nullptr;
+        handle_->DisEnable();
         handle_.reset();
         this->socket_.Close();
     }
@@ -121,7 +123,7 @@ private:
     }
 
 private:
-    unique_ptr<event::IOHandle> handle_;
+    shared_ptr<event::IOHandle> handle_;
     timer::Socket               socket_;
     int32_t                     times_{};
 };
