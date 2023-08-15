@@ -64,7 +64,7 @@ public:
         }
 
         void del() {
-            std::unique_lock<std::mutex>(m);
+            std::unique_lock<std::mutex> lock_1(instance_->m);
             instance_->sessions2.erase(shared_from_this());
         }
 
@@ -75,16 +75,21 @@ public:
     class TestASession : public AConnection::Listener, public enable_shared_from_this<TestASession> {
     public:
         explicit TestASession(std::shared_ptr<AConnection> ch_) : ch(std::move(ch_)) {
+            this->thread_id    = this_thread::get_id();
             ch->listener_      = this;
             buffer_.buffer     = new uint8_t[4096];
             buffer_.buffer_len = 4096;
 
             ch->AReceive(buffer_, AConnection::ARecvFlag::Keep);
         }
-        ~TestASession() override { delete[] buffer_.buffer; }
+        ~TestASession() override {
+            assert(isCurrent());
+            delete[] buffer_.buffer;
+        }
 
         void OnDisconnect() override {
-            std::cout << "disconnect" << std::endl;
+            assert(isCurrent());
+            ch->listener_ = nullptr;
             this->ch.reset();
             del();
         }
@@ -92,43 +97,48 @@ public:
             //        cout << "recv " << std::string((char *)buffer.buffer, (int)buffer.buffer_len) << " size " <<
             //        buffer.buffer_len
             //             << endl;
+            assert(isCurrent());
             ch->ASend({buffer_.buffer, len});
         }
-        void OnSent(uint64_t len) override {}
+        void OnSent(uint64_t len) override { assert(isCurrent()); }
         void OnError(wutils::Error error) override {
+            assert(isCurrent());
             std::cout << error.message() << endl;
+            ch->listener_ = nullptr;
             this->ch.reset();
             del();
         }
         void del() {
-            std::unique_lock<std::mutex>(m);
+            std::unique_lock<std::mutex> lock_1(instance_->m);
             instance_->sessions.erase(shared_from_this());
         }
+        bool isCurrent() { return this->thread_id == this_thread::get_id(); }
 
         // private:
         Buffer                  buffer_;
         shared_ptr<AConnection> ch;
+        std::thread::id         thread_id;
     };
 
     std::function<void()> f;
 
     Server() {
-        for(int i = 0; i < 4; ++i) {
+        for(int i = 0; i < 6; ++i) {
             threads.push_back(new std::thread(&Server::server_thread, this));
         }
 
-        f = [=]() {
-            uint8_t n = random() % 4;
-            LOG(LINFO, "random") << "random :" << (int)n;
-            eps_[n]->Post([=]() { f(); });
-        };
-        std::this_thread::sleep_for(20ms);
-        std::thread a(f);
-        std::thread b(f);
-        std::thread c(f);
-        a.join();
-        b.join();
-        c.join();
+        //        f = [=]() {
+        //            uint8_t n = random() % 4;
+        //            LOG(LINFO, "random") << "random :" << (int)n;
+        //            eps_[n]->Post([=]() { f(); });
+        //        };
+        //        std::this_thread::sleep_for(20ms);
+        //        std::thread a(f);
+        //        std::thread b(f);
+        //        std::thread c(f);
+        //        a.join();
+        //        b.join();
+        //        c.join();
     }
     ~Server() {
         this->sessions.clear();
@@ -145,12 +155,12 @@ public:
     static void ac_cb(const NetAddress &local, const NetAddress &remote, shared_ptr<event::IOHandle> handler) {
         auto info = remote.Dump();
 
-        LOG(LINFO, "accept2") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info);
+        //        LOG(LINFO, "accept2") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info);
         auto ch = AConnection::Create(local, remote, std::move(handler));
 
 
         {
-            std::unique_lock<std::mutex>(m);
+            std::unique_lock<std::mutex> lock_1(instance_->m);
             instance_->sessions.insert(make_shared<TestASession>(ch));
         }
     };
@@ -160,7 +170,7 @@ public:
         LOG(LINFO, "accept2") << "accept : info " << std::get<0>(info) << " " << std::get<1>(info);
         auto ch = Connection::Create(local, remote, std::move(handler));
         {
-            std::unique_lock<std::mutex>(m);
+            std::unique_lock<std::mutex> l(instance_->m);
             instance_->sessions2.insert(make_shared<TestSession>(ch));
         }
     };
@@ -177,7 +187,7 @@ public:
         shared_ptr<event::IOContext> ep_ = CONTEXT::Create();
         ep_->Init();
         {
-            std::unique_lock<std::mutex>(m);
+            std::unique_lock<std::mutex> lock_1(m);
             this->eps_.push_back(ep_);
         }
 
@@ -188,6 +198,7 @@ public:
 
         auto accp_channel      = Acceptor::Create(ep_);
         accp_channel->OnAccept = std::bind(ac_cb, local_ed, std::placeholders::_1, std::placeholders::_2);
+        //        accp_channel->OnAccept = std::bind(ac_cb2, local_ed, std::placeholders::_1, std::placeholders::_2);
         accp_channel->OnError  = err_cb;
 
         if(!accp_channel->Open(local_ed.GetFamily())) {
