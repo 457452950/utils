@@ -29,9 +29,11 @@ public:
     IOContext(const IOContext &)            = delete;
     IOContext &operator=(const IOContext &) = delete;
 
+    // make sure it not cost too much time. it will affect the operation of the main thread.
     using Task = std::function<void()>;
 
-    virtual void Post(Task &&task) = 0;
+    enum PostMode { Auto = 0, Await = 1 };
+    virtual void Post(Task &&task, PostMode mode = Auto) = 0;
 
     std::function<void(Error)> OnError;
 
@@ -104,7 +106,13 @@ protected:
         thread_id_ = std::this_thread::get_id();
 
         while(active_) {
-            auto event = this->Once(-1ms);
+            auto time_out = -1ms;
+
+            if(!this->tasks_.empty()) {
+                time_out = 0ms;
+            }
+
+            auto event = this->Once(time_out);
 
             switch(event) {
             case FALSE: {
@@ -137,9 +145,8 @@ protected:
 
     void OnReady() { assert(isCurrentThread()); }
 
-
-    void Post(Task &&task) final {
-        if(isCurrentThread()) {
+    void Post(Task &&task, PostMode mode = Auto) final {
+        if(isCurrentThread() && mode == Auto) {
             task();
         } else {
             std::unique_lock<std::mutex> _t(this->mutex_);

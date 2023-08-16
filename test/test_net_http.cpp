@@ -2,6 +2,8 @@
 
 #include "wutils/net/http/base/Tools.h"
 #include "wutils/net/http/Url.h"
+#include "wutils/net/http/url/Scheme.h"
+
 
 TEST(net, http_get_date) {
     using namespace wutils::net;
@@ -85,5 +87,36 @@ TEST(net, http_parse_url) {
     {
         http::Url url1("http://www.baidu.com:65536");
         ASSERT_FALSE(url1.IsValid());
+    }
+}
+
+TEST(net, url_scheme) {
+    using namespace wutils::net::http;
+    {
+        auto r = ServiceHelper::GetServiceDefaultPort("http");
+        ASSERT_TRUE(r.valid());
+        auto res = r.get();
+        ASSERT_TRUE(res.Success()) << res.GetError().message();
+        ASSERT_EQ(res.Get(), 80);
+    }
+    {
+        auto r = ServiceHelper::GetServiceDefaultPort("https");
+        ASSERT_TRUE(r.valid());
+        auto res = r.get();
+        ASSERT_TRUE(res.Success()) << res.GetError().message();
+        ASSERT_EQ(res.Get(), 443);
+    }
+    {
+        auto r = ServiceHelper::GetServiceDefaultPort("ssh");
+        ASSERT_TRUE(r.valid());
+        auto res = r.get();
+        ASSERT_TRUE(res.Success()) << res.GetError().message();
+        ASSERT_EQ(res.Get(), 22);
+    }
+    {
+        auto r = ServiceHelper::GetServiceDefaultPort("ws");
+        ASSERT_TRUE(r.valid());
+        auto res = r.get();
+        ASSERT_FALSE(res.Success()) << res.Get() << res.GetError().message();
     }
 }

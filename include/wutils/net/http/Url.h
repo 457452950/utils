@@ -9,24 +9,12 @@
 #include <vector>
 #include <unordered_set>
 
+#include "url/Scheme.h"
 
 namespace wutils::net::http {
 
-const std::string_view URL_SCHEME_HTTP_HEAD  = "http";
-const std::string_view URL_SCHEME_HTTPS_HEAD = "https";
-const std::string_view URL_SCHEME_WS_HEAD    = "ws";
-const std::string_view URL_SCHEME_WSS_HEAD   = "wss";
-const std::string_view URL_SCHEME_FTP_HEAD   = "ftp";
 
-std::unordered_set<std::string_view> SchemeMap = {
-        URL_SCHEME_HTTP_HEAD,
-        URL_SCHEME_HTTPS_HEAD,
-        URL_SCHEME_WS_HEAD,
-        URL_SCHEME_WSS_HEAD,
-        URL_SCHEME_FTP_HEAD,
-};
-
-const std::string_view URL_SCHEME_P = "//:";
+HEAD_ONLY const std::string_view URL_SCHEME_SIGN = "//:";
 
 class Url {
 public:
@@ -41,6 +29,7 @@ public:
     std::string ToString() { return url_; }
 
     bool IsValid() { return valid_; }
+    bool HasParameters() { return !parameters_.empty(); }
 
     std::string_view                                    GetPath() const { return path_; }
     std::string_view                                    GetScheme() const { return scheme_; }
@@ -54,7 +43,7 @@ private:
         try {
             std::string_view url = this->url_;
 
-            auto sch_pos = url.find_first_of(URL_SCHEME_P);
+            auto sch_pos = url.find_first_of(URL_SCHEME_SIGN);
             if(sch_pos < url.size()) {
                 // found //:
                 this->scheme_ = url.substr(0, sch_pos);

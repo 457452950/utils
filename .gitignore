@@ -38,3 +38,5 @@ demo/bin/
 *.log
 *.cbp
 .VSCodeCounter
+out
+test/google_test_run

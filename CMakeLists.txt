@@ -88,6 +88,7 @@ if (UNIX)
                 include/wutils/net/http/Worker.h
                 include/wutils/net/http/Url.h
                 include/wutils/net/http/base/RCode.h
+                include/wutils/net/http/url/Scheme.h
         )
 
         add_subdirectory(demo)

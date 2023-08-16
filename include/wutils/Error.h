@@ -5,6 +5,7 @@
 #include <system_error>
 #include <string>
 
+#include "base/HeadOnly.h"
 
 namespace wutils {
 
@@ -13,9 +14,7 @@ using Error = std::error_code;
 using std::error_category;
 using std::make_error_code;
 
-Error GetGenericError() {
-    return {errno, std::generic_category()};
-}
+HEAD_ONLY Error GetGenericError() { return {errno, std::generic_category()}; }
 
 
 } // namespace wutils

@@ -5,7 +5,6 @@
 #include <netdb.h>
 
 #include "wutils/Error.h"
-#include "wutils/network/base/Definition.h"
 
 namespace wutils::net::dns {
 
