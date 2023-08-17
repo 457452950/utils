@@ -157,7 +157,7 @@ protected:
     bool isCurrentThread() { return this->thread_id_ == std::this_thread::get_id(); }
     void doTasks() {
         assert(isCurrentThread());
-        while(!tasks_.empty()) {
+        while(!tasks_.empty() && active_) {
             this->mutex_.lock();
             auto f = tasks_.front();
             tasks_.pop();

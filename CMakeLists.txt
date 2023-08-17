@@ -89,6 +89,7 @@ if (UNIX)
                 include/wutils/net/http/Url.h
                 include/wutils/net/http/base/RCode.h
                 include/wutils/net/http/url/Scheme.h
+                include/wutils/timer/TimerWheel.h
         )
 
         add_subdirectory(demo)
