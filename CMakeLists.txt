@@ -77,11 +77,11 @@ if (UNIX)
                 include/wutils/network/ssl/ssl.h
                 include/wutils/network/ssl/Error.h
 
-                include/wutils/net/http/Method.h
-                include/wutils/net/http/Request.h
-
                 include/wutils/net/dns/DNS.h
                 include/wutils/net/dns/Error.h
+
+                include/wutils/net/http/Method.h
+                include/wutils/net/http/Request.h
                 include/wutils/net/http/Header.h
                 include/wutils/net/http/base/Tools.h
                 include/wutils/net/http/Server.h
@@ -89,7 +89,9 @@ if (UNIX)
                 include/wutils/net/http/Url.h
                 include/wutils/net/http/base/RCode.h
                 include/wutils/net/http/url/Scheme.h
-                include/wutils/timer/TimerWheel.h
+
+                include/wutils/timer/Task.h
+                include/wutils/timer/EasyContext.h
         )
 
         add_subdirectory(demo)

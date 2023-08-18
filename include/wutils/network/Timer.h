@@ -94,6 +94,9 @@ public:
         if(handle_) {
             if(handle_->IsEnable()) {
                 handle_->DisEnable();
+
+                ::itimerspec it{};
+                this->socket_.SetTimeOut(&it);
             }
         }
     }
