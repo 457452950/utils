@@ -9,6 +9,7 @@
 #include "wutils/network/base/ISocket.h"
 #include "IOEvent.h"
 #include "wutils/network/Error.h"
+#include "wutils/timer/EasyContext.h"
 
 namespace wutils::network::event {
 
@@ -29,11 +30,24 @@ public:
     IOContext(const IOContext &)            = delete;
     IOContext &operator=(const IOContext &) = delete;
 
+    // task
+
     // make sure it not cost too much time. it will affect the operation of the main thread.
     using Task = std::function<void()>;
 
     enum PostMode { Auto = 0, Await = 1 };
-    virtual void Post(Task &&task, PostMode mode = Auto) = 0;
+    virtual void Post(Task &&task, PostMode mode = Auto)      = 0;
+    virtual void Post(const Task &task, PostMode mode = Auto) = 0;
+
+    // timer
+
+    using millisec = std::chrono::milliseconds;
+    using TType    = timer::Type;
+
+    virtual void AddTimer(Task &&task, millisec time_out, TType type = TType::Sync)      = 0;
+    virtual void AddTimer(const Task &task, millisec time_out, TType type = TType::Sync) = 0;
+
+    //
 
     std::function<void(Error)> OnError;
 
@@ -46,7 +60,7 @@ public:
 
 class IOContextImpl : public IOContext {
 public:
-    IOContextImpl()           = default;
+    IOContextImpl() { timer_context_ = timer::EasyContext::Create(); };
     ~IOContextImpl() override = default;
 
     // control
@@ -105,9 +119,8 @@ protected:
 
         thread_id_ = std::this_thread::get_id();
 
+        std::chrono::milliseconds time_out = 0ms;
         while(active_) {
-            auto time_out = -1ms;
-
             if(!this->tasks_.empty()) {
                 time_out = 0ms;
             }
@@ -133,6 +146,7 @@ protected:
             }
 
             this->doTasks();
+            time_out = timer_context_->DoTasks();
         }
     }
     void Stop() final {
@@ -154,10 +168,41 @@ protected:
             this->Wake(LOOP);
         }
     }
+    void Post(const Task &task, PostMode mode = Auto) final {
+        if(isCurrentThread() && mode == Auto) {
+            task();
+        } else {
+            std::unique_lock<std::mutex> _t(this->mutex_);
+            this->tasks_.push(task);
+            this->Wake(LOOP);
+        }
+    }
+    void AddTimer(Task &&task, millisec time_out, TType type = TType::Sync) override {
+        if(isCurrentThread()) {
+            timer_context_->AddTask(std::move(task), time_out, type);
+        } else {
+            auto time = time_out + CurrentTime();
+            this->Post([this, task, time, type]() { this->timer_context_->AddTask(task, time - CurrentTime(), type); });
+        }
+    }
+    void AddTimer(const Task &task, millisec time_out, TType type = TType::Sync) override {
+        if(isCurrentThread()) {
+            timer_context_->AddTask(task, time_out, type);
+        } else {
+            auto time = time_out + CurrentTime();
+            this->Post([this, task, time, type]() { this->timer_context_->AddTask(task, time - CurrentTime(), type); });
+        }
+    }
+
+    millisec CurrentTime() {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch());
+    }
+
     bool isCurrentThread() { return this->thread_id_ == std::this_thread::get_id(); }
     void doTasks() {
         assert(isCurrentThread());
-        while(!tasks_.empty()) {
+        while(!tasks_.empty() && active_) {
             this->mutex_.lock();
             auto f = tasks_.front();
             tasks_.pop();
@@ -176,8 +221,9 @@ protected:
     std::atomic_bool active_{false};
 
 private:
-    std::mutex       mutex_; // 保护 tasks
-    std::queue<Task> tasks_;
+    std::mutex                     mutex_; // 保护 tasks
+    std::queue<Task>               tasks_;
+    shared_ptr<timer::EasyContext> timer_context_;
 };
 
 class IOHandle : public enable_shared_from_this<IOHandle> {

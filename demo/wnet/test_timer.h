@@ -38,25 +38,34 @@ inline void test_timer() {
 
     timer->OnTime = [t]() {
         using namespace std::chrono;
-        LOG(LINFO, "timer") << "time out"
+        LOG(LINFO, "timer") << "time out "
                             << duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 
         static int i = 0;
         if(!i++) {
             if(!t.expired())
-                assert(t.lock()->Loop(100ms, 10).value() == 0);
+                assert(t.lock()->Loop(150ms, 10).value() == 0);
         }
         if(i == 10) {
             LOG(LINFO, "timer") << "stop";
             context->Stop();
+        } else {
+            context->AddTimer([]() { LOG(LINFO, "timer") << "context timer"; }, 60ms);
         }
     };
     LOG(LINFO, "timer") << "start" << duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
     assert(timer->Once(1s).value() == 0);
     assert(timer->IsActive());
 
+    context->AddTimer([]() { LOG(LINFO, "timer") << "context timer"; }, 200ms);
+    context->AddTimer([]() { LOG(LINFO, "timer") << "context timer"; }, 250ms);
+    context->AddTimer([]() { LOG(LINFO, "timer") << "context timer"; }, 260ms);
+    context->AddTimer([]() { LOG(LINFO, "timer") << "context timer"; }, 1200ms);
+    std::thread tttt([=]() { context->AddTimer([]() { LOG(LINFO, "timer") << "context timer"; }, 260ms); });
+    tttt.detach();
+
     context->Loop();
-    //    timer->OnTime = []() {}; // 取消绑定中的智能指针, 或者使用弱指针
+    timer->OnTime = nullptr; // 取消绑定中的智能指针, 或者使用弱指针
     context.reset();
 
     std::cout << "------------------ test timer end ------------------------" << std::endl;
