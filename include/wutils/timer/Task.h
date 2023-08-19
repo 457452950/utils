@@ -16,7 +16,8 @@ struct Task_t {
     using millisec = std::chrono::milliseconds;
 
     Task_t() = default;
-    Task_t(std::chrono::milliseconds tt, Task &&t, Type ty) : ms(tt), task(t), type(ty) {}
+    Task_t(std::chrono::milliseconds tt, Task &&t, Type ty) : ms(tt), task(std::move(t)), type(ty) {}
+    Task_t(std::chrono::milliseconds tt, const Task &t, Type ty) : ms(tt), task(t), type(ty) {}
     Task_t(const Task_t &)            = default;
     Task_t(Task_t &&)                 = default;
     Task_t &operator=(const Task_t &) = default;

@@ -23,6 +23,10 @@ public:
         using namespace std::chrono_literals;
         tasks_.emplace(CurrentTime() + time_out, std::move(task), type);
     }
+    void AddTask(const Task &task, millisec time_out, Type type = Sync) {
+        using namespace std::chrono_literals;
+        tasks_.emplace(CurrentTime() + time_out, task, type);
+    }
 
     /**
      *
