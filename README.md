@@ -7,3 +7,4 @@
 5. libuv (based v1.44.2)
 6. asio (based v1.28.0)
 7. fmtlib (based v10.0.0)
+8. sqlite3 (based v3.42.0)
