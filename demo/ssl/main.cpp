@@ -255,8 +255,6 @@ int main(int argc, char **argv) {
     srv.join();
     cli.join();
 
-    ssl::ReleaseSsl();
-
     wutils::log::Logger::GetInstance()->StopAndWait();
     return 0;
 }

@@ -26,15 +26,27 @@ HEAD_ONLY int             SSLMajorVersion() {
     return OPENSSL_version_major();
 }
 
-HEAD_ONLY void InitSsl() {
-    SSL_library_init();
-    OpenSSL_add_all_algorithms();
+// auto init, auto release
+class SslEnvironment {
+public:
+    static void Init() { static SslEnvironment env; }
+    ~SslEnvironment() { ReleaseSsl(); }
 
-    SSL_load_error_strings();
-    ERR_load_crypto_strings();
-}
+private:
+    SslEnvironment() { InitSsl(); }
 
-HEAD_ONLY void ReleaseSsl() { ERR_free_strings(); }
+    static void InitSsl() {
+        SSL_library_init();
+        OpenSSL_add_all_algorithms();
+
+        SSL_load_error_strings();
+        ERR_load_crypto_strings();
+    }
+    static void ReleaseSsl() { ERR_free_strings(); }
+};
+
+HEAD_ONLY void InitSsl() { SslEnvironment::Init(); }
+
 
 class Socket {
 public:
@@ -143,12 +155,15 @@ private:
 
 HEAD_ONLY std::vector<const SSL_METHOD *> Context_Init_Methos = {
         SSLv23_server_method(), SSLv23_client_method(), DTLS_server_method(), DTLS_client_method()};
+
 class SslContext {
 public:
     enum protocol : int8_t { TLS, DTLS };
     enum type : int8_t { SERVER, CLIENT };
 
     static shared_ptr<SslContext> Create(protocol p, type t) {
+        SslEnvironment::Init();
+
         auto context       = shared_ptr<SslContext>(new SslContext);
         context->protocol_ = p;
         context->type_     = t;

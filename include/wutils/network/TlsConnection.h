@@ -72,7 +72,9 @@ public:
         }
 
         Error err{};
-        err = this->ssl_socket_.SslWrite(data, bytes);
+        do {
+            err = this->ssl_socket_.SslWrite(data, bytes);
+        } while(err.value() == SSL_ERROR_WANT_WRITE || err.value() == SSL_ERROR_WANT_READ);
 
         if(err) {
             handleError(err);

@@ -131,21 +131,17 @@ HEAD_ONLY bool MakeSockAddr_in(const std::string &ip_address, uint16_t port, soc
     return true;
 }
 HEAD_ONLY bool MakeSockAddr_in6(const std::string &ip_address, uint16_t port, sockaddr_in6 *addr) {
-    addr->sin6_family = AF_INET6;
-    uint16_t h_port   = 0;
-    in6_addr h_addr{};
-
-    if(!HtoNS(port, &h_port)) {
-        return false;
-    }
-
-    if(!IPStringToAddress(ip_address, &h_addr)) {
-        return false;
-    }
-
-    addr->sin6_port     = h_port;
-    addr->sin6_addr     = h_addr;
+    addr->sin6_family   = AF_INET6;
     addr->sin6_flowinfo = 0;
+
+    if(!HtoNS(port, &addr->sin6_port)) {
+        return false;
+    }
+
+    if(!IPStringToAddress(ip_address, &addr->sin6_addr)) {
+        return false;
+    }
+
     return true;
 }
 

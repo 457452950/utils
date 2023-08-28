@@ -37,8 +37,6 @@ if (UNIX)
         add_library(
                 wutils
 
-                src/ByteArray.cpp
-
                 src/threadpool/ThreadPool.cpp
 
                 src/buffer/ChainBuffer.cpp
