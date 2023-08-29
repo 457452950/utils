@@ -4,6 +4,9 @@
 
 #include <cassert>
 #include <queue>
+#include <chrono>
+#include <thread>
+#include <mutex>
 
 #include "wutils/SharedPtr.h"
 #include "wutils/network/base/ISocket.h"

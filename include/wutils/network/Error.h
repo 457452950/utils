@@ -5,6 +5,7 @@
 
 #include <unordered_map>
 
+#include "wutils/base/HeadOnly.h"
 #include "wutils/Error.h"
 #include "wutils/network/base/Definition.h"
 
@@ -46,7 +47,7 @@ public:
 };
 
 
-Error make_error_code(eNetWorkError error) {
+HEAD_ONLY Error make_error_code(eNetWorkError error) {
     static NetWorkErrorCategory category;
     return {static_cast<int>(error), category};
 }
