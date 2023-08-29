@@ -8,7 +8,7 @@
 
 namespace wutils::network {
 
-struct Package {
+struct DataPackage {
     const uint8_t *data{nullptr};
     uint16_t       bytes{0};
 };
@@ -41,8 +41,8 @@ public:
 
     class Listener {
     public:
-        virtual void OnReceiveFrom(Package package, NetAddress remote) = 0;
-        virtual void OnError(Error error)                              = 0;
+        virtual void OnReceiveFrom(DataPackage package, NetAddress remote) = 0;
+        virtual void OnError(Error error)                                  = 0;
 
         virtual ~Listener() = default;
     } *listener_{nullptr};
@@ -83,7 +83,7 @@ public:
             return;
         }
     }
-    void Send(Package package) { this->Send(package.data, package.bytes); }
+    void Send(DataPackage package) { this->Send(package.data, package.bytes); }
 
     void SendTo(const uint8_t *data, uint16_t bytes, const NetAddress &remote) {
         int64_t len = 0;
@@ -98,7 +98,7 @@ public:
             return;
         }
     }
-    void SendTo(Package package, const NetAddress &remote) { this->SendTo(package.data, package.bytes, remote); }
+    void SendTo(DataPackage package, const NetAddress &remote) { this->SendTo(package.data, package.bytes, remote); }
 
     bool              IsBinded() const { return is_bind_; }
     const NetAddress &GetLocalAddress() { return local_; }
@@ -204,7 +204,7 @@ public:
     }
 
     void ASend(const uint8_t *data, uint16_t bytes) { this->ASend({data, bytes}); }
-    void ASend(Package package) {
+    void ASend(DataPackage package) {
         assert(this->is_connect_);
 
         int64_t len = 0;
@@ -224,7 +224,7 @@ public:
     void ASendTo(const uint8_t *data, uint16_t bytes, const NetAddress &remote) {
         this->ASendTo({data, bytes}, remote);
     }
-    void ASendTo(Package package, const NetAddress &remote) {
+    void ASendTo(DataPackage package, const NetAddress &remote) {
         int64_t len = 0;
 
         len = this->socket_.SendTo(package.data, package.bytes, remote);

@@ -51,7 +51,7 @@ public:
         point_->listener_ = nullptr;
         point_.reset();
     }
-    void OnReceiveFrom(wutils::network::Package package, wutils::network::NetAddress remote) override {
+    void OnReceiveFrom(wutils::network::DataPackage package, wutils::network::NetAddress remote) override {
         //        LOG(LINFO, "server") << "recv pack : " << std::string((char *)package.data, package.bytes).c_str() <<
         //        " len " << package.bytes;
 
