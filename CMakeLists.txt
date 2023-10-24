@@ -87,11 +87,12 @@ if (UNIX)
                 include/wutils/net/http/Url.h
                 include/wutils/net/http/base/RCode.h
                 include/wutils/net/http/url/Scheme.h
+                
 
                 include/wutils/timer/Task.h
                 include/wutils/timer/EasyContext.h
+                include/wutils/message_queue/MQueue.h
         )
-
         add_subdirectory(demo)
 
         add_subdirectory(test)

@@ -13,9 +13,6 @@
 #include "wutils/Format.h"
 #include "wutils/SharedPtr.h"
 
-// #define FILENAME(x) strrchr(x, '/') ? (strrchr(x, '/') + 1) : x
-// #define FILENAME_ FILENAME(__FILE__)
-
 namespace wutils::log {
 
 namespace LOG_TYPE {

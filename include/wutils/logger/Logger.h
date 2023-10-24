@@ -12,8 +12,6 @@
 #include <unordered_set>
 #include <vector>
 
-
-#include "wutils/base/InstanceHelper.h"
 #include "wutils/logger/base/LogBase.h"
 #include "wutils/logger/base/LogFile.h"
 
@@ -28,13 +26,13 @@ public:
         }
         return instance_;
     }
-
-private:
-    static Logger *instance_;
-    Logger()                          = default;
     Logger(const Logger &)            = delete;
     Logger(Logger &&)                 = delete;
     Logger &operator=(const Logger &) = delete;
+
+private:
+    static Logger *instance_;
+    Logger() = default;
 
 public:
     Logger *LogCout() {
@@ -163,7 +161,7 @@ private:
     std::condition_variable_any cv_;
 };
 
-inline InstanceInit(nullptr, Logger);
+Logger *Logger::instance_ = nullptr;
 
 } // namespace wutils::log
 
