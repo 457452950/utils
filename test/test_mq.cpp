@@ -2,7 +2,6 @@
 #include <thread>
 #include <chrono>
 
-#include "wutils/net/dns/DNS.h"
 #include "wutils/message_queue/MQueue.h"
 
 struct TestInt {
@@ -22,8 +21,8 @@ struct TestInt {
 
     int i;
 };
-using TestQueue         = wutils::MQueue<TestInt, std::list<TestInt>>;
-// using TestQueue         = wutils::MQueue<TestInt>;
+// using TestQueue         = wutils::MQueue<TestInt, std::list<TestInt>>;
+using TestQueue         = wutils::MQueue<TestInt>;
 constexpr int max_vl    = 10000000;
 constexpr int max_count = 3 * max_vl;
 
