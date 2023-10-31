@@ -295,8 +295,6 @@ inline void test_tls_connection() {
     if(se)
         se.reset();
 
-    ssl::ReleaseSsl();
-
     cout << "-------------------- test tls channel end --------------------" << endl;
 }
 
